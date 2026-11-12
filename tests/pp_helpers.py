@@ -73,7 +73,7 @@ def sha(p) -> str:
 def tree(d) -> dict[str, str]:
     """Every file under d (relative path -> sha256), to prove nothing was moved, renamed or rewritten."""
     d = Path(d)
-    return {str(f.relative_to(d)): sha(f) for f in sorted(d.rglob("*")) if f.is_file()}
+    return {f.relative_to(d).as_posix(): sha(f) for f in sorted(d.rglob("*")) if f.is_file()}
 
 
 def legacy_folder(root: Path, batches=("L1",)) -> Path:

@@ -90,6 +90,24 @@ def is_within(path, root) -> bool:
         return False
 
 
+def shell_quote(text: str) -> str:
+    """Quote one word for a command line a person will paste: POSIX shell rules on macOS and Linux (shlex.quote, unchanged),
+    double quotes on Windows. For text shown to the operator only; Polybench never runs it through a shell itself."""
+    if IS_WINDOWS:
+        return '"' + str(text).replace('"', '\\"') + '"'
+    import shlex
+    return shlex.quote(str(text))
+
+
+def restore_file_command(master: str, good: str) -> str:
+    """A one-line command that keeps a broken `master` as `master.broken` (when it exists) and copies `good` over it.
+    macOS and Linux: sh, unchanged. Windows: cmd.exe (HOST-ONLY text: the wording is checked, it is not run on a bench)."""
+    q = shell_quote
+    if IS_WINDOWS:
+        return f'(if exist {q(master)} copy /Y {q(master)} {q(master + ".broken")}) & copy /Y {q(good)} {q(master)}'
+    return f"{{ [ ! -e {q(master)} ] || cp -p {q(master)} {q(master + '.broken')}; }} && cp -p {q(good)} {q(master)}"
+
+
 def temp_dir() -> Path:
     import tempfile
     return Path(tempfile.gettempdir())

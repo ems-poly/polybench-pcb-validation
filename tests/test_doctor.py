@@ -1,6 +1,7 @@
 """polybench doctor: read-only preflight. Everything hardware-facing is replaced; nothing here touches USB, CAN or a LAN."""
 import hashlib
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -97,6 +98,7 @@ def test_fusion_wrong_document_warns(monkeypatch):
 
 def _proto(tmp_path, image, sha):
     from polybench.protocol import load
+    image = Path(image).as_posix()                       # a Windows path inside YAML double quotes would read \U as an escape
     (tmp_path / "p.pcbv.yaml").write_text(textwrap.dedent(f'''\
         schema: pcbv.protocol/2
         design: {{name: T, revision: "1"}}

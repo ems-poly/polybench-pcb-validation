@@ -164,7 +164,8 @@ def test_valid_but_short_settings_get_every_field_on_write(tmp_path):
 
 
 # ------------------------------------------------------------------------------------------------------------ D4
-@pytest.mark.skipif(getattr(os, "geteuid", lambda: 1)() == 0, reason="root can read everything")
+@pytest.mark.skipif(getattr(os, "geteuid", lambda: 1)() == 0 or os.name == "nt",
+                    reason="root can read everything; Windows has no POSIX mode 0 (needs an ACL-based test)")
 def test_unreadable_folders_are_marked_not_500(tmp_path):
     """D4: fs/list, inspect and locate cope with a folder the user may not read."""
     sess = new_project_session(tmp_path / "proj")
@@ -223,6 +224,7 @@ def test_new_project_warns_and_needs_confirm(tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))                  # Path.home() on Windows
     cases = {legacy / "L1": "batch_folder", legacy / "L1" / "sub": "inside_batch", home: "home", parent: "parent_of_project"}
     with client(sess) as c:
         for d, code in cases.items():
@@ -352,6 +354,7 @@ def test_bom_browser_filters_to_bom_files(tmp_path):
 
 
 # ------------------------------------------------------------------------------------------------- reviewer's API attacks
+@pytest.mark.skipif(os.name == "nt", reason="the attack paths are POSIX system folders; on Windows /System/qa is a writable folder on the current drive (needs a Windows list)")
 def test_reviewer_api_attacks_never_500(tmp_path):
     """The paths the reviewer's attack scripts threw at the folder routes (api_attack3.log): none may answer 5xx; reveal stays inside."""
     sess = new_project_session(tmp_path / "proj")

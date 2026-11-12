@@ -272,7 +272,7 @@ def test_protocol_and_bom_referenced_never_copied(tmp_path):
         assert c.post("/api/bom/load", json={"path": str(CSV_BOM)}).status_code == 200
     s = settings(d)
     assert s["protocol_path"] == str(DEMO_PROTO.resolve()) and s["bom_path"] == str(CSV_BOM.resolve())
-    files = {str(f.relative_to(d)) for f in d.rglob("*") if f.is_file()}
+    files = {f.relative_to(d).as_posix() for f in d.rglob("*") if f.is_file()}
     assert not any(f.endswith(".csv") for f in files)
     outside_snapshot = {f for f in files if not f.startswith("B1/protocol/")}
     assert outside_snapshot == {"polybench-project.json", "B1/journal.jsonl"}

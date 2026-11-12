@@ -73,7 +73,8 @@ def test_d1_no_history_prints_the_recovery_command(tmp_path, monkeypatch):
     proto, info = recovery.try_recover(load(top), top, tmp_path / "nodata", "ai")
     assert proto is None
     txt = recovery.console_text(info, False)
-    assert f"polybench plan lint {d / 'PLAN.md'}" in txt and "no earlier plan" in txt
+    from polybench import platform as pf
+    assert f"polybench plan lint {pf.shell_quote(str(d / 'PLAN.md'))}" in txt and "no earlier plan" in txt
 
 
 def test_d1_cmd_serve_exits_2_without_history_and_starts_with_it(tmp_path, monkeypatch, capsys):

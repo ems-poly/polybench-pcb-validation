@@ -158,3 +158,19 @@ def test_kicad_socket_candidates_are_empty_on_windows_until_w3(as_os):
     assert pf.kicad_socket_candidates() == [] and not pf.has_unix_sockets()
     as_os("macos")
     assert pf.kicad_socket_candidates() == ["/tmp/kicad"]
+
+
+def test_shell_quote_and_restore_command_for_each_os(as_os):
+    as_os("macos")
+    assert pf.shell_quote("/a b/PLAN.md") == "'/a b/PLAN.md'" and pf.shell_quote("/a/PLAN.md") == "/a/PLAN.md"
+    assert pf.restore_file_command("/a/P.md", "/h/1.md") == "{ [ ! -e /a/P.md ] || cp -p /a/P.md /a/P.md.broken; } && cp -p /h/1.md /a/P.md"
+    as_os("windows")
+    assert pf.shell_quote(r"C:\a b\P.md") == '"C:\\a b\\P.md"'
+    cmd = pf.restore_file_command(r"C:\a\P.md", r"C:\h\1.md")
+    assert cmd.startswith("(if exist ") and "copy /Y" in cmd and '"C:\\a\\P.md.broken"' in cmd
+
+
+def test_is_within_compares_path_parts_not_text(as_os, tmp_path):
+    assert pf.is_within(tmp_path / "proj" / "x", tmp_path / "proj") and pf.is_within(tmp_path / "proj", tmp_path / "proj")
+    assert not pf.is_within(str(tmp_path / "proj") + "-sibling", tmp_path / "proj")
+    assert not pf.is_within(tmp_path, tmp_path / "proj")

@@ -1853,7 +1853,7 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
         moved = ""
         if src.is_file():
             shutil.move(str(src), str(dst))
-            moved = str(dst.relative_to(sess.dir))
+            moved = dst.relative_to(sess.dir).as_posix()          # the journal keeps forward slashes on every OS
         r = eng.aoi_remove(file, body.get("reason", ""), moved)
         await sess.broadcast({"kind": "state"})
         return r

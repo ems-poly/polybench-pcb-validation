@@ -46,6 +46,8 @@ jobs:
           echo "POLYBENCH_CONFIG_DIR=$RUNNER_TEMP/polybench-config" >> "$GITHUB_ENV"
       - name: Install with the extras the simulator tests need
         run: python -m pip install -e ".[dev,scanner,aoi,kicad,camera]"
+      - name: Install the WebKit browser the page tests drive
+        run: python -m playwright install --with-deps webkit
       - name: Test (simulator only, no browser click-through)
         run: python -m pytest -m "not e2e" -q
 

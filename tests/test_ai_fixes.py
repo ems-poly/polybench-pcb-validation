@@ -44,7 +44,7 @@ def test_d1_recovery_starts_on_the_last_good_plan(tmp_path, monkeypatch):
     assert bad.errors
     proto, info = recovery.try_recover(bad, top, tmp_path / "data", "ai")
     assert proto is not None and not proto.errors and info["restored_from"].endswith(".md")
-    assert "cp -p" in info["command"] and "PLAN.md.broken" in info["command"]
+    assert ("copy /Y" if sys.platform == "win32" else "cp -p") in info["command"] and "PLAN.md.broken" in info["command"]
     assert "STARTED WITH THE LAST GOOD PLAN" in recovery.console_text(info, True)
     assert "| P01 |" not in (d / "PLAN.md").read_text(encoding="utf-8")                                    # the master was not touched
     # the session runs on it, drafts still act on the master, and approving a corrected draft clears the banner

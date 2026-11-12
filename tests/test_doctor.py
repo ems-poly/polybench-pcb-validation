@@ -181,7 +181,7 @@ def test_param_files_checked(tmp_path):
                   - id: s
                     title: S
                     actions:
-                      - {{id: fp, title: FP, plugin: n6705b.first_power, params: {{profile: "{profile}"}}, proposes: [P1]}}
+                      - {{id: fp, title: FP, plugin: n6705b.first_power, params: {{profile: "{Path(profile).as_posix()}"}}, proposes: [P1]}}
                     tests:
                       - {{id: P1, title: V, kind: number, limit: {{class: record}}}}
             '''), encoding="utf-8")

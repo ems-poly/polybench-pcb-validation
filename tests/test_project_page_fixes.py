@@ -358,7 +358,8 @@ def test_bom_browser_filters_to_bom_files(tmp_path):
 # dot or space, a NUL byte. Nothing here may create a folder on the runner (a drive that does not exist, a share that does not exist).
 WIN_LIST_PATHS = ["C:\\", "Z:\\", "\\\\?\\C:\\", "\\\\?\\Z:\\pb", "\\\\127.0.0.1\\pbnoshare\\x", "C:\\Windows", "~\\.ssh", "C:\\nonexistent\\x\\y",
                   "C:\\Windows\\System32\\drivers\\etc\\hosts", "C:\\..\\..\\Windows", "CON", "NUL", "C:\\x\\y:stream", "C:\\x\\y.", "C:\\x\\y ", "a\x00b", ""]
-WIN_NEW_DIRS = ["Z:\\pb\\qa", "\\\\?\\Z:\\pb", "\\\\127.0.0.1\\pbnoshare\\qa", "CON\\x", "C:\\", "C:\\Windows\\win.ini", "a\x00b", ""]
+# (no relative name such as CON\\x here: the server resolves it against the working folder and would really create it)
+WIN_NEW_DIRS = ["Z:\\pb\\qa", "\\\\?\\Z:\\pb", "\\\\127.0.0.1\\pbnoshare\\qa", "C:\\", "C:\\Windows\\win.ini", "a\x00b", ""]
 POSIX_LIST_PATHS = ["a\x00b", "/", "/Users", "/var/root", "/private/var", "/private/var/root", "~/.ssh", "/etc/hosts", "/nonexistent/x/y", ""]
 POSIX_NEW_DIRS = ["a\x00b", "/System/qa", "/", "/etc/hosts", "", "/private/var"]
 LIST_PATHS, NEW_DIRS = (WIN_LIST_PATHS, WIN_NEW_DIRS) if os.name == "nt" else (POSIX_LIST_PATHS, POSIX_NEW_DIRS)

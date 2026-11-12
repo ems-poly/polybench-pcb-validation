@@ -292,7 +292,7 @@ def aoi_view(sess, board: str | None = None) -> dict:
     if run and run.get("result") and Path(run["result"]).is_file():
         from ..aoi import link, review_merge as M
         try:
-            doc = json.loads(Path(run["result"]).read_text())
+            doc = json.loads(Path(run["result"]).read_text(encoding="utf-8"))
             items = M.review_items(doc)
         except Exception as e:           # a damaged result file: say so, do not guess
             items = []

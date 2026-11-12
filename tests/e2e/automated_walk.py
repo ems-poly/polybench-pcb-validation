@@ -49,8 +49,8 @@ def variant(tmp, missing_pcan):
     shutil.copytree(EX, d)
     if missing_pcan:
         f = d / "function.yaml"
-        t = f.read_text().replace("        bitrate: 1000000\n", "        bitrate: 1000000\n        sim: {status: missing, detail: \"PCAN-USB not on USB (PEAK 0c72)\", hint: \"plug in the PCAN-USB\"}\n", 1)
-        f.write_text(t)
+        t = f.read_text(encoding="utf-8").replace("        bitrate: 1000000\n", "        bitrate: 1000000\n        sim: {status: missing, detail: \"PCAN-USB not on USB (PEAK 0c72)\", hint: \"plug in the PCAN-USB\"}\n", 1)
+        f.write_text(t, encoding="utf-8")
     return d / "demo_automated.pcbv.yaml"
 
 

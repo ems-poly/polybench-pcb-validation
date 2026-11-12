@@ -83,7 +83,7 @@ def test_csv_in_latin1_counts_lines(tmp_path):
     """D1: a purchasing CSV in another encoding still gives its line count (bytes, not decoded text)."""
     sess = new_project_session(tmp_path / "proj")
     f = tmp_path / "latin.csv"
-    f.write_bytes(CSV_BOM.read_text().replace("DEMO microcontroller", "DEMO microµcontroller").encode("latin-1"))
+    f.write_bytes(CSV_BOM.read_text(encoding="utf-8").replace("DEMO microcontroller", "DEMO microµcontroller").encode("latin-1"))
     with client(sess) as c:
         r = c.post("/api/bom/load", json={"path": str(f)})
         if r.status_code == 200:
@@ -97,7 +97,7 @@ def test_adopt_requires_protocol_and_matching_design(tmp_path):
     """D2: adopting a legacy folder needs a protocol, and refuses one whose design is not the one the journal recorded."""
     legacy = legacy_folder(tmp_path / "old", batches=("L1",))
     other = protocol_copy(tmp_path / "x")
-    other.write_text(other.read_text().replace("name: DEMO-1", "name: OTHER-DESIGN", 1))
+    other.write_text(other.read_text(encoding="utf-8").replace("name: DEMO-1", "name: OTHER-DESIGN", 1), encoding="utf-8")
     from polybench.protocol import load
     assert load(other).data["design"]["name"] == "OTHER-DESIGN"
     sess = new_project_session(tmp_path / "proj")
@@ -117,7 +117,7 @@ def test_cli_adopt_refuses_other_design(tmp_path, monkeypatch):
     """D2: `--protocol X --data-dir legacy` refuses a protocol of another design for the batch being started."""
     legacy = legacy_folder(tmp_path / "old", batches=("L1",))
     other = protocol_copy(tmp_path / "x")
-    other.write_text(other.read_text().replace("name: DEMO-1", "name: OTHER-DESIGN", 1))
+    other.write_text(other.read_text(encoding="utf-8").replace("name: DEMO-1", "name: OTHER-DESIGN", 1), encoding="utf-8")
     from polybench.cli import resolve_start
     with pytest.raises(SystemExit) as e:
         resolve_start(args(other, legacy, "L1"))
@@ -154,24 +154,25 @@ def test_valid_but_short_settings_get_every_field_on_write(tmp_path):
     sess = new_project_session(tmp_path / "proj")
     sess.journal.close()
     f = tmp_path / "proj" / wslib.SETTINGS_NAME
-    f.write_text(json.dumps({"schema": 1, "protocol_path": str(DEMO_PROTO.resolve())}))
+    f.write_text(json.dumps({"schema": 1, "protocol_path": str(DEMO_PROTO.resolve())}), encoding="utf-8")
     ws = wslib.Workspace(tmp_path / "proj")
     ws.save(bom_path=None)
-    s = json.loads(f.read_text())
+    s = json.loads(f.read_text(encoding="utf-8"))
     for k in ("schema", "name", "created", "updated", "protocol_path", "bom_path", "ecad", "current_batch"):
         assert k in s, k
     assert set(s["ecad"]) >= {"program", "document", "documents"}
 
 
 # ------------------------------------------------------------------------------------------------------------ D4
-@pytest.mark.skipif(getattr(os, "geteuid", lambda: 1)() == 0, reason="root can read everything")
+@pytest.mark.skipif(getattr(os, "geteuid", lambda: 1)() == 0 or os.name == "nt",
+                    reason="root can read everything; Windows has no POSIX mode 0 (needs an ACL-based test)")
 def test_unreadable_folders_are_marked_not_500(tmp_path):
     """D4: fs/list, inspect and locate cope with a folder the user may not read."""
     sess = new_project_session(tmp_path / "proj")
     base = tmp_path / "base"
     (base / "locked").mkdir(parents=True)
     (base / "open").mkdir()
-    (base / "locked" / "x.csv").write_text("a")
+    (base / "locked" / "x.csv").write_text("a", encoding="utf-8")
     os.chmod(base / "locked", 0)
     try:
         with client(sess) as c:
@@ -202,8 +203,8 @@ def test_stale_tmp_files_are_removed_at_start(tmp_path):
     d = tmp_path / "proj"
     old = d / f".{wslib.SETTINGS_NAME}.abc123.tmp"
     fresh = d / f".{wslib.SETTINGS_NAME}.new999.tmp"
-    old.write_text("{")
-    fresh.write_text("{")
+    old.write_text("{", encoding="utf-8")
+    fresh.write_text("{", encoding="utf-8")
     t = time.time() - 3600
     os.utime(old, (t, t))
     s2 = start(args())
@@ -223,6 +224,7 @@ def test_new_project_warns_and_needs_confirm(tmp_path, monkeypatch):
     home = tmp_path / "home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))                  # Path.home() on Windows
     cases = {legacy / "L1": "batch_folder", legacy / "L1" / "sub": "inside_batch", home: "home", parent: "parent_of_project"}
     with client(sess) as c:
         for d, code in cases.items():
@@ -340,11 +342,11 @@ def test_bom_browser_filters_to_bom_files(tmp_path):
     """F5: in BOM mode the browser lists .csv, .xlsx and .yaml with a bom: key, and counts what it hides."""
     d = tmp_path / "files"
     d.mkdir()
-    (d / "frag.yaml").write_text("steps:\n  - id: a\n")
-    (d / "withbom.yaml").write_text("design: {}\nbom:\n  - line: 1\n")
-    (d / "p.csv").write_text("a")
+    (d / "frag.yaml").write_text("steps:\n  - id: a\n", encoding="utf-8")
+    (d / "withbom.yaml").write_text("design: {}\nbom:\n  - line: 1\n", encoding="utf-8")
+    (d / "p.csv").write_text("a", encoding="utf-8")
     _xlsx(d / "q.xlsx")
-    (d / "notes.txt").write_text("x")
+    (d / "notes.txt").write_text("x", encoding="utf-8")
     r = wslib.browse(str(d), "file", ["yaml", "yml", "csv", "xlsx"], None, bom_only=True)
     assert sorted(e["name"] for e in r["entries"]) == ["p.csv", "q.xlsx", "withbom.yaml"] and r["hidden_files"] == 1
     r = wslib.browse(str(d), "file", ["yaml", "yml", "csv", "xlsx"], None)
@@ -352,24 +354,96 @@ def test_bom_browser_filters_to_bom_files(tmp_path):
 
 
 # ------------------------------------------------------------------------------------------------- reviewer's API attacks
+# Hostile paths per OS. Windows: another drive, \\?\ paths, UNC paths, device names, alternate data streams, .. traversal, a trailing
+# dot or space, a NUL byte. Nothing here may create a folder on the runner (a drive that does not exist, a share that does not exist).
+WIN_LIST_PATHS = ["C:\\", "Z:\\", "\\\\?\\C:\\", "\\\\?\\Z:\\pb", "\\\\127.0.0.1\\pbnoshare\\x", "C:\\Windows", "~\\.ssh", "C:\\nonexistent\\x\\y",
+                  "C:\\Windows\\System32\\drivers\\etc\\hosts", "C:\\..\\..\\Windows", "CON", "NUL", "C:\\x\\y:stream", "C:\\x\\y.", "C:\\x\\y ", "a\x00b", ""]
+# (no relative name such as CON\\x here: the server resolves it against the working folder and would really create it)
+WIN_NEW_DIRS = ["Z:\\pb\\qa", "\\\\?\\Z:\\pb", "\\\\127.0.0.1\\pbnoshare\\qa", "C:\\", "C:\\Windows\\win.ini", "a\x00b", ""]
+POSIX_LIST_PATHS = ["a\x00b", "/", "/Users", "/var/root", "/private/var", "/private/var/root", "~/.ssh", "/etc/hosts", "/nonexistent/x/y", ""]
+POSIX_NEW_DIRS = ["a\x00b", "/System/qa", "/", "/etc/hosts", "", "/private/var"]
+LIST_PATHS, NEW_DIRS = (WIN_LIST_PATHS, WIN_NEW_DIRS) if os.name == "nt" else (POSIX_LIST_PATHS, POSIX_NEW_DIRS)
+
+
 def test_reviewer_api_attacks_never_500(tmp_path):
     """The paths the reviewer's attack scripts threw at the folder routes (api_attack3.log): none may answer 5xx; reveal stays inside."""
     sess = new_project_session(tmp_path / "proj")
     with client(sess) as c:
-        for p in ("/", "/Users", "/var/root", "/private/var", "/private/var/root", "~/.ssh", "/etc/hosts", "/nonexistent/x/y", ""):
+        for p in LIST_PATHS:
             for mode in ("dir", "file"):
                 r = c.get("/api/fs/list", params={"path": p, "mode": mode, "exts": "csv,yaml"})
                 assert r.status_code == 200, (p, mode, r.status_code, r.text[:200])
             r = c.get("/api/project/inspect", params={"path": p})
             assert r.status_code == 200, (p, r.text[:200])
-        for d in ("/System/qa", "/", "/etc/hosts", "", "/private/var"):
+        for d in NEW_DIRS:
             r = c.post("/api/project/new", json={"dir": d, "name": "x"})
             assert r.status_code in (409, 422), (d, r.status_code, r.text[:200])
-        for name in ("../../etc/hosts", "", "x.csv", "/etc/hosts"):
+        for name in ("../../etc/hosts", "..\\..\\Windows\\win.ini", "", "x.csv", "/etc/hosts", "C:\\Windows\\win.ini"):
             assert c.get("/api/bom/locate", params={"name": name, "size": 1}).status_code == 200
         for path in ("/etc/hosts", "~/.ssh", "", str(tmp_path / "proj" / ".." / ".." / "etc"), "~/polybench-data"):
             assert c.post("/api/reveal", json={"path": path}).status_code == 403, path
+        assert c.post("/api/project/open", json={"dir": "a\x00b"}).status_code in (409, 422)
+        assert c.post("/api/reveal", json={"path": "a\x00b"}).status_code == 422          # D8: a NUL byte is a 4xx, not a 500
         for bad in ("/etc/hosts", "tests/data/demo_purchasing_bom_dup.csv", str(tmp_path / "nothing.xlsx")):
             assert c.post("/api/bom/load", json={"path": bad}).status_code == 422, bad
         assert c.post("/api/ecad/platform", json={"program": "altium"}).status_code == 422
         assert c.get("/api/state").status_code == 200
+
+
+# ---------------------------------------------------------------- /api/reveal confinement on the OS where it matters (QA D5, D8)
+def _reveal_attacks(proj, tmp):
+    """(path, why) that must be refused. Mixed POSIX and Windows spellings: on the other OS they are just odd names, still refused."""
+    p = str(proj)
+    sep = os.sep
+    return [
+        (p + "-sibling", "sibling folder with the project's name as a prefix"),
+        (p + sep + ".." + sep + "other", ".. out of the project"),
+        (p + sep + ".." + sep + ".." + sep + "Windows", ".. far out"),
+        (str(tmp), "the parent folder"),
+        ("Z:\\pb", "another drive"),
+        ("\\\\?\\Z:\\pb", "extended path on another drive"),
+        ("\\\\127.0.0.1\\pbnoshare\\proj", "UNC path"),
+        ("\\\\127.0.0.1\\pbnoshare\\proj-sibling", "UNC sibling"),
+        (p + sep + "polybench-project.json:evil", "alternate data stream (Windows)" if os.name == "nt" else "odd file name"),
+        ("C:\\Windows", "system folder"),
+        ("/etc/passwd", "system file"),
+        ("", "empty"),
+    ]
+
+
+def test_reveal_refuses_every_hostile_path_and_never_500s(tmp_path):
+    sess = new_project_session(tmp_path / "proj")
+    proj = (tmp_path / "proj").resolve()
+    with client(sess) as c:
+        for bad, why in _reveal_attacks(proj, tmp_path):
+            r = c.post("/api/reveal", json={"path": bad})
+            if bad == p_ads(proj) and os.name != "nt":
+                continue                                              # on POSIX that is a file name inside the project: not an attack
+            assert r.status_code in (403, 422), (why, bad, r.status_code, r.text[:200])
+        r = c.post("/api/reveal", json={"path": "a\x00b"})
+        assert r.status_code in (403, 422), r.status_code                  # D8: never a 500
+        r = c.post("/api/reveal", json={"path": str(proj / "B1" / "x\x00y")})
+        assert r.status_code in (403, 422)
+
+
+def p_ads(proj):
+    return str(proj) + os.sep + "polybench-project.json:evil"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows paths ignore case, and only there")
+def test_reveal_on_windows_ignores_case_but_not_the_folder_name(tmp_path):
+    sess = new_project_session(tmp_path / "proj")
+    proj = str((tmp_path / "proj").resolve())
+    with client(sess) as c:
+        assert c.post("/api/reveal", json={"path": proj.upper()}).status_code == 200          # same folder, other case: inside
+        assert c.post("/api/reveal", json={"path": proj.lower() + "\\B1"}).status_code == 200
+        assert c.post("/api/reveal", json={"path": proj.upper() + "X"}).status_code == 403      # a different folder
+
+
+def test_new_project_refuses_the_top_of_a_drive(tmp_path):
+    """Found by the Windows attack list: on Windows an administrator can write to C:\\, and a project was created there."""
+    sess = new_project_session(tmp_path / "proj")
+    root = os.path.abspath(os.sep)
+    with client(sess) as c:
+        r = c.post("/api/project/new", json={"dir": root, "name": "x"})
+        assert r.status_code == 422 and "top of a drive" in r.json()["error"], r.text

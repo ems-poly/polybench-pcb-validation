@@ -30,7 +30,7 @@ def serve(tmp, fake_mic, key=None):
     cfg = {"tts_backend": "log", "llm_enabled": False, "grace_s": 0, "stt_backend": "whisper"}
     if key:
         cfg["ptt_key"] = key
-    (tmp / "voice.json").write_text(json.dumps(cfg))
+    (tmp / "voice.json").write_text(json.dumps(cfg), encoding="utf-8")
     env = {**os.environ, "POLYBENCH_VOICE_CONFIG": str(tmp / "voice.json"), "PYTHONPATH": str(ROOT / "src")}
     if fake_mic:
         env["POLYBENCH_VOICE_TEST"] = "1"

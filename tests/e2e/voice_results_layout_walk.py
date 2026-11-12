@@ -62,7 +62,7 @@ def main(shots: Path, browser_name: str):
     shots.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix="pb-vrl-e2e-"))
     cfgp = tmp / "voice.json"
-    cfgp.write_text(json.dumps({"tts_backend": "log", "grace_s": 0, "llm_enabled": False, "stt_backend": "sidecar"}))
+    cfgp.write_text(json.dumps({"tts_backend": "log", "grace_s": 0, "llm_enabled": False, "stt_backend": "sidecar"}), encoding="utf-8")
     env = {**os.environ, "POLYBENCH_VOICE_TEST": "1", "POLYBENCH_VOICE_CONFIG": str(cfgp), "PYTHONPATH": os.environ.get("PYTHONPATH") or str(ROOT / "src")}
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(ROOT / "src/polybench/examples/demo/demo.pcbv.yaml"),
                             "--simulate", "--data-dir", str(tmp / "data"), "--batch", "LAYOUT", "--boards", "3", "--no-browser", "--port", str(PORT)],

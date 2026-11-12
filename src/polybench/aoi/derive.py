@@ -68,7 +68,7 @@ def read_outline(zip_path) -> list[dict]:
 def derive(cam_zip, assembly_yaml, design: str, out_dir, dnf_extra=()):
     cam_zip, out_dir = Path(cam_zip), Path(out_dir)
     cam, digest = layout_guard.read_cam_pnp(cam_zip)
-    bom = yaml.safe_load(Path(assembly_yaml).read_text())
+    bom = yaml.safe_load(Path(assembly_yaml).read_text(encoding="utf-8"))
     steps = {s["id"]: s for s in bom.get("steps", [])}
     dnf = {d for line in bom["bom"] for d in line["designators"] if line.get("dnf")} | set(dnf_extra)
     pads = padlib.read_paste_pads(cam_zip)
@@ -127,7 +127,7 @@ def derive(cam_zip, assembly_yaml, design: str, out_dir, dnf_extra=()):
     arch = Path(assembly_yaml).parent / "Archive" / "visual_checklist.yaml"
     if not any(sec.get("tests") for sec in secs) and arch.is_file():
         # 16 Oct: Visual is AOI only and the manual checklist is archived; its parts and checks still define the AOI inspection rows
-        secs = (yaml.safe_load(arch.read_text()) or {}).get("sections", [])
+        secs = (yaml.safe_load(arch.read_text(encoding="utf-8")) or {}).get("sections", [])
     for sec in secs:
         for t in sec.get("tests", []):
             ds = [d for d in (t.get("highlight") or []) if d in cam and d not in bare]
@@ -154,10 +154,10 @@ def derive(cam_zip, assembly_yaml, design: str, out_dir, dnf_extra=()):
             "no photo of this design exists yet: the exposed-mask presence test is not calibrated, so large=[] and AOI proves no presence or absence",
             f"{len(no_pads)} top parts without a paste aperture: {', '.join(no_pads)}" if no_pads else "every top part has a paste aperture"]
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "layout.json").write_text(json.dumps(layout, indent=1))
-    (out_dir / "aoi_protocol.json").write_text(json.dumps(protocol, indent=1))
+    (out_dir / "layout.json").write_text(json.dumps(layout, indent=1), encoding="utf-8")
+    (out_dir / "aoi_protocol.json").write_text(json.dumps(protocol, indent=1), encoding="utf-8")
     (out_dir / "aoi.yaml").write_text(
         f"# AOI configuration for the Visual step (derived {Path(cam_zip).name}; regenerate: polybench aoi-derive). Paths are relative to this file.\n"
-        f"aoi:\n  protocol: aoi_protocol.json\n  layout: layout.json\n  cam_zip: {cam_zip}\n")
-    (out_dir / "GAPS.txt").write_text("\n".join(gaps) + "\n")
+        f"aoi:\n  protocol: aoi_protocol.json\n  layout: layout.json\n  cam_zip: {cam_zip}\n", encoding="utf-8")
+    (out_dir / "GAPS.txt").write_text("\n".join(gaps) + "\n", encoding="utf-8")
     return {"parts": len(parts), "with_pads": sum(1 for p in parts if p.get("inspection_polygon")), "gaps": gaps, "rows": len(rows)}

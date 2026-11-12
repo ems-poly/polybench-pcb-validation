@@ -143,5 +143,5 @@ def test_source_has_no_write_calls():
     from pathlib import Path
     root = Path(__file__).resolve().parents[2] / "src/polybench/kicad"
     pat = re.compile(r"save\(|save_as|revert\(|begin_commit|push_commit|drop_commit|create_items|update_items|remove_items|interactive_move|flip_items")
-    bad = [(p.name, m.group(0)) for p in root.glob("*.py") for m in pat.finditer(p.read_text())]
+    bad = [(p.name, m.group(0)) for p in root.glob("*.py") for m in pat.finditer(p.read_text(encoding="utf-8"))]
     assert bad == []

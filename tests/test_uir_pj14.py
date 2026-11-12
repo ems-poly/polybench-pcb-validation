@@ -4,7 +4,7 @@ from pathlib import Path
 
 import polybench
 
-JS = (Path(polybench.__file__).parent / "static" / "app.js").read_text()
+JS = (Path(polybench.__file__).parent / "static" / "app.js").read_text(encoding="utf-8")
 
 
 def _project_view() -> str:

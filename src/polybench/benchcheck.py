@@ -11,6 +11,7 @@ import os
 import re
 
 from . import doctor
+from . import platform as _platform
 
 OK, WARN, FAIL, INFO = doctor.OK, doctor.WARN, doctor.FAIL, doctor.INFO
 KINDS = ("openocd_probe", "pcan", "serial", "usb", "n6705b", "manual")
@@ -73,10 +74,10 @@ def check_item(item: dict, devs, simulate: bool) -> dict:
                              "" if hit else "plug it in")
         elif kind == "serial":
             rx = re.compile(item.get("match") or ".")
-            ports = sorted(p for p in glob.glob("/dev/cu.*") if rx.search(p))
+            ports = _platform.list_serial_devices(item.get("match") or ".")
             if not ports:
                 c = doctor.Check(FAIL, "Serial port", f"no port matches {item.get('match')!r}", "plug in the USB-serial adapter")
-            elif not os.access(ports[0], os.R_OK | os.W_OK):
+            elif not _platform.serial_port_openable(ports[0]):
                 c = doctor.Check(FAIL, "Serial port", f"{ports[0]} exists but cannot be opened (permissions)", "")
             else:
                 c = doctor.Check(OK, "Serial port", f"{ports[0]} present, {item.get('baud', 115200)} baud (not opened: opening can reset a board)" +

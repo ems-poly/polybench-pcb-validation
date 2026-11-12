@@ -61,7 +61,7 @@ def test_cli_without_arguments_serves_the_welcome_page(tmp_path):
     port = _free_port()
     env = dict(os.environ)          # the test's POLYBENCH_CONFIG_DIR (empty), POLYBENCH_DATA, POLYBENCH_DEMO_DIR
     p = subprocess.Popen([sys.executable, "-c", "import sys; from polybench.cli import main; sys.exit(main())", "--port", str(port), "--no-browser"],
-                         env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                         env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
     try:
         st, deadline = None, time.time() + 20
         while time.time() < deadline and p.poll() is None:
@@ -273,9 +273,9 @@ def test_plugins_settings_are_read_only_and_secrets_masked(tmp_path):
     shutil.copytree(DEMO, proto)
     f = proto / "demo.pcbv.yaml"
     pf = proto / "powered.yaml"
-    txt = pf.read_text()
+    txt = pf.read_text(encoding="utf-8")
     assert "demo.measure" in txt
-    pf.write_text(txt.replace("            params:\n", "            params:\n              api_key: SECRET-VALUE-1\n              nested: {Token: SECRET-VALUE-2, keep: 7}\n", 1))
+    pf.write_text(txt.replace("            params:\n", "            params:\n              api_key: SECRET-VALUE-1\n              nested: {Token: SECRET-VALUE-2, keep: 7}\n", 1), encoding="utf-8")
     sess = new_project_session(tmp_path / "proj", protocol=f)
     c = TestClient(create_app(sess), raise_server_exceptions=False)
     body = c.get("/api/plugins")
@@ -316,10 +316,8 @@ def test_state_chip_counts_only_used_plugins_that_are_not_loaded(tmp_path, monke
 
 def test_plugins_panel_touches_no_hardware(tmp_path, monkeypatch):
     """P4: building the list and opening the welcome page connect nothing and probe no USB device."""
-    def no_net(*a, **k):
-        raise AssertionError("a socket connect was attempted")
-    monkeypatch.setattr(socket.socket, "connect", no_net)
-    monkeypatch.setattr(socket.socket, "connect_ex", no_net)
+    from helpers import refuse_outside_connections
+    refuse_outside_connections(monkeypatch, "a socket connect was attempted")
     calls = []
     real_popen = subprocess.Popen
     monkeypatch.setattr(subprocess, "Popen", lambda *a, **k: (calls.append(a), real_popen(*a, **k))[1])
@@ -339,12 +337,12 @@ def test_onboarding_stage_names_follow_the_product_spec():
     spec_file = ROOT / "docs" / "PRODUCT_SPEC.md"
     if not spec_file.exists():
         pytest.skip("docs/PRODUCT_SPEC.md is internal and is not in the public tree")
-    spec = spec_file.read_text()
+    spec = spec_file.read_text(encoding="utf-8")
     sec = spec.split("## 4. The step model", 1)[1].split("\n## ", 1)[0]
     rows = [re.match(r"\|\s*(\d+)\s*\|\s*(\w+)\s*\|\s*([^|]+?)\s*\|", ln) for ln in sec.splitlines() if re.match(r"\|\s*\d+\s*\|", ln)]
     steps = [(int(m.group(1)), m.group(2), m.group(3)) for m in rows]
     assert len(steps) == 12
-    js = (STATIC / "onboarding.js").read_text()
+    js = (STATIC / "onboarding.js").read_text(encoding="utf-8")
     names = re.findall(r"\{ name: '([^']+)', gets: '([^']+)'(?:, status: '(\w+)')?", js)
     assert len(names) == 12
     for (n, phase, spec_name), (name, gets, status) in zip(steps, names):
@@ -356,8 +354,8 @@ def test_onboarding_stage_names_follow_the_product_spec():
 
 def test_onboarding_copy_has_no_exclamation_marks_or_emoji():
     for f in ("onboarding.js", "plugins.js"):
-        t = (STATIC / f).read_text()
+        t = (STATIC / f).read_text(encoding="utf-8")
         if f == "onboarding.js":
             assert "!" not in "".join(re.findall(r"(?:name|sub|gets): '([^']+)'", t))
         assert not re.search("[\U0001F300-\U0001FAFF☀-➿]", t)
-    assert "onboarding.js" in (STATIC / "index.html").read_text() and "plugins.js" in (STATIC / "index.html").read_text()
+    assert "onboarding.js" in (STATIC / "index.html").read_text(encoding="utf-8") and "plugins.js" in (STATIC / "index.html").read_text(encoding="utf-8")

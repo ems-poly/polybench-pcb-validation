@@ -44,7 +44,7 @@ class ProtocolError(ValueError):
 def load_protocol(path=None):
     path = Path(path or proto_default())
     try:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise ProtocolError(f'Cannot read protocol {path}: {error}') from error
     return validate_protocol(data, source=str(path))

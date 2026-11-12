@@ -7,6 +7,8 @@ import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from .. import platform as _platform
+
 # Default LLM : a 7-9B instruction model so the tool runs on lower-spec laptops. qwen3:8b (Ollama library tag,
 # 5.2 GB, JSON-schema output, `think: false`). Larger installed models (gemma4:26b, the PoC's model) stay selectable.
 DEFAULT_LLM = "qwen3:8b"
@@ -37,7 +39,7 @@ _CHOICES = {"stt_backend": ("whisper", "sidecar"), "tts_backend": ("say", "log")
 
 def path() -> Path:
     env = os.environ.get("POLYBENCH_VOICE_CONFIG")
-    return Path(env).expanduser() if env else Path("~/.config/polybench/voice.json").expanduser()
+    return Path(env).expanduser() if env else _platform.default_config_dir() / "voice.json"
 
 
 def loopback_only(url: str) -> str:

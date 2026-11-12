@@ -12,7 +12,7 @@ def R(md, sib=lambda n: None):
 # ---- loader
 def _proto(demo_copy, extra):
     f = demo_copy / "demo.pcbv.yaml"
-    f.write_text(f.read_text() + "\n" + extra + "\n")
+    f.write_text(f.read_text(encoding="utf-8") + "\n" + extra + "\n", encoding="utf-8")
     return load(f)
 
 
@@ -21,8 +21,8 @@ def test_no_key_no_data(demo_copy):
 
 
 def test_key_resolves_relative_to_top_file(demo_copy):
-    (demo_copy / "plan.md").write_text("# Plan\n")
-    (demo_copy / "more.md").write_text("# More\n")
+    (demo_copy / "plan.md").write_text("# Plan\n", encoding="utf-8")
+    (demo_copy / "more.md").write_text("# More\n", encoding="utf-8")
     p = _proto(demo_copy, "test_plan: plan.md\ntest_plan_files: [more.md]")
     assert not p.errors and not p.warnings
     fs = p.data["test_plan"]["files"]
@@ -88,8 +88,8 @@ def test_table_list_callout_code():
 
 # ---- file facts
 def test_load_plan_facts_and_sibling_guard(tmp_path):
-    (tmp_path / "plan.md").write_text("# P\n[[side]]\n")
-    (tmp_path / "side.md").write_text("# Side\n")
+    (tmp_path / "plan.md").write_text("# P\n[[side]]\n", encoding="utf-8")
+    (tmp_path / "side.md").write_text("# Side\n", encoding="utf-8")
     r = load_plan(tmp_path / "plan.md")
     assert r["exists"] and r["mtime"] and 'data-tp-open="side.md"' in r["html"]
     assert load_plan(tmp_path / "plan.md", "side.md")["exists"]
@@ -100,10 +100,10 @@ def test_load_plan_facts_and_sibling_guard(tmp_path):
 def test_git_commit_shown_for_tracked_file(tmp_path):
     import subprocess
     subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
-    (tmp_path / "plan.md").write_text("# P\n")
+    (tmp_path / "plan.md").write_text("# P\n", encoding="utf-8")
     subprocess.run(["git", "-C", str(tmp_path), "add", "."], check=True)
     subprocess.run(["git", "-C", str(tmp_path), "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "first"], check=True)
     g = load_plan(tmp_path / "plan.md")["git"]
     assert g["commit"] and g["subject"] == "first" and not g["dirty"]
-    (tmp_path / "plan.md").write_text("# P2\n")
+    (tmp_path / "plan.md").write_text("# P2\n", encoding="utf-8")
     assert load_plan(tmp_path / "plan.md")["git"]["dirty"]

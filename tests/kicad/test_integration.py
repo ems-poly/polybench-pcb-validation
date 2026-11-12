@@ -35,7 +35,7 @@ def rig(tmp_path, monkeypatch):
     shutil.copytree(DEMO, proto)
     frames = tmp_path / "frames"
     frames.mkdir()
-    (frames / "CURRENT").write_text("")
+    (frames / "CURRENT").write_text("", encoding="utf-8")
     monkeypatch.setenv("POLYBENCH_SCANNER_FAKE_FRAMES", str(frames))
     monkeypatch.setenv("ASCAN_CONFIG_DIR", str(tmp_path / "cfg"))
     with FakeFusionMCP(fusion=SimulatedFusion(DEMO_DESIGNATORS, doc_name="Demo-board")) as fake:
@@ -203,11 +203,11 @@ def test_doctor_states(monkeypatch, tmp_path, snap):
     monkeypatch.delenv("KICAD_API_SOCKET", raising=False)
     monkeypatch.setenv("POLYBENCH_KICAD_PREFS", str(tmp_path / "prefs"))
     (tmp_path / "prefs" / "10.0").mkdir(parents=True)
-    (tmp_path / "prefs" / "10.0" / "kicad_common.json").write_text('{"api": {"enable_server": false}}')
+    (tmp_path / "prefs" / "10.0" / "kicad_common.json").write_text('{"api": {"enable_server": false}}', encoding="utf-8")
     linkmod.reset_shared(KiCadLink())
     c = _doctor()
     assert c.status == "warn" and "API server is off" in c.detail and "enable the API server" in c.hint           # today's state (L1)
-    (tmp_path / "prefs" / "10.0" / "kicad_common.json").write_text('{"api": {"enable_server": true}}')
+    (tmp_path / "prefs" / "10.0" / "kicad_common.json").write_text('{"api": {"enable_server": true}}', encoding="utf-8")
     linkmod.reset_shared(KiCadLink())
     c = _doctor()
     assert c.status == "warn" and "not running" in c.detail and "start KiCad" in c.hint
@@ -240,9 +240,9 @@ def test_doctor_does_not_warn_about_bridges_when_kicad_registered():
 def test_docs_updated_for_kicad():
     if not (ROOT / "docs/PRODUCT_SPEC.md").exists():
         pytest.skip("internal product spec is not in the public tree")
-    plugins = (ROOT / "docs/PLUGINS.md").read_text()
+    plugins = (ROOT / "docs/PLUGINS.md").read_text(encoding="utf-8")
     assert re.search(r"\|\s*`?kicad`?\s*\|", plugins, re.I) and "IPC API" in plugins and "HARDWARE-VALIDATED" in plugins
-    spec = (ROOT / "docs/PRODUCT_SPEC.md").read_text()
+    spec = (ROOT / "docs/PRODUCT_SPEC.md").read_text(encoding="utf-8")
     assert "kicad-cli" not in spec.split("DP-01")[1][:2000] or "superseded" in spec
-    quick = (ROOT / "docs/BENCH_QUICKSTART.md").read_text()
+    quick = (ROOT / "docs/BENCH_QUICKSTART.md").read_text(encoding="utf-8")
     assert "--ecad kicad" in quick and ".[kicad]" in quick and "enable_server" in quick

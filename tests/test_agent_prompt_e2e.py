@@ -19,7 +19,7 @@ from helpers import DEMO, ROOT, free_port
 
 PORT = free_port("PB_AP_PORT")       # a free port per run; PB_AP_PORT overrides
 BASE = f"http://127.0.0.1:{PORT}/"
-PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text()
+PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text(encoding="utf-8")
 
 
 def until(fn, timeout=20.0):
@@ -63,9 +63,9 @@ def page(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("ap")
     proj = tmp / "proj"
     shutil.copytree(DEMO, proj)
-    (proj / "PLAN.md").write_text(PLAN)
+    (proj / "PLAN.md").write_text(PLAN, encoding="utf-8")
     top = proj / "demo.pcbv.yaml"
-    top.write_text(top.read_text() + "\ntest_plan: {file: PLAN.md, generate: true}\n")
+    top.write_text(top.read_text(encoding="utf-8") + "\ntest_plan: {file: PLAN.md, generate: true}\n", encoding="utf-8")
     env = {**os.environ, "POLYBENCH_OP_TOKEN": "ap-test-token"}
     env.pop("POLYBENCH_AI_PERMISSIONS", None)
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(top), "--simulate", "--data-dir", str(tmp / "data"),

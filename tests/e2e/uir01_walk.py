@@ -49,7 +49,7 @@ def variant(tmp, name, missing_pcan=False, flaky=None, slow=False):
     d = Path(tmp) / name
     shutil.copytree(EX, d)
     f = d / "function.yaml"
-    t = f.read_text()
+    t = f.read_text(encoding="utf-8")
     if missing_pcan:
         t = t.replace("        bitrate: 1000000\n", "        bitrate: 1000000\n        sim: {status: missing, detail: \"PCAN-USB not on USB (PEAK 0c72)\", hint: \"plug in the PCAN-USB\"}\n", 1)
     if flaky:
@@ -58,7 +58,7 @@ def variant(tmp, name, missing_pcan=False, flaky=None, slow=False):
     if slow:
         t = t.replace("plugin: openocd.flash\n        needs: [probe]\n        params: {image: images/selftest.hex, map: {image_sha256: A10}}",
                       "plugin: demo.flash\n        needs: [probe]\n        params: {}")
-    f.write_text(t)
+    f.write_text(t, encoding="utf-8")
     return d / "demo_automated.pcbv.yaml"
 
 
@@ -69,7 +69,7 @@ def shot(pg, name):
 
 def journal(data):
     out = []
-    for ln in (Path(data) / "w" / "journal.jsonl").read_text().splitlines():
+    for ln in (Path(data) / "w" / "journal.jsonl").read_text(encoding="utf-8").splitlines():
         try:
             out.append(json.loads(ln))
         except Exception:
@@ -125,7 +125,7 @@ def main():
             pg.wait_for_selector("[data-act=autoretryfinal]")
             check("retry that fails again stays on the same record", len(seqev(data, "final")) == 2)
             shot(pg, "06-final-failed-again")
-            probe_ok.write_text("x")
+            probe_ok.write_text("x", encoding="utf-8")
             pg.click("[data-act=autoretryfinal]")
             pg.wait_for_selector(".imgrec", timeout=20000)
             pg.wait_for_function("S.sequences['S01|function'].final.state === 'ok'")

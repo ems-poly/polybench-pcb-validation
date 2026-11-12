@@ -95,11 +95,11 @@ def bench_session(tmp_path, boards=3, one_action=True):
     d = tmp_path / "proto"
     shutil.copytree(DEMO, d)
     p = d / "powered.yaml"
-    txt = p.read_text().replace("plugin: demo.measure", "plugin: demo.slow")
+    txt = p.read_text(encoding="utf-8").replace("plugin: demo.measure", "plugin: demo.slow")
     if one_action:    # the demo's Powered step has a second action (load sweep); most tests want the single-action case
         a, b = txt.index("          - id: load_sweep"), txt.index("        tests:")
         txt = txt[:a] + txt[b:]
-    p.write_text(txt)
+    p.write_text(txt, encoding="utf-8")
     sess = Session(load(d / "demo.pcbv.yaml"), tmp_path / "data", "v", True, boards, None, "tester")
     for b in ("S01", "S02"):
         sess.engine.override_gate(b, "powered", "test")
@@ -392,7 +392,7 @@ def test_the_voice_loop_keeps_listening_while_an_action_runs(bvc, tmp_path):
     start_and_confirm(bvc, "S1")
     w = tmp_path / "stop.wav"
     stt.write_wav(str(w), speech(1.0))
-    w.with_suffix(".txt").write_text("stop test")
+    w.with_suffix(".txt").write_text("stop test", encoding="utf-8")
     e = bvc.feed_wav(str(w), "vad")
     assert e["source"] == "clip" and e["reply"] == "Stopping."
     assert wait(lambda: running(bvc) is None, 15)

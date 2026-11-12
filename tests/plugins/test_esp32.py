@@ -72,7 +72,7 @@ def test_flash_simulated_child_hashes_real_file(tmp_path):
     assert rc == 0, err
     props = {m["test_id"]: m["value"] for m in msgs if m["t"] == "proposal"}
     assert props["F01"] == "Y" and len(props["F02"]) == 64
-    assert props["F02"] == (EX / "firmware/prebuilt/MANIFEST.txt").read_text().split()[0]
+    assert props["F02"] == (EX / "firmware/prebuilt/MANIFEST.txt").read_text(encoding="utf-8").split()[0]
 
 
 def test_flash_refuses_missing_image_and_elf(tmp_path):
@@ -276,14 +276,14 @@ def test_no_board_is_one_clear_line_and_no_traceback(tmp_path):
                 f"sys.exit(main([{name!r}, json.dumps({{'board': 'S01', 'params': {params!r}, 'workdir': {str(tmp_path)!r}}})]))")
         env = {k: v for k, v in __import__("os").environ.items() if k != "POLYBENCH_ESP_PORT"}
         env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2] / "src")
-        p = subprocess.run([sys.executable, "-c", code], stdin=subprocess.PIPE, capture_output=True, text=True, env=env, timeout=30)
+        p = subprocess.run([sys.executable, "-c", code], stdin=subprocess.PIPE, capture_output=True, text=True, env=env, timeout=30, encoding="utf-8", errors="replace")
         lines = [json.loads(x) for x in p.stdout.splitlines() if x.strip()]
         assert p.returncode == 1 and lines[-1]["t"] == "error"
         assert "No ESP32 board found" in lines[-1]["text"] and "\n" not in lines[-1]["text"]
         assert "Micro-USB" in lines[-1]["text"] and "USB-C" not in lines[-1]["text"]
         assert p.stderr.strip() == "", p.stderr
         log = tmp_path / "action_debug.log"
-        assert "Traceback" in log.read_text()
+        assert "Traceback" in log.read_text(encoding="utf-8")
         log.unlink()
 
 
@@ -294,7 +294,7 @@ def test_plugin_cancel_ends_with_done_cancelled(tmp_path):
             "params": {"steps": [{"send": "selftest", "timeout_s": 5}] * 40}}
     env = {**__import__("os").environ, "PYTHONPATH": str(Path(__file__).resolve().parents[2] / "src")}
     p = subprocess.Popen([sys.executable, "-m", "polybench.run_action", "serial.query", json.dumps(args)], stdin=subprocess.PIPE,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, encoding="utf-8", errors="replace")
     time.sleep(1.0)
     p.stdin.write(json.dumps({"t": "cancel"}) + "\n"); p.stdin.flush()
     out, err = p.communicate(timeout=20)
@@ -392,7 +392,7 @@ def test_esptool_rejects_bad_timeout():
 
 
 def test_flash_sha256_param_matches_or_refuses():
-    good = (EX / "firmware/prebuilt/MANIFEST.txt").read_text().split()[0]
+    good = (EX / "firmware/prebuilt/MANIFEST.txt").read_text(encoding="utf-8").split()[0]
     c = Ctx({"image": str(IMAGE), "sha256": good, "map": {"flashed": "F01"}}, simulate=True)
     esp.EsptoolFlash().run(c)
     assert c.proposals
@@ -401,8 +401,8 @@ def test_flash_sha256_param_matches_or_refuses():
 
 
 def test_protocol_flash_action_carries_manifest_sha256():
-    txt = (EX / "function.yaml").read_text()
-    assert (EX / "firmware/prebuilt/MANIFEST.txt").read_text().split()[0] in txt
+    txt = (EX / "function.yaml").read_text(encoding="utf-8")
+    assert (EX / "firmware/prebuilt/MANIFEST.txt").read_text(encoding="utf-8").split()[0] in txt
 
 
 def test_flash_simulated_without_the_binary_uses_the_pinned_hash(tmp_path):
@@ -423,6 +423,6 @@ def test_flash_simulated_without_the_binary_uses_the_pinned_hash(tmp_path):
 def test_example_flash_actions_declare_simulate_without_image():
     import yaml
     for f in ("function.yaml", "function_devkitc-1.yaml"):
-        d = yaml.safe_load((EX / f).read_text())
+        d = yaml.safe_load((EX / f).read_text(encoding="utf-8"))
         flash = [a for s in d["steps"] for g in s.get("sections", []) for a in g.get("actions", []) if a["plugin"] == "esptool.flash"]
         assert flash and all(a["params"].get("simulate_without_image") and a["params"].get("sha256") for a in flash), f

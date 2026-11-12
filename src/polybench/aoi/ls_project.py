@@ -101,7 +101,7 @@ def preannotations(board, candidates, decisions, bv, meta, margin=0.15):
 class LS:
     def __init__(self, url=URL, token=None):
         self.url = url
-        self.token = token or (DATA / '.token').read_text().strip()
+        self.token = token or (DATA / '.token').read_text(encoding="utf-8").strip()
 
     def call(self, method, path, body=None):
         req = urllib.request.Request(self.url + path, method=method, data=None if body is None else json.dumps(body).encode(),
@@ -132,9 +132,9 @@ def render_images(run_folder, out_dir, ppmm):
     from polybench.aoi.defect_stage import DefectContext
     from polybench.aoi.protocol import load_protocol
     result_path = Path(run_folder).expanduser().resolve() / 'aoi_result.json'
-    runlog = json.loads(result_path.with_suffix('.runlog.json').read_text())
+    runlog = json.loads(result_path.with_suffix('.runlog.json').read_text(encoding="utf-8"))
     protocol = load_protocol(proto_default())
-    layout = json.loads(next(pr.RECORDED.glob('*_layout_*.json')).read_text())
+    layout = json.loads(next(pr.RECORDED.glob('*_layout_*.json')).read_text(encoding="utf-8"))
     files = {b: Path(v['photos']['top']) for b, v in runlog['boards'].items() if v['photos'].get('top')}
     data, _ = pr.analyse_side('top', layout, protocol, files, protocol['reference_board'], runlog['sides']['top']['turns'], print)
     ctx = DefectContext(data, layout, protocol, runlog['layout_guard']['cam_zip'], print)
@@ -164,13 +164,13 @@ def main(argv=None):
     files_dir.mkdir(parents=True, exist_ok=True)
     meta_path = DATA / 'images.json'
     if args.no_render and meta_path.is_file():
-        metas = json.loads(meta_path.read_text())
+        metas = json.loads(meta_path.read_text(encoding="utf-8"))
     else:
         metas = render_images(run, files_dir, args.ppmm)
-        meta_path.write_text(json.dumps(metas, indent=1))
+        meta_path.write_text(json.dumps(metas, indent=1), encoding="utf-8")
     bv = BV.load(run)
-    doc = json.loads((run / 'aoi_result.json').read_text())
-    decisions = json.loads(Path(args.decisions).expanduser().read_text())['decisions'] if Path(args.decisions).expanduser().is_file() else {}
+    doc = json.loads((run / 'aoi_result.json').read_text(encoding="utf-8"))
+    decisions = json.loads(Path(args.decisions).expanduser().read_text(encoding="utf-8"))['decisions'] if Path(args.decisions).expanduser().is_file() else {}
     cands = {b['board']: [r['id'] for r in b['results'] if r['id'].startswith(('AOI-BRIDGE-', 'AOI-LIFT-', 'AOI-MISSING-', 'AOI-ANOM-'))] for b in doc['boards']}
     ls = LS()
     project = next((p for p in ls.paged('/api/projects') if p['title'] == PROJECT_TITLE), None)

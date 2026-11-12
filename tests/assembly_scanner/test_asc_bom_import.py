@@ -138,7 +138,7 @@ def test_order_dnf_excluded(order_bom):
 # ---------------------------------------------------------------- CSV / overrides
 def test_csv_and_column_map(tmp_path):
     p = tmp_path / "b.csv"
-    p.write_text('Ref,Order code,Fit\n"R1, R2",791-AAA1,\nC9,81-BBB2,DNF\n,77-CCC3,\n')
+    p.write_text('Ref,Order code,Fit\n"R1, R2",791-AAA1,\nC9,81-BBB2,DNF\n,77-CCC3,\n', encoding="utf-8")
     with pytest.raises(ValueError):
         load_bom(p, sheet="b")                           # no recognisable header
     b = load_bom(p, column_map={"designators": "Ref", "mouser_pn": "Order code", "fitted": "Fit"})
@@ -149,7 +149,7 @@ def test_csv_and_column_map(tmp_path):
 
 def test_csv_auto_detect(tmp_path):
     p = tmp_path / "b.csv"
-    p.write_text("Title line\n\nDesignators,Mouser P/N\n\"C1,C2\",81-X1\nTotal,\n")
+    p.write_text("Title line\n\nDesignators,Mouser P/N\n\"C1,C2\",81-X1\nTotal,\n", encoding="utf-8")
     b = load_bom(p)
     assert resolve(["81-X1"], b).designators == ("C1", "C2")
     assert [s.row for s in load_report(b).skipped] == [5]
@@ -157,5 +157,5 @@ def test_csv_auto_detect(tmp_path):
 
 def test_designator_conflict_reported(tmp_path):
     p = tmp_path / "b.csv"
-    p.write_text("Designators,Mouser P/N\nR6,667-A1\nR6,667-B2\n")
+    p.write_text("Designators,Mouser P/N\nR6,667-A1\nR6,667-B2\n", encoding="utf-8")
     assert load_report(load_bom(p)).designator_conflicts == {"R6": ["667-A1", "667-B2"]}

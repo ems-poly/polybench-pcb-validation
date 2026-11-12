@@ -42,7 +42,8 @@ voice = ["sounddevice", "mlx-whisper; sys_platform == 'darwin'", "numpy"]     # 
 # KiCad ECAD link: KiCad 10 IPC API. Pinned to the version verified live against KiCad 10.0.7 (TBR-12); newer KiCad is a note, not a failure.
 kicad = ["kicad-python==0.8.0"]
 dmm = ["hidapi>=0.14"]     # live multimeter: UNI-T UT161E over the CH9329 HID cable (import hid)
-dev = ["pytest", "setuptools>=77", "playwright==1.58.0", "httpx", "kicad-python==0.8.0"]   # 1.58 matches the Chromium build cached on the bench Mac
+process = ["psutil>=5.9"]       # exact process-tree and command-line work (platform.py); without it Polybench falls back to ps, taskkill and PowerShell
+dev = ["pytest", "setuptools>=77", "playwright==1.58.0", "httpx", "kicad-python==0.8.0", "psutil>=5.9"]   # 1.58 matches the Chromium build cached on the bench Mac
 
 [project.urls]
 Homepage = "https://github.com/ems-poly/polybench-pcb-validation"

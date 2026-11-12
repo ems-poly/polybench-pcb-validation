@@ -58,12 +58,12 @@ def cur(c):
 
 def events(path_or_sess, type_=None) -> list[dict]:
     p = Path(path_or_sess.journal.path if hasattr(path_or_sess, "journal") else path_or_sess)
-    out = [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+    out = [json.loads(x) for x in p.read_text(encoding="utf-8").splitlines() if x.strip()]
     return [e for e in out if type_ is None or e["type"] == type_]
 
 
 def settings(project_dir) -> dict:
-    return json.loads((Path(project_dir) / "polybench-project.json").read_text())
+    return json.loads((Path(project_dir) / "polybench-project.json").read_text(encoding="utf-8"))
 
 
 def sha(p) -> str:
@@ -73,7 +73,7 @@ def sha(p) -> str:
 def tree(d) -> dict[str, str]:
     """Every file under d (relative path -> sha256), to prove nothing was moved, renamed or rewritten."""
     d = Path(d)
-    return {str(f.relative_to(d)): sha(f) for f in sorted(d.rglob("*")) if f.is_file()}
+    return {f.relative_to(d).as_posix(): sha(f) for f in sorted(d.rglob("*")) if f.is_file()}
 
 
 def legacy_folder(root: Path, batches=("L1",)) -> Path:
@@ -96,8 +96,8 @@ def protocol_copy(tmp_path: Path, drop_bom=False) -> Path:
     shutil.copytree(DEMO, d)
     if drop_bom:
         a = d / "assembly.yaml"
-        lines = a.read_text().splitlines(keepends=True)
+        lines = a.read_text(encoding="utf-8").splitlines(keepends=True)
         i = next(n for n, x in enumerate(lines) if x.startswith("bom:"))
         j = next((n for n in range(i + 1, len(lines)) if lines[n].strip() and not lines[n].startswith((" ", "-", "#"))), len(lines))
-        a.write_text("".join(lines[:i] + lines[j:]))
+        a.write_text("".join(lines[:i] + lines[j:]), encoding="utf-8")
     return d / "demo.pcbv.yaml"

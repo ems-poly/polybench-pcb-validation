@@ -26,7 +26,7 @@ def _find_protocol(plan: Path):
     for d in (plan.parent, plan.parent / "polybench"):
         for f in sorted(d.glob("*.pcbv.yaml")):
             try:
-                top = yaml.safe_load(f.read_text()) or {}
+                top = yaml.safe_load(f.read_text(encoding="utf-8")) or {}
             except Exception:
                 continue
             tp = top.get("test_plan")

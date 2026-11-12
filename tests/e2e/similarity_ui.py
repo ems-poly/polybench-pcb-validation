@@ -55,7 +55,7 @@ def main():
     assert PORT != 8750
     tmp = Path(tempfile.mkdtemp(prefix="pb-sim-e2e-"))
     cfg = tmp / "voice.json"
-    cfg.write_text(json.dumps({"enabled": False, "tts_backend": "log"}))
+    cfg.write_text(json.dumps({"enabled": False, "tts_backend": "log"}), encoding="utf-8")
     env = {**os.environ, "POLYBENCH_VOICE_CONFIG": str(cfg), "POLYBENCH_VOICE_TEST": "1", "PYTHONPATH": os.environ.get("PYTHONPATH") or str(ROOT / "src")}
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(ROOT / "src/polybench/examples/demo/demo.pcbv.yaml"), "--simulate",
                             "--data-dir", str(tmp / "data"), "--batch", "SIM-E2E", "--boards", "4", "--no-browser", "--port", str(PORT)],

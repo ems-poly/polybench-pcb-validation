@@ -21,7 +21,7 @@ GROUPS = """    sections:
 
 def with_groups(demo_copy, extra=""):
     f = demo_copy / "assembly.yaml"
-    f.write_text(f.read_text().replace("    title: Assembly aid\n", "    title: Assembly aid\n" + GROUPS + extra, 1))
+    f.write_text(f.read_text(encoding="utf-8").replace("    title: Assembly aid\n", "    title: Assembly aid\n" + GROUPS + extra, 1), encoding="utf-8")
     return load(demo_copy / "demo.pcbv.yaml")
 
 
@@ -44,11 +44,11 @@ def test_position_reaches_the_page_in_the_snapshot(demo_copy, tmp_path):
 
 def test_unknown_position_is_an_error_and_other_steps_warn(demo_copy):
     f = demo_copy / "assembly.yaml"
-    f.write_text(f.read_text().replace("    title: Assembly aid\n", "    title: Assembly aid\n" + GROUPS.replace("before_placement", "first"), 1))
+    f.write_text(f.read_text(encoding="utf-8").replace("    title: Assembly aid\n", "    title: Assembly aid\n" + GROUPS.replace("before_placement", "first"), 1), encoding="utf-8")
     p = load(demo_copy / "demo.pcbv.yaml")
     assert any("position must be one of before_placement, after_placement" in str(i) for i in p.errors)
     u = demo_copy / "unpowered.yaml"
-    u.write_text(u.read_text().replace("      - id: rails\n", "      - id: rails\n        position: before_placement\n", 1))
+    u.write_text(u.read_text(encoding="utf-8").replace("      - id: rails\n", "      - id: rails\n        position: before_placement\n", 1), encoding="utf-8")
     p2 = load(demo_copy / "demo.pcbv.yaml")
     assert any("only used by the assembly step" in str(i) for i in p2.warnings) and not [e for e in p2.errors if "'rails'" in str(e)]
 
@@ -66,13 +66,13 @@ def test_existing_protocols_load_unchanged():
 
 def test_the_app_draws_no_built_in_tips():
     """R3: the page has no paste or placement tip text of its own; the groups it draws are only the protocol's."""
-    js = (ROOT / "src" / "polybench" / "static" / "app.js").read_text()
+    js = (ROOT / "src" / "polybench" / "static" / "app.js").read_text(encoding="utf-8")
     assert "stencil" not in js.lower() and "paste print" not in js.lower() and "paste volume" not in js.lower()
 
 
 def test_docs_describe_the_key():
-    doc = (ROOT / "site" / "docs" / "reference" / "protocol.md").read_text()
+    doc = (ROOT / "site" / "docs" / "reference" / "protocol.md").read_text(encoding="utf-8")
     assert "before_placement" in doc and "after_placement" in doc
     spec = ROOT / "docs" / "PRODUCT_SPEC.md"            # internal; the public tree does not ship it
     if spec.exists():
-        assert "| r4 |" in spec.read_text()
+        assert "| r4 |" in spec.read_text(encoding="utf-8")

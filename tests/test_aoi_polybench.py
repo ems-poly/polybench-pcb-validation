@@ -45,16 +45,16 @@ def part(n, x, y, w=1.0, h=0.6):
 def proto_dir(tmp_path):
     d = tmp_path / "proto"
     (d / "aoi").mkdir(parents=True)
-    (d / "t.pcbv.yaml").write_text(PROTO)
-    (d / "aoi" / "aoi.yaml").write_text("aoi:\n  protocol: aoi_protocol.json\n  layout: layout.json\n")
+    (d / "t.pcbv.yaml").write_text(PROTO, encoding="utf-8")
+    (d / "aoi" / "aoi.yaml").write_text("aoi:\n  protocol: aoi_protocol.json\n  layout: layout.json\n", encoding="utf-8")
     layout = {"board": "T-1", "unit": "mm", "parts": [part("IC1", 5, 5, 3, 3), part("C1", 2, 2), part("C2", 9, 2)], "holes": [], "outline": []}
-    (d / "aoi" / "layout.json").write_text(json.dumps(layout))
+    (d / "aoi" / "layout.json").write_text(json.dumps(layout), encoding="utf-8")
     (d / "aoi" / "aoi_protocol.json").write_text(json.dumps({
         "schema": "polystage.aoi_protocol/0", "protocol": "t", "report_ref": "", "layout": {"design": "T-1", "cam_zip": "x"},
         "boards": {"S01": {}, "S02": {}, "S03": {}}, "classes": {"large": {"ceiling": "review", "designators": []},
         "medium": {"ceiling": "review", "designators": []}, "small": {"ceiling": "review", "designators": "*"}},
         "thresholds": {"present_max_exposure": .15, "absent_min_exposure": .6},
-        "rows": [{"id": "V1", "check": "joint_review", "ceiling": "review", "designators": ["IC1"], "requires": ["top"], "limits": "x"}]}))
+        "rows": [{"id": "V1", "check": "joint_review", "ceiling": "review", "designators": ["IC1"], "requires": ["top"], "limits": "x"}]}), encoding="utf-8")
     return d / "t.pcbv.yaml"
 
 
@@ -235,7 +235,7 @@ def test_upload_assign_drop_and_review_routes(tmp_path, proto_dir):
 def test_simulated_run_without_photos_gives_a_labelled_result_and_the_review_flow_works(tmp_path, proto_dir):
     from polybench.aoi import runner
     cfg = load(proto_dir).data["aoi"]
-    (tmp_path / "journal.jsonl").write_text("")
+    (tmp_path / "journal.jsonl").write_text("", encoding="utf-8")
     out = runner.run(tmp_path, tmp_path / "run", cfg, simulate=True)
     assert out["synthetic"] and out["items"] and all("SIMULATED" in i["value"] for i in out["items"])
     with pytest.raises(RuntimeError, match="no photos"):
@@ -251,7 +251,7 @@ def test_report_has_the_aoi_section(eng):
 
 
 def _journal_photo_events(sess):
-    return [json.loads(l) for l in (sess.dir / "journal.jsonl").read_text().splitlines() if '"aoi_photo' in l]
+    return [json.loads(l) for l in (sess.dir / "journal.jsonl").read_text(encoding="utf-8").splitlines() if '"aoi_photo' in l]
 
 
 @needs_aoi
@@ -311,11 +311,11 @@ def test_journal_replay_applies_moves_and_old_journals_without_assigned_by_still
     assert e2.state.aoi_photos["aoi/photos/x_a.jpg"]["board"] == "S03"
     # a journal line from before this change (no assigned_by) replays as it was
     jp = tmp_path / "j.jsonl"
-    lines = [json.loads(l) for l in jp.read_text().splitlines()]
+    lines = [json.loads(l) for l in jp.read_text(encoding="utf-8").splitlines()]
     for e in lines:
         if e["type"] == "aoi_photo":
             e["payload"].pop("assigned_by")
-    jp.write_text("".join(json.dumps(e) + "\n" for e in lines))
+    jp.write_text("".join(json.dumps(e) + "\n" for e in lines), encoding="utf-8")
     e3 = Engine(eng.proto, Journal(jp), "pat")
     assert e3.state.aoi_photos["aoi/photos/x_a.jpg"]["board"] == "S03" and "assigned_by" not in e3.state.aoi_photos["aoi/photos/x_a.jpg"]
 
@@ -376,7 +376,7 @@ def test_diff_mode_decision_names_the_board_gate_follows_it_and_report_says_expe
         eng.aoi_decide("S02|AOI-DIFF-1", "confirmed", "", "S03")
     eng.aoi_decide("S02|AOI-DIFF-1", "confirmed", "", "S01")                      # the reference is the board with the issue
     assert eng.state.aoi_board_status("S01")["open_confirmed"] == 1 and eng.state.aoi_board_status("S02")["open_confirmed"] == 0
-    ev = [json.loads(l) for l in Path(eng.journal.path).read_text().splitlines()]
+    ev = [json.loads(l) for l in Path(eng.journal.path).read_text(encoding="utf-8").splitlines()]
     d = next(e for e in ev if e["type"] == "aoi_decision")["payload"]
     assert d["mode"] == "diff" and d["issue_board"] == "S01"
     assert any(e["type"] == "aoi_run" and e["payload"].get("mode") == "diff" for e in ev)

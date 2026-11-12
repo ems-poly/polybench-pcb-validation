@@ -106,7 +106,7 @@ def test_voice_kicad_maps_to_highlight_like_fusion(said):
 
 def test_voice_highlight_reply_names_the_program():
     from polybench.voice import controller
-    src = (PKG / "voice" / "controller.py").read_text()
+    src = (PKG / "voice" / "controller.py").read_text(encoding="utf-8")
     assert "ecad_program" in src and '" in Fusion"' not in src
 
 
@@ -115,7 +115,7 @@ def test_voice_highlight_reply_names_the_program():
 def svc_rig(tmp_path, monkeypatch):
     frames = tmp_path / "frames"
     frames.mkdir()
-    (frames / "CURRENT").write_text("")
+    (frames / "CURRENT").write_text("", encoding="utf-8")
     monkeypatch.setenv("POLYBENCH_SCANNER_FAKE_FRAMES", str(frames))
     monkeypatch.setenv("ASCAN_CONFIG_DIR", str(tmp_path / "cfg"))
     monkeypatch.delenv("POLYBENCH_FUSION_URL", raising=False)
@@ -200,7 +200,7 @@ JS_ALLOWED = (
 
 
 def _py_literals(path):
-    src = path.read_text()
+    src = path.read_text(encoding="utf-8")
     tree = ast.parse(src)
     doc_lines = set()
     for n in ast.walk(tree):
@@ -233,7 +233,7 @@ def test_no_new_hard_coded_fusion_in_python_strings(rel):
 
 
 def test_no_new_hard_coded_fusion_in_app_js():
-    text = (PKG / "static" / "app.js").read_text()
+    text = (PKG / "static" / "app.js").read_text(encoding="utf-8")
     text = re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
     stray = []
     for i, line in enumerate(text.splitlines(), 1):

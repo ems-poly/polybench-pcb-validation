@@ -21,12 +21,12 @@ def test_n1_fallback_is_the_plan_that_is_live_now(tmp_path, monkeypatch):
     sess, c, d = make(tmp_path, monkeypatch)
     r, _ = approve(c, drop_rows(PLAN, r"\| U01 \|"), "retire U01")
     assert r.status_code == 200 and "U01" in r.json()["tests_retired"]
-    live = (d / "PLAN.md").read_text()
-    (d / "PLAN.md").write_text(drop_rows(live, r"\| P0[1-4] \|"))                      # hand-broken master
+    live = (d / "PLAN.md").read_text(encoding="utf-8")
+    (d / "PLAN.md").write_text(drop_rows(live, r"\| P0[1-4] \|"), encoding="utf-8")                      # hand-broken master
     top = d / "demo.pcbv.yaml"
     proto, info = recovery.try_recover(load(top), top, tmp_path / "data", "ai")
     assert proto is not None
-    assert open(info["restored_from"]).read() == live                                  # the approved plan, not the one it replaced
+    assert open(info["restored_from"], encoding="utf-8").read() == live                                  # the approved plan, not the one it replaced
     ids = {t["id"] for _s, _sec, t in proto.tests()}
     assert "U01" not in ids and "P01" in ids                                           # U01 stays retired
 
@@ -36,17 +36,17 @@ def test_n1_fallback_command_works_when_the_master_was_deleted(tmp_path, monkeyp
     from polybench.protocol import load
     sess, c, d = make(tmp_path, monkeypatch)
     approve(c, PLAN.replace("First issue", "First issue."), "dot")
-    live = (d / "PLAN.md").read_text()
-    (d / "PLAN.md").write_text("garbage")
+    live = (d / "PLAN.md").read_text(encoding="utf-8")
+    (d / "PLAN.md").write_text("garbage", encoding="utf-8")
     top = d / "demo.pcbv.yaml"
     _p, info = recovery.try_recover(load(top), top, tmp_path / "data", "ai")
     (d / "PLAN.md").unlink()                                                           # deleted, not just broken
     subprocess.run(info["command"], shell=True, check=True)
-    assert (d / "PLAN.md").read_text() == live and not (d / "PLAN.md.broken").exists()
+    assert (d / "PLAN.md").read_text(encoding="utf-8") == live and not (d / "PLAN.md.broken").exists()
     # and when the file exists, the broken copy is kept
-    (d / "PLAN.md").write_text("garbage")
+    (d / "PLAN.md").write_text("garbage", encoding="utf-8")
     subprocess.run(info["command"], shell=True, check=True)
-    assert (d / "PLAN.md.broken").read_text() == "garbage"
+    assert (d / "PLAN.md.broken").read_text(encoding="utf-8") == "garbage"
 
 
 # ---------------------------------------------------------------- N2
@@ -55,7 +55,7 @@ def test_n2_lint_command_in_the_message_reports_the_error(tmp_path, monkeypatch,
     from polybench.cli import main
     from polybench.protocol import load
     sess, c, d = make(tmp_path, monkeypatch)
-    (d / "PLAN.md").write_text(drop_rows(PLAN, r"\| P0[1-4] \|"))                      # lints clean as a plan, does not load
+    (d / "PLAN.md").write_text(drop_rows(PLAN, r"\| P0[1-4] \|"), encoding="utf-8")                      # lints clean as a plan, does not load
     top = d / "demo.pcbv.yaml"
     proto, info = recovery.try_recover(load(top), top, tmp_path / "nodata", "ai")
     assert proto is None
@@ -65,7 +65,7 @@ def test_n2_lint_command_in_the_message_reports_the_error(tmp_path, monkeypatch,
     rc = main(argv[1:])
     err = capsys.readouterr().err
     assert rc == 2 and "error" in err and "protocol load with this plan: " in err and "0 errors" not in err.split("protocol load with this plan:")[1].splitlines()[0]
-    (d / "PLAN.md").write_text(PLAN)                                                    # a good plan still lints clean
+    (d / "PLAN.md").write_text(PLAN, encoding="utf-8")                                                    # a good plan still lints clean
     assert main(argv[1:]) == 0
 
 
@@ -98,8 +98,8 @@ def test_n5_e2e_scripts_do_not_teach_the_variable():
     root = pathlib.Path(__file__).parent / "e2e"
     for f in root.glob("*.py"):
         if f.name != "opauth.py":
-            assert "POLYBENCH_OP_TOKEN" not in f.read_text(), f.name
-    assert "tests only" in (root / "opauth.py").read_text()
+            assert "POLYBENCH_OP_TOKEN" not in f.read_text(encoding="utf-8"), f.name
+    assert "tests only" in (root / "opauth.py").read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------- N3
@@ -135,7 +135,7 @@ def test_n4_draft_may_not_delete_revision_rows(tmp_path, monkeypatch):
     st = c.get("/api/ai/plan_draft").json()
     assert not st["can_approve"]
     assert c.post("/api/ai/plan_approve", json={"hash": st["hash"], "operator": "E"}).status_code == 409
-    assert re.search(r"^\| r1 \|", (d / "PLAN.md").read_text(), re.M)
+    assert re.search(r"^\| r1 \|", (d / "PLAN.md").read_text(encoding="utf-8"), re.M)
 
 
 def test_n4_new_row_must_be_labelled_rn(tmp_path, monkeypatch):
@@ -154,10 +154,10 @@ def test_n4_at_most_one_new_row_and_exactly_one_after_approval(tmp_path, monkeyp
     assert r["lint"]["errors"] >= 1 and any("adds 2 revision rows" in i["msg"] for i in r["lint"]["issues"])
     n0 = len(revision_rows(PLAN))
     ok, _ = approve(c, PLAN.replace("First issue", "First issue."), "no row of its own")
-    assert ok.status_code == 200 and len(revision_rows((d / "PLAN.md").read_text())) == n0 + 1
-    one = (d / "PLAN.md").read_text().rstrip("\n") + "\n| r3 | 2026-10-17 | own | assistant |\n"
+    assert ok.status_code == 200 and len(revision_rows((d / "PLAN.md").read_text(encoding="utf-8"))) == n0 + 1
+    one = (d / "PLAN.md").read_text(encoding="utf-8").rstrip("\n") + "\n| r3 | 2026-10-17 | own | assistant |\n"
     ok, _ = approve(c, one, "own row")
-    assert ok.status_code == 200 and len(revision_rows((d / "PLAN.md").read_text())) == n0 + 2
+    assert ok.status_code == 200 and len(revision_rows((d / "PLAN.md").read_text(encoding="utf-8"))) == n0 + 2
 
 
 # ---------------------------------------------------------------- operator name and card
@@ -168,7 +168,7 @@ def test_empty_operator_name_is_refused_with_422(tmp_path, monkeypatch):
     for body in ({"hash": h}, {"hash": h, "operator": ""}, {"hash": h, "operator": "   "}):
         r = c.post("/api/ai/plan_approve", json=body)
         assert r.status_code == 422 and "operator name required" in r.json()["error"]
-    assert (d / "PLAN.md").read_text() == PLAN
+    assert (d / "PLAN.md").read_text(encoding="utf-8") == PLAN
     assert c.post("/api/ai/plan_approve", json={"hash": h, "operator": "Pat"}).status_code == 200
 
 
@@ -179,7 +179,7 @@ def test_card_says_the_trial_is_interactive_and_gives_the_p_form(tmp_path, monke
     sess, c, _ = make(tmp_path, monkeypatch)
     s = c.get("/api/state").json()["ai"]["setup"]
     assert "--allowedTools mcp__polybench" in s["claude_trial_p"] and s["claude_trial_p"].startswith("claude -p --mcp-config ")
-    js = (pathlib.Path(polybench.__file__).parent / "static" / "ai_card.js").read_text()
+    js = (pathlib.Path(polybench.__file__).parent / "static" / "ai_card.js").read_text(encoding="utf-8")
     assert "interactive" in js and "claude_trial_p" in js
     from polybench.ai.cli import setup_text
     assert "non-interactive" in setup_text("http://127.0.0.1:8750")

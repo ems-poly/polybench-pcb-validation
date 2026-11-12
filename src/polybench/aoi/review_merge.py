@@ -105,7 +105,7 @@ def file_sha(path):
 
 
 def empty_decisions(result_path):
-    document = json.loads(Path(result_path).read_text())
+    document = json.loads(Path(result_path).read_text(encoding="utf-8"))
     return {'schema': DECISIONS_SCHEMA,
             'result': {'file': Path(result_path).name, 'generated': document.get('generated'), 'sha256': file_sha(result_path)},
             'cursor': 0, 'decisions': {}}
@@ -116,7 +116,7 @@ def _atomic_write(path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix='.' + path.name, suffix='.tmp')
     try:
-        with os.fdopen(fd, 'w') as handle:
+        with os.fdopen(fd, 'w', encoding="utf-8") as handle:
             handle.write(json.dumps(data, indent=1, sort_keys=False))
             handle.flush()
             os.fsync(handle.fileno())
@@ -134,7 +134,7 @@ def load_decisions(decisions_path, result_path):
     if not path.exists():
         return empty_decisions(result_path)
     try:
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as error:
         raise ReviewError(f'{path} is not valid JSON ({error}); it was left untouched. Move it aside to start again.') from error
     if data.get('schema') != DECISIONS_SCHEMA or not isinstance(data.get('decisions'), dict):
@@ -147,7 +147,7 @@ def set_decision(decisions_path, result_path, key, decision, note=''):
     """Record (or clear, with decision None) one decision and write the file atomically. Returns the data."""
     if decision is not None and decision not in DECISIONS:
         raise ReviewError(f'decision must be one of {DECISIONS} or null')
-    document = json.loads(Path(result_path).read_text())
+    document = json.loads(Path(result_path).read_text(encoding="utf-8"))
     valid = {i['key']: i for i in review_items(document)}
     if key not in valid:
         raise ReviewError(f'{key} is not a candidate of this result')
@@ -218,7 +218,7 @@ def export(result_path, decisions_path=None):
     """Write aoi_result.reviewed.json and its provenance file next to the result. Returns (paths, summary)."""
     result_path = Path(result_path)
     decisions_path = Path(decisions_path) if decisions_path else result_path.with_name(DECISIONS_NAME)
-    document = json.loads(result_path.read_text())
+    document = json.loads(result_path.read_text(encoding="utf-8"))
     decisions = load_decisions(decisions_path, result_path)
     reviewed, records, summary = merge(document, decisions)
     out = result_path.with_name(REVIEWED_NAME)

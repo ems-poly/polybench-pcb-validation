@@ -75,7 +75,7 @@ def test_is_noise(text, peak, secs, noise):
 def test_noise_transcript_is_dropped_silently(rv, tmp_path):
     wav = tmp_path / "n.wav"
     stt.write_wav(str(wav), speech(1.0))
-    wav.with_suffix(".txt").write_text("What? What? What? What? What?")
+    wav.with_suffix(".txt").write_text("What? What? What? What? What?", encoding="utf-8")
     rv.set_context("unpowered", "U01", "S01")
     n_spoken = len(rv.tts.log)
     e = rv.feed_wav(str(wav))

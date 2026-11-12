@@ -12,7 +12,7 @@ pytestmark = pytest.mark.skipif(not shutil.which("node"), reason="node not insta
 
 def msg(rows):
     code = f"console.log(JSON.stringify(require({json.dumps(str(JS))}).advanceSummary({json.dumps(rows)})))"
-    return json.loads(subprocess.run(["node", "-e", code], capture_output=True, text=True, check=True, timeout=20).stdout)
+    return json.loads(subprocess.run(["node", "-e", code], capture_output=True, text=True, check=True, timeout=20, encoding="utf-8", errors="replace").stdout)
 
 
 def test_all_settled():

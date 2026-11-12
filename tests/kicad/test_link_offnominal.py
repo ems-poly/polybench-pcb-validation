@@ -31,7 +31,7 @@ def _prefs(tmp_path, enabled):
     d = tmp_path / "prefs" / "10.0"
     d.mkdir(parents=True, exist_ok=True)
     f = d / "kicad_common.json"
-    f.write_text(json.dumps({"api": {"enable_server": enabled}}))
+    f.write_text(json.dumps({"api": {"enable_server": enabled}}), encoding="utf-8")
     return f
 
 
@@ -217,8 +217,8 @@ def test_newer_kicad_is_a_note_not_a_failure(snap):
     assert st2["connected"] and "newer" not in st2["detail"]
     import kipy.kicad
     src = Path(__file__).resolve().parents[2].joinpath("src/polybench/kicad").glob("*.py")
-    assert not any("check_version(" in p.read_text() for p in src if p.name != "link.py") and "check_version()" not in Path(
-        Path(__file__).resolve().parents[2], "src/polybench/kicad/link.py").read_text().replace("kipy.check_version() is never called", "")
+    assert not any("check_version(" in p.read_text(encoding="utf-8") for p in src if p.name != "link.py") and "check_version()" not in Path(
+        Path(__file__).resolve().parents[2], "src/polybench/kicad/link.py").read_text(encoding="utf-8").replace("kipy.check_version() is never called", "")
 
 
 def test_no_board_open(snap):

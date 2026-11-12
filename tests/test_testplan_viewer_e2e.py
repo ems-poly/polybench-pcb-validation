@@ -24,7 +24,7 @@ from helpers import DEMO, ROOT, free_port
 PORT = free_port("PB_TP_PORT")
 BASE = f"http://127.0.0.1:{PORT}/"
 TOKEN = "tp-test-token"
-PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text()
+PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text(encoding="utf-8")
 AI = {"X-Polybench-Client": "assistant", "X-Polybench-Assistant": "pytest", "X-Polybench-Session": "tp1", "Content-Type": "application/json"}
 
 
@@ -66,9 +66,9 @@ def server(tmp_path_factory):
     tmp = tmp_path_factory.mktemp("tp")
     proj = tmp / "proj"
     shutil.copytree(DEMO, proj)
-    (proj / "PLAN.md").write_text(PLAN)
+    (proj / "PLAN.md").write_text(PLAN, encoding="utf-8")
     top = proj / "demo.pcbv.yaml"
-    top.write_text(top.read_text() + "\ntest_plan: {file: PLAN.md, generate: true}\n")
+    top.write_text(top.read_text(encoding="utf-8") + "\ntest_plan: {file: PLAN.md, generate: true}\n", encoding="utf-8")
     env = {**os.environ, "POLYBENCH_OP_TOKEN": TOKEN}
     env.pop("POLYBENCH_AI_PERMISSIONS", None)
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(top), "--simulate", "--data-dir", str(tmp / "data"),
@@ -237,7 +237,7 @@ def test_draft_state_bar_and_approve_stays_operator_only(browser_page, server, s
     with pytest.raises(urllib.error.HTTPError) as ei:
         urllib.request.urlopen(req, timeout=30)
     assert ei.value.code == 403
-    assert (server / "PLAN.md").read_text() == PLAN
+    assert (server / "PLAN.md").read_text(encoding="utf-8") == PLAN
 
 
 def test_bar_at_900_wide(browser_page, shots):

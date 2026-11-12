@@ -96,7 +96,7 @@ def main(shots: Path, browser_name: str):
             if not run:
                 return 1
             a = get("api/state")["aoi"]
-            (shots / "candidates.json").write_text(json.dumps({"counts": a["counts"], "per_board": a["per_board"], "items": a["items"], "notes": run.get("notes"), "dir": run.get("dir")}, indent=1))
+            (shots / "candidates.json").write_text(json.dumps({"counts": a["counts"], "per_board": a["per_board"], "items": a["items"], "notes": run.get("notes"), "dir": run.get("dir")}, indent=1), encoding="utf-8")
             page.wait_for_timeout(800)
             page.screenshot(path=str(shots / f"{tag}_2_after_run.png"))
             page.click('button[data-aoi="mode"][data-m="review"]')
@@ -111,8 +111,8 @@ def main(shots: Path, browser_name: str):
             check("no horizontal scroll", over <= 0, str(over))
             browser.close()
         check("no page or console errors", not errors, "; ".join(errors)[:300])
-        ev = [json.loads(l) for l in next(data.rglob("journal.jsonl")).read_text().splitlines()]
-        (shots / "journal_aoi.jsonl").write_text("\n".join(json.dumps(e) for e in ev if e["type"].startswith("aoi_")))
+        ev = [json.loads(l) for l in next(data.rglob("journal.jsonl")).read_text(encoding="utf-8").splitlines()]
+        (shots / "journal_aoi.jsonl").write_text("\n".join(json.dumps(e) for e in ev if e["type"].startswith("aoi_")), encoding="utf-8")
         for p in data.rglob("evidence/D0*/*.jpg"):
             dst = shots / "evidence" / p.parent.name
             dst.mkdir(parents=True, exist_ok=True)

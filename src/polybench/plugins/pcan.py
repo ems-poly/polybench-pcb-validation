@@ -108,7 +108,7 @@ def gather(ctx, bus: BusHandle, sigs: SignalSet, duration: float, samples: int |
 
 def write_capture_csv(path: Path, rows, names: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    with open(path, "w", newline="") as fh:
+    with open(path, "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["t_s", "can_id", "extended", "dlc", "data_hex"] + names)
         t0 = rows[0][0] if rows else 0.0
@@ -283,7 +283,7 @@ class PcanStats(_PcanBase):
         base.parent.mkdir(parents=True, exist_ok=True)
         write_capture_csv(base.with_suffix(".csv"), rows, sigs.names)
         report = {"signal": sig, "unit": unit, "display_scale": scale, **{k: st[k] for k in st}}
-        base.with_suffix(".json").write_text(json.dumps(report, indent=1))
+        base.with_suffix(".json").write_text(json.dumps(report, indent=1), encoding="utf-8")
         ctx.log(f"{sig}: n={st['n']} mean={st['mean']:.6g} std={st['std']:.4g} pp={st['pp']:.4g} "
                 f"rate={st.get('rate_hz', float('nan')):.1f} Hz"
                 + (f" NFB={st['noise_free_bits']:.2f} ENOB={st['effective_bits']:.2f}" if st.get("noise_free_bits") else ""))
@@ -439,7 +439,7 @@ class PcanQuery(_PcanBase):
         path = Path(ctx.workdir) / f"{safe_name(ctx.board)}_query_{stamp()}_{safe_name(pl['label'])}.json"
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({"query": pl["label"], "id": got.can_id, "data": got.data.hex(),
-                                    "decoded": {k: v[1] for k, v in dec.items()}, "raw": {k: v[0] for k, v in dec.items()}}, indent=1))
+                                    "decoded": {k: v[1] for k, v in dec.items()}, "raw": {k: v[0] for k, v in dec.items()}}, indent=1), encoding="utf-8")
         for pr in pl["props"]:
             n = pr["signal"]
             if n not in dec:

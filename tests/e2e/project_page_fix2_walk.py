@@ -26,11 +26,11 @@ def main():
     other = s / "other"
     shutil.copytree(W.DEMO, other)
     f = other / "demo.pcbv.yaml"
-    f.write_text(f.read_text().replace("name: DEMO-1", "name: OTHER-DESIGN", 1))
+    f.write_text(f.read_text(encoding="utf-8").replace("name: DEMO-1", "name: OTHER-DESIGN", 1), encoding="utf-8")
     ghost = s / "ghost"
     ghost.mkdir()
     (s / "cfg" / "recent.json").write_text(json.dumps({"schema": 1, "projects": [
-        {"dir": str(ghost), "name": "Ghost project", "batch": "G1", "opened": "2026-10-01T10:00:00"}]}))
+        {"dir": str(ghost), "name": "Ghost project", "batch": "G1", "opened": "2026-10-01T10:00:00"}]}), encoding="utf-8")
     shutil.rmtree(ghost)
     srv = W.Server(port, s, s / "demo" / "demo.pcbv.yaml", s / "proj", "B1")
     ck = W.check

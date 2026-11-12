@@ -59,9 +59,9 @@ def main(shots: Path, browser_name: str):
     errors: list[str] = []
     ex = tmp / "example"
     shutil.copytree(EX, ex, ignore=shutil.ignore_patterns("firmware", "screenshots", "kicad"))
-    vy = (ex / "visual.yaml").read_text()
+    vy = (ex / "visual.yaml").read_text(encoding="utf-8")
     a, b = vy.index("aoi:\n"), vy.index("steps:")
-    (ex / "visual.yaml").write_text(vy[:a] + "aoi: {mode: diff, reference: D01}\n" + vy[b:])      # diff mode, photos chosen by hand (no `photos:`)
+    (ex / "visual.yaml").write_text(vy[:a] + "aoi: {mode: diff, reference: D01}\n" + vy[b:], encoding="utf-8")      # diff mode, photos chosen by hand (no `photos:`)
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(ex / "yd-esp32-s3.pcbv.yaml"), "--simulate",
                             "--data-dir", str(data), "--batch", "YD-AOI", "--boards", "2", "--no-browser", "--port", str(PORT)],
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=ROOT)
@@ -93,7 +93,7 @@ def main(shots: Path, browser_name: str):
             page.wait_for_timeout(800)
             check("AOI bar carries the Experimental diff badge", "experimental diff" in page.inner_text(".aoibar").lower())
             page.screenshot(path=str(shots / f"{tag}_2_tiles_photos.png"))
-            ev = [json.loads(l) for l in next(data.rglob("journal.jsonl")).read_text().splitlines()]
+            ev = [json.loads(l) for l in next(data.rglob("journal.jsonl")).read_text(encoding="utf-8").splitlines()]
             check("journal aoi_photo events carry mode: diff", [e["payload"].get("mode") for e in ev if e["type"] == "aoi_photo"] == ["diff", "diff"])
             stored = [p for p in (data).rglob("aoi/photos/*") if p.is_file()]
             check("stored photos have no EXIF", stored and all(b"Exif" not in p.read_bytes()[:4096] for p in stored))
@@ -139,7 +139,7 @@ def main(shots: Path, browser_name: str):
             check("U saved", until(lambda: get("api/state")["aoi"]["counts"]["unsure"] == 1))
             page.wait_for_timeout(600)
             page.screenshot(path=str(shots / f"{tag}_6_review_after_decisions.png"))
-            ev = [json.loads(l) for l in next(data.rglob("journal.jsonl")).read_text().splitlines()]
+            ev = [json.loads(l) for l in next(data.rglob("journal.jsonl")).read_text(encoding="utf-8").splitlines()]
             dec = [e["payload"] for e in ev if e["type"] == "aoi_decision"]
             check("journal aoi_decision: mode diff, issue_board D02 on the Y", dec and all(d.get("mode") == "diff" for d in dec) and dec[0]["decision"] == "confirmed" and dec[0]["issue_board"] == "D02", str(dec)[:300])
             check("journal aoi_run carries mode: diff", any(e["type"] == "aoi_run" and e["payload"].get("mode") == "diff" for e in ev))

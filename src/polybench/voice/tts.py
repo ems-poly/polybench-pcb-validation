@@ -8,6 +8,8 @@ import threading
 import time
 from typing import Callable
 
+from .. import platform as _platform
+
 _UNITS = [(r"kOhms?", "kilo ohms"), (r"MOhms?", "mega ohms"), (r"Ohms?", "ohms"), (r"mA", "milliamps"), (r"uA", "microamps"),
           (r"mV", "millivolts"), (r"kHz", "kilohertz"), (r"MHz", "megahertz"), (r"Hz", "hertz"), (r"V", "volts"), (r"A", "amps")]
 
@@ -82,6 +84,8 @@ def is_natural(name: str) -> bool:
 
 def open_speech_settings() -> dict:
     """Open System Settings at Spoken Content with a fixed URL (no input); fall back to the Accessibility pane."""
+    if not _platform.IS_MACOS:                      # System Settings and `open` exist on macOS only; speech output on other systems is W5
+        return {"ok": False, "url": None}
     for url in SPOKEN_CONTENT_URLS:
         try:
             r = subprocess.run(["open", url], capture_output=True, timeout=5)
@@ -166,7 +170,7 @@ class Tts:
         if not self.available():
             return []
         try:
-            out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, timeout=10).stdout
+            out = subprocess.run(["say", "-v", "?"], capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace").stdout
         except (OSError, subprocess.SubprocessError):
             return []
         names = [m.group(1).strip() for l in out.splitlines() if (m := re.match(r"^(.+?)\s{2,}\S+\s+#", l))]

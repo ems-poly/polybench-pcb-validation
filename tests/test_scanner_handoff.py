@@ -25,7 +25,7 @@ def test_no_launcher_and_no_export_endpoint_any_more(tmp_path):
     with TestClient(create_app(sess)) as c:
         assert c.post("/api/scanner/launch").status_code in (404, 405)
         assert c.post("/api/scanner/export").status_code in (404, 405)
-    js = (ROOT / "src/polybench/static/app.js").read_text()
+    js = (ROOT / "src/polybench/static/app.js").read_text(encoding="utf-8")
     assert "scanlaunch" not in js and "scanexport" not in js and "Launch Assembly Scanner" not in js and "Export BOM for scanner" not in js
 
 

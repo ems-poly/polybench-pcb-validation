@@ -60,7 +60,7 @@ CHILD = textwrap.dedent('''
 
 def test_bare_install_starts_and_every_route_answers_without_a_500():
     p = subprocess.run([sys.executable, "-c", CHILD, str(REPO / "src/polybench/examples/demo/demo.pcbv.yaml")], capture_output=True, text=True, timeout=120,
-                       env={**__import__("os").environ, "PYTHONPATH": str(REPO / "src")})
+                       env={**__import__("os").environ, "PYTHONPATH": str(REPO / "src")}, encoding="utf-8", errors="replace")
     assert p.returncode == 0, p.stderr[-1500:]
     out = json.loads(p.stdout.strip().splitlines()[-1])
     five = {k: v for k, v in out.items() if v[0] >= 500}

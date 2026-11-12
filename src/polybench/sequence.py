@@ -52,7 +52,7 @@ def manifest_labels(path) -> dict[str, str]:
     backticked word of the line, else the file name next to the hash."""
     out: dict[str, str] = {}
     try:
-        text = Path(str(path)).expanduser().read_text(errors="replace")
+        text = Path(str(path)).expanduser().read_text(errors="replace", encoding="utf-8")
     except OSError:
         return out
     for ln in text.splitlines():

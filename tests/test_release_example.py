@@ -47,9 +47,9 @@ def test_cli_example_copies_and_prints_run_command(tmp_path, capsys):
 
 def test_cli_example_refuses_non_empty_dest_and_unknown_name(tmp_path, capsys):
     (tmp_path / "x").mkdir()
-    (tmp_path / "x" / "keep").write_text("1")
+    (tmp_path / "x" / "keep").write_text("1", encoding="utf-8")
     assert cli_main(["example", "esp32-s3", "--dest", str(tmp_path / "x")]) == 2
-    assert (tmp_path / "x" / "keep").read_text() == "1"
+    assert (tmp_path / "x" / "keep").read_text(encoding="utf-8") == "1"
     assert cli_main(["example", "nope"]) == 2
     assert cli_main(["example"]) == 2
 
@@ -61,7 +61,7 @@ def test_demo_automated_is_not_in_the_package():
 def _build_wheel(tmp_path):
     out = tmp_path / "whl"
     r = subprocess.run([sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "-q", "-w", str(out), str(ROOT)],
-                       capture_output=True, text=True, timeout=120)
+                       capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
     if r.returncode:
         pytest.skip("cannot build a wheel here (needs setuptools>=77 in this environment): " + r.stderr[-300:])
     return next(out.glob("*.whl"))

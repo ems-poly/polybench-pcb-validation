@@ -70,13 +70,13 @@ def make_protocol(tmp: Path) -> Path:
     d = tmp / "demo"
     shutil.copytree(ROOT / "src/polybench/examples/demo", d)
     f = d / "powered.yaml"
-    s = f.read_text()
+    s = f.read_text(encoding="utf-8")
     s = s.replace("values: {P01: [22, 0.15, mA], P02: [5.0, 0.01, V], P03: [3.3, 0.01, V], P04: [14, 0.2, mA]}",
                   "values: {P01: [22, 0.15, mA], P02: [5.0, 0.01, V], P03: [3.3, 0.01, V], P04: [14, 0.2, mA]}\n              analyse: {trip_above: {P01: 40}}")
     s = s.replace("            proposes: [P01, P02, P03, P04]\n", "            record: propose\n            proposes: [P01, P02, P03, P04]\n"
                   "            derive:\n              - {test: P06, from: analysis.within_limit, map: {true: \"yes\", false: \"no\"}, note: \"no reading above its trip level\"}\n", 1)
     s = s.rstrip("\n") + "\n          - {id: P06, title: \"Current stayed under the limit, no trip\", kind: yn, limit: {class: record}, inputs: [keyboard, action]}\n"
-    f.write_text(s)
+    f.write_text(s, encoding="utf-8")
     return d / "demo.pcbv.yaml"
 
 

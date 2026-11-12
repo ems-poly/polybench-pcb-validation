@@ -86,8 +86,8 @@ def test_server_pauses_the_live_reader_while_a_real_run_holds_the_cable(tmp_path
     d = tmp_path / "proj"
     shutil.copytree(DEMO, d)
     f = d / "unpowered.yaml"
-    f.write_text(f.read_text().replace("        tests:\n          - id: U01", "        actions:\n          - {id: dmm, title: Meter, plugin: dmm.read, "
-                 "params: {unit: furlong, map: {value: U01}}, proposes: [U01]}\n        tests:\n          - id: U01", 1))
+    f.write_text(f.read_text(encoding="utf-8").replace("        tests:\n          - id: U01", "        actions:\n          - {id: dmm, title: Meter, plugin: dmm.read, "
+                 "params: {unit: furlong, map: {value: U01}}, proposes: [U01]}\n        tests:\n          - id: U01", 1), encoding="utf-8")
     sess = Session(load(d / "demo.pcbv.yaml"), tmp_path / "data", "dmm", True, 2, None)
     sess.engine.override_gate("S01", "unpowered", "test")
     calls = []
@@ -113,8 +113,8 @@ def test_a_simulated_run_never_touches_the_live_reader(tmp_path):
     d = tmp_path / "proj"
     shutil.copytree(DEMO, d)
     f = d / "unpowered.yaml"
-    f.write_text(f.read_text().replace("        tests:\n          - id: U01", "        actions:\n          - {id: dmm, title: Meter, plugin: dmm.read, "
-                 "params: {unit: kOhm, map: {value: U01}, sim: {scene: ohm}}, proposes: [U01]}\n        tests:\n          - id: U01", 1))
+    f.write_text(f.read_text(encoding="utf-8").replace("        tests:\n          - id: U01", "        actions:\n          - {id: dmm, title: Meter, plugin: dmm.read, "
+                 "params: {unit: kOhm, map: {value: U01}, sim: {scene: ohm}}, proposes: [U01]}\n        tests:\n          - id: U01", 1), encoding="utf-8")
     sess = Session(load(d / "demo.pcbv.yaml"), tmp_path / "data", "dmm", True, 2, None)
     sess.engine.override_gate("S01", "unpowered", "test")
     calls = []

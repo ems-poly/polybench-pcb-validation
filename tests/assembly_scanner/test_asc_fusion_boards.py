@@ -256,8 +256,8 @@ def test_app_settings_never_store_a_board_choice(tmp_path):
     names = {f.name for f in dataclasses.fields(main.Settings)}
     assert not {n for n in names if "board" in n or "target" in n or "pin" in n}, names
     cfg = tmp_path / "config.json"
-    cfg.write_text(json.dumps({"bom_path": "x.xlsx", "board": "urn:x", "pinned_board": "urn:x"}))
+    cfg.write_text(json.dumps({"bom_path": "x.xlsx", "board": "urn:x", "pinned_board": "urn:x"}), encoding="utf-8")
     st = main.Settings.load(cfg)
     assert st.bom_path == "x.xlsx"
     assert st.save(cfg) is None
-    assert "urn:x" not in cfg.read_text()
+    assert "urn:x" not in cfg.read_text(encoding="utf-8")

@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Streamin
 from fastapi.staticfiles import StaticFiles
 
 from . import errata, registry
+from . import platform as _platform
 from .ecad_sim import SimulatedEcad
 from . import partsort
 from . import polarity_card as polcard
@@ -46,7 +47,7 @@ def _index_html() -> str:
     """index.html with ?v=<content hash> on every local script and stylesheet link: a changed file is a new URL."""
     import hashlib
     import re as _re
-    html = (STATIC / "index.html").read_text()
+    html = (STATIC / "index.html").read_text(encoding="utf-8")
 
     def tag(m):
         path = STATIC / m.group(2)[len("/static/"):]
@@ -342,7 +343,7 @@ class Session:
                 rel = Path(f.name)
             (dst / rel).parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(f, dst / rel)
-        (dst / "HASH").write_text(self.proto.hash + "\n")
+        (dst / "HASH").write_text(self.proto.hash + "\n", encoding="utf-8")
 
     async def broadcast(self, msg: dict):
         for q in list(self.clients):
@@ -574,7 +575,7 @@ class Session:
 
     def _pol_cache_get(self, designators, doc_hint):
         try:
-            data = json.loads(self._pol_cache_file().read_text())
+            data = json.loads(self._pol_cache_file().read_text(encoding="utf-8"))
         except (OSError, ValueError):
             return None
         docs = data.get("documents", {})
@@ -591,13 +592,13 @@ class Session:
         try:
             f = self._pol_cache_file()
             try:
-                data = json.loads(f.read_text())
+                data = json.loads(f.read_text(encoding="utf-8"))
             except (OSError, ValueError):
                 data = {}
             ent = data.setdefault("documents", {}).setdefault(doc_name, {"name": doc_name, "parts": {}})
             ent["parts"].update(good)
             ent["saved"] = time.strftime("%Y-%m-%d %H:%M:%S")
-            f.write_text(json.dumps(data, separators=(",", ":")))
+            f.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
         except OSError:
             pass
 
@@ -646,7 +647,7 @@ class Session:
         (the 45 s memo and the per-document cache file): ranking never starts a Fusion read, selects or highlights anything."""
         fps = {}
         try:
-            data = json.loads(self._pol_cache_file().read_text())
+            data = json.loads(self._pol_cache_file().read_text(encoding="utf-8"))
             docs = data.get("documents", {})
             hint = (self.engine.state.project.get("select") or {}).get("document")
             doc = docs.get(hint) if hint else (next(iter(docs.values())) if len(docs) == 1 else None)
@@ -878,12 +879,11 @@ class _Fwd:
 
 
 def reveal_path(path: str) -> dict:
-    """Show a file or folder in Finder (`open -R`). POLYBENCH_NO_REVEAL=1 (tests) records the request and opens nothing."""
+    """Show a file or folder in the OS file manager (Finder, Explorer). POLYBENCH_NO_REVEAL=1 (tests) records the request and opens nothing."""
     if os.environ.get("POLYBENCH_NO_REVEAL") == "1":
         return {"ok": True, "stubbed": True, "path": path}
-    import subprocess
     try:
-        subprocess.Popen(["open", "-R", path], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        _platform.show_in_file_manager(path)
     except Exception as e:
         return {"ok": False, "error": str(e), "path": path}
     return {"ok": True, "path": path}
@@ -1091,6 +1091,14 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
         name = " ".join(str(b.get("name") or "").split())
         if not name:
             raise CmdError("give the project a name", 422)
+        if any("\x00" in str(b.get(k) or "") for k in ("dir", "protocol", "bom")):
+            raise CmdError("that is not a usable path", 422)                      # a NUL byte
+        try:
+            _d = Path(str(b.get("dir") or "")).expanduser().resolve() if str(b.get("dir") or "").strip() else None
+        except (OSError, RuntimeError, ValueError):
+            _d = None
+        if _d is not None and _d == Path(_d.anchor):                              # a drive root (C:\) or /: never a project folder
+            raise CmdError(f"{_d} is the top of a drive; choose a folder inside it", 422)
         info = wslib.inspect(b.get("dir") or "")
         if info["kind"] == "corrupt":
             raise CmdError(f"{info['path']} holds a project whose {info['problem']}", 409)
@@ -1126,6 +1134,8 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
         _busy_check()
         cur = holder["cur"]
         b = body or {}
+        if any("\x00" in str(b.get(k) or "") for k in ("dir", "protocol")):
+            raise CmdError("that is not a usable path", 422)                      # a NUL byte
         info = wslib.inspect(b.get("dir") or "")
         if info["kind"] == "corrupt":
             ws_bad = wslib.SettingsUnreadable(Path(info["path"]) / wslib.SETTINGS_NAME, info.get("settings_error", ""),
@@ -1183,10 +1193,15 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
     async def reveal(body: dict):
         cur = holder["cur"]
         raw = str((body or {}).get("path") or "").strip()
-        p = str(Path(raw).expanduser().resolve()) if raw else ""          # resolved: `..` or a symlink cannot climb out
+        try:
+            p = str(Path(raw).expanduser().resolve()) if raw else ""          # resolved: `..` or a symlink cannot climb out
+        except (ValueError, OSError, RuntimeError):                          # a NUL byte, a loop, a name the OS refuses
+            raise CmdError("that is not a usable path", 422)
+        if _platform.IS_WINDOWS and ":" in p[2:]:                            # an alternate data stream (file.txt:name) is not a place to show
+            raise CmdError("only the project, batch, protocol and BOM paths can be shown in Finder", 403)
         allowed = [str(Path(x).expanduser().resolve()) for x in
                    [cur.workspace.dir, cur.dir, cur.proto.path.parent] + [Path(y).parent for y in [cur.workspace.get("bom_path")] if y]]
-        if not p or not any(p == a or p.startswith(a.rstrip("/") + "/") for a in allowed):
+        if not p or not any(_platform.is_within(p, a) for a in allowed):
             raise CmdError("only the project, batch, protocol and BOM paths can be shown in Finder", 403)
         return reveal_path(p)
 
@@ -1853,7 +1868,7 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
         moved = ""
         if src.is_file():
             shutil.move(str(src), str(dst))
-            moved = str(dst.relative_to(sess.dir))
+            moved = dst.relative_to(sess.dir).as_posix()          # the journal keeps forward slashes on every OS
         r = eng.aoi_remove(file, body.get("reason", ""), moved)
         await sess.broadcast({"kind": "state"})
         return r
@@ -2008,7 +2023,7 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
         text = errata.to_markdown(eng.state, rows, sess.batch, eng.journal_hash(), time.strftime("%Y-%m-%d %H:%M:%S"))
         tmp = path.with_suffix(".md.tmp")
         tmp.write_text(text, encoding="utf-8")
-        os.replace(tmp, path)
+        _platform.replace_file(tmp, path)
         counts = {k: sum(r["kind"] == k for r in rows) for k in ("note", "fail", "aoi")}
         eng._emit("errata_export", {"file": "reports/errata_candidates.md", "count": len(rows), "by_source": counts, "journal_hash": eng.journal_hash()})
         await sess.broadcast({"kind": "state"})

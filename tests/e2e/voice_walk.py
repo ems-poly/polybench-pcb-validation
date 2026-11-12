@@ -85,7 +85,7 @@ def main(shots: Path):
     tmp = Path(tempfile.mkdtemp(prefix="pb-voice-e2e-"))
     clips = make_voice_clips.make(tmp / "clips")
     cfgp = tmp / "voice.json"
-    cfgp.write_text(json.dumps({"tts_backend": "log", "grace_s": 0, "llm_enabled": False, "stt_backend": "whisper" if REAL_STT else "sidecar"}))
+    cfgp.write_text(json.dumps({"tts_backend": "log", "grace_s": 0, "llm_enabled": False, "stt_backend": "whisper" if REAL_STT else "sidecar"}), encoding="utf-8")
     env = {**os.environ, "POLYBENCH_VOICE_TEST": "1", "POLYBENCH_VOICE_CONFIG": str(cfgp), "PYTHONPATH": os.environ.get("PYTHONPATH") or str(ROOT / "src")}
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(PROTOCOL), "--simulate", "--data-dir", str(tmp / "data"),
                             "--batch", "VOICE-E2E", "--boards", "10", "--no-browser", "--port", str(PORT)],

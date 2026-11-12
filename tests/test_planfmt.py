@@ -23,7 +23,7 @@ def demo_bom():
 
 def parse_text(tmp_path, text, bom=True):
     f = tmp_path / "PLAN.md"
-    f.write_text(text)
+    f.write_text(text, encoding="utf-8")
     b, acts, _ = demo_bom()
     return planfmt.parse(f, b if bom else None, acts if bom else None)
 
@@ -39,7 +39,7 @@ def msgs(plan, sev="error"):
     return [(i.line, i.msg) for i in plan.issues if i.severity == sev]
 
 
-GOOD = PLAN.read_text()
+GOOD = PLAN.read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------- the good plan
@@ -219,9 +219,9 @@ def test_outlier_rule_needs_a_band_somewhere(tmp_path):
 def make_proto(tmp_path, plan_text=GOOD, generate=True):
     d = tmp_path / "proj"
     shutil.copytree(DEMO, d)
-    (d / "PLAN.md").write_text(plan_text)
+    (d / "PLAN.md").write_text(plan_text, encoding="utf-8")
     top = d / "demo.pcbv.yaml"
-    top.write_text(top.read_text() + ("\ntest_plan: {file: PLAN.md, generate: true}\n" if generate else "\ntest_plan: PLAN.md\n"))
+    top.write_text(top.read_text(encoding="utf-8") + ("\ntest_plan: {file: PLAN.md, generate: true}\n" if generate else "\ntest_plan: PLAN.md\n"), encoding="utf-8")
     return top
 
 
@@ -242,7 +242,7 @@ def test_protocol_generates_from_plan(tmp_path):
 def test_plan_hash_is_not_in_the_protocol_hash(tmp_path):
     top = make_proto(tmp_path)
     h1 = load(top).hash
-    (top.parent / "PLAN.md").write_text(GOOD + "\nmore prose\n")
+    (top.parent / "PLAN.md").write_text(GOOD + "\nmore prose\n", encoding="utf-8")
     p2 = load(top)
     assert p2.hash == h1 and p2.data["plan"]["hash"] != load(make_proto(tmp_path / "x")).data["plan"]["hash"]
 
@@ -433,7 +433,7 @@ def test_retired_tests_keep_their_results(tmp_path):
                                                                      for s, sec, t in eng.proto.tests() if s.get("plan_generated")]}
     eng.plan_loaded(info)
     # revision 2 of the plan drops U06
-    (top.parent / "PLAN.md").write_text(re.sub(r"\| U06 \|.*\n", "", GOOD))
+    (top.parent / "PLAN.md").write_text(re.sub(r"\| U06 \|.*\n", "", GOOD), encoding="utf-8")
     new = load(top)
     assert not new.errors and not new.test("U06")
     eng.proto = new
@@ -463,15 +463,15 @@ def test_cli_import_writes_header_and_refuses_on_error(tmp_path, capsys):
     proto = DEMO / "demo.pcbv.yaml"
     out = tmp_path / "frag.yaml"
     assert main(["plan", "import", str(PLAN), "--protocol", str(proto), "--out", str(out)]) == 0
-    head = out.read_text().split("\n")[0]
+    head = out.read_text(encoding="utf-8").split("\n")[0]
     assert re.fullmatch(r"# GENERATED from DEMO_TEST_PLAN\.md @ [0-9a-f]{16}, do not edit\.", head)
     import yaml
-    frag = yaml.safe_load(out.read_text())
+    frag = yaml.safe_load(out.read_text(encoding="utf-8"))
     assert [s["id"] for s in frag["steps"]] == ["unpowered", "powered"] and len(frag["tier_gates"]) == 2
     bad = tmp_path / "BAD.md"
-    bad.write_text(GOOD.replace("| hard | calc C1 |", "| hard | — |"))
+    bad.write_text(GOOD.replace("| hard | calc C1 |", "| hard | — |"), encoding="utf-8")
     out2 = tmp_path / "frag2.yaml"
     assert main(["plan", "import", str(bad), "--protocol", str(proto), "--out", str(out2)]) == 2
     assert not out2.exists()
     err = capsys.readouterr().err
-    assert f"BAD.md:{line_of(bad.read_text(), '| U02 |')}: error: U02: hard limit without a source" in err
+    assert f"BAD.md:{line_of(bad.read_text(encoding="utf-8"), '| U02 |')}: error: U02: hard limit without a source" in err

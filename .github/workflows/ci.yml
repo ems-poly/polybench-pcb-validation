@@ -28,10 +28,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest, windows-11-arm]
-    # Linux went green on 12 Nov (71b2d35) but stays non-blocking until it has a run history.
-    # Windows (x64 and ARM64) is a trial for the Windows port (UIR-56): it never blocks a merge; its job is to produce
-    # the real failure list. Expected to fail until the port lands.
-    continue-on-error: ${{ matrix.os != 'macos-latest' }}
+    # macOS, Linux and Windows x64 block a merge (Linux since the Windows port, UIR-56 W1).
+    # Windows x64 went green on 12 Nov (UIR-56 W1) and now blocks a merge. Windows ARM64 stays a non-blocking trial: its
+    # Playwright page tests time out there (4 tests) and its install is core plus KiCad extras only.
+    continue-on-error: ${{ matrix.os == 'windows-11-arm' }}
     defaults:
       run:
         shell: bash     # Git Bash on the Windows runners, so the same steps run everywhere
@@ -61,7 +61,17 @@ jobs:
         run: python -m playwright install --with-deps webkit chromium
       - name: Test (simulator only, no browser click-through)
         # On Windows, keep going past test files that fail to import, so the trial lists every failure.
-        run: python -m pytest -m "not e2e" -q ${{ runner.os == 'Windows' && '--continue-on-collection-errors -p no:cacheprovider' || '' }}
+        run: python -m pytest -m "not e2e" -q -rsxX ${{ runner.os == 'Windows' && '-p no:cacheprovider' || '' }}
+      - name: Process-tree stop (WIN-S1), shown test by test on every OS
+        run: python -m pytest tests/test_platform_tree_stop.py -v -p no:cacheprovider
+      - name: Process-tree stop without psutil (the default install)
+        # psutil is in the dev extra, so the fallback (process group, taskkill, PowerShell) would never run. Uninstall it for real.
+        env:
+          PB_NO_PSUTIL: "1"
+        run: |
+          python -m pip uninstall -y psutil
+          python -c "import importlib.util as u; assert u.find_spec('psutil') is None"
+          python -m pytest tests/test_platform_tree_stop.py tests/test_platform.py -v -p no:cacheprovider
 
   package:
     name: build, twine check, install smoke

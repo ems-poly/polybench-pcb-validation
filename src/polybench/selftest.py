@@ -63,7 +63,7 @@ def run() -> int:
         proc = subprocess.Popen([sys.executable, "-m", "polybench.run_action", "demo.measure",
                                  json.dumps({"board": "S01", "params": {"values": {"P01": [20, 0.1, "mA"]}},
                                              "workdir": str(tmp / "w"), "simulate": True})],
-                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+                                stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace")
         try:
             out = proc.stdout.read()
             proc.wait(timeout=30)

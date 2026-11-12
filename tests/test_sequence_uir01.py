@@ -22,14 +22,14 @@ def make(tmp_path, missing_pcan=False, flaky_final=True):
     d = tmp_path / "proto"
     shutil.copytree(EX, d)
     f = d / "function.yaml"
-    t = f.read_text()
+    t = f.read_text(encoding="utf-8")
     if missing_pcan:
         t = t.replace("        bitrate: 1000000\n", "        bitrate: 1000000\n        sim: {status: missing, detail: \"PCAN-USB not on USB\", hint: \"plug it in\"}\n", 1)
     if flaky_final:
         t = t.replace("        plugin: openocd.flash\n        final: true\n        needs: [probe]\n        params: {image_from: final_images, map: {image_sha256: A90}}",
                       f"        plugin: demo.fail\n        final: true\n        needs: [probe]\n        params: {{until_file: {tmp_path / 'probe_ok'}, propose: {{A90: abc}}}}")
         assert "demo.fail" in t
-    f.write_text(t)
+    f.write_text(t, encoding="utf-8")
     sess = Session(load(d / "demo_automated.pcbv.yaml"), tmp_path / "data", "b", True, 3, None, operator="Op")
     return sess
 
@@ -80,7 +80,7 @@ def test_r1_retry_final_only(tmp_path):
         assert r["attempt"] == att and r["retry"] == 2
         await until(lambda: not sq.active, "retry")
         assert sess.engine.state.sequences[("S01", STEP)]["final"]["state"] == "error"
-        (tmp_path / "probe_ok").write_text("x")           # the operator plugged the probe in
+        (tmp_path / "probe_ok").write_text("x", encoding="utf-8")           # the operator plugged the probe in
         await sq.retry_final(STEP, "S01")
         await until(lambda: not sq.active, "second retry")
         rec = sess.engine.state.sequences[("S01", STEP)]
@@ -342,7 +342,7 @@ def test_item1_successful_retry_restores_the_kept_check(tmp_path):
         await sq.retry_final(STEP, "S01")                    # still failing: stays dropped
         await until(lambda: not sq.active)
         assert STEP not in sq.bench_cache_status()
-        (tmp_path / "probe_ok").write_text("x")
+        (tmp_path / "probe_ok").write_text("x", encoding="utf-8")
         await sq.retry_final(STEP, "S01")
         await until(lambda: not sq.active)
         assert sess.engine.state.sequences[("S01", STEP)]["final"]["state"] == "ok"

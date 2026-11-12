@@ -11,13 +11,13 @@ def test_open_workspace_session_recovers_broken_master(tmp_path):
     shutil.copytree(DEMO, proj)
     top = proj / "demo.pcbv.yaml"
     plan = proj / "PLAN.md"
-    plan.write_text((ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text())
-    top.write_text(top.read_text() + "\ntest_plan: {file: PLAN.md, generate: true}\n")
+    plan.write_text((ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text(encoding="utf-8"), encoding="utf-8")
+    top.write_text(top.read_text(encoding="utf-8") + "\ntest_plan: {file: PLAN.md, generate: true}\n", encoding="utf-8")
     data = tmp_path / "data"
     hist = data / "b1" / "ai" / "plan_history"
     hist.mkdir(parents=True)
-    (hist / "good.md").write_text(plan.read_text())
-    plan.write_text(plan.read_text() + "\n```\n")                     # unclosed code fence: the master no longer loads
+    (hist / "good.md").write_text(plan.read_text(encoding="utf-8"), encoding="utf-8")
+    plan.write_text(plan.read_text(encoding="utf-8") + "\n```\n", encoding="utf-8")                     # unclosed code fence: the master no longer loads
     ws = wslib.Workspace(data)
     ws.settings = {"schema": wslib.SCHEMA, "name": None, "created": wslib.now(), "updated": wslib.now(), "protocol_path": str(top),
                    "bom_path": None, "ecad": {"program": "fusion", "document": None, "documents": {}}, "current_batch": "b1"}

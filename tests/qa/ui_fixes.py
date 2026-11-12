@@ -18,7 +18,7 @@ def post(path, body):
         return {"http": e.code, **json.loads(e.read() or b"{}")}
 
 
-plan = (PROJ / "PLAN.md").read_text()
+plan = (PROJ / "PLAN.md").read_text(encoding="utf-8")
 new = plan.replace("| U05 | R3 across its pads |", "| U07 | R3 across its pads, fresh |")
 print("draft", post("/api/ai/plan_draft", {"text": new, "summary": "replace U05 by U07"}).get("ok"))
 print("propose", post("/api/ai/propose", {"board": "S01", "test_id": "U02", "value": "2.4", "reason": "operator read it aloud"}))

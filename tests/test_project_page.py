@@ -62,7 +62,7 @@ def test_new_project_refuses_file_and_unwritable_folder(tmp_path):
     """PP-02: New refuses a file path and an unwritable folder (422), and needs a name."""
     sess = new_project_session(tmp_path / "proj")
     f = tmp_path / "afile.txt"
-    f.write_text("x")
+    f.write_text("x", encoding="utf-8")
     ro = tmp_path / "ro"
     ro.mkdir()
     ro.chmod(stat.S_IRUSR | stat.S_IXUSR)
@@ -70,7 +70,7 @@ def test_new_project_refuses_file_and_unwritable_folder(tmp_path):
         with client(sess) as c:
             r = c.post("/api/project/new", json={"dir": str(f), "name": "n"})
             assert r.status_code == 422 and "file" in r.json()["error"]
-            if os.geteuid() != 0:
+            if hasattr(os, 'geteuid') and os.geteuid() != 0:          # Windows has no POSIX directory permission bits (W1-7: not tested there)
                 r = c.post("/api/project/new", json={"dir": str(ro), "name": "n"})
                 assert r.status_code == 422 and "writable" in r.json()["error"]
                 r = c.post("/api/project/new", json={"dir": str(ro / "sub"), "name": "n"})
@@ -158,8 +158,8 @@ def test_inspect_kinds(tmp_path):
     legacy = legacy_folder(tmp_path / "legacy")
     (tmp_path / "empty").mkdir()
     (tmp_path / "other").mkdir()
-    (tmp_path / "other" / "x.txt").write_text("x")
-    (tmp_path / "f.txt").write_text("x")
+    (tmp_path / "other" / "x.txt").write_text("x", encoding="utf-8")
+    (tmp_path / "f.txt").write_text("x", encoding="utf-8")
     with client(sess) as c:
         k = lambda p: c.get("/api/project/inspect", params={"path": str(p)}).json()
         assert k(tmp_path / "proj")["kind"] == "project"
@@ -272,7 +272,7 @@ def test_protocol_and_bom_referenced_never_copied(tmp_path):
         assert c.post("/api/bom/load", json={"path": str(CSV_BOM)}).status_code == 200
     s = settings(d)
     assert s["protocol_path"] == str(DEMO_PROTO.resolve()) and s["bom_path"] == str(CSV_BOM.resolve())
-    files = {str(f.relative_to(d)) for f in d.rglob("*") if f.is_file()}
+    files = {f.relative_to(d).as_posix() for f in d.rglob("*") if f.is_file()}
     assert not any(f.endswith(".csv") for f in files)
     outside_snapshot = {f for f in files if not f.startswith("B1/protocol/")}
     assert outside_snapshot == {"polybench-project.json", "B1/journal.jsonl"}

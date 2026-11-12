@@ -56,7 +56,7 @@ def collect(engine, batch_dir: Path, board: str, step_id: str) -> dict:
         mp = (a.get("params") or {}).get("map") or {}
         label = f"run {run}"
         try:
-            m = json.loads((Path(r["workdir"]) / "measurements.json").read_text())
+            m = json.loads((Path(r["workdir"]) / "measurements.json").read_text(encoding="utf-8"))
         except (OSError, ValueError, TypeError):
             m = None
         if not m:

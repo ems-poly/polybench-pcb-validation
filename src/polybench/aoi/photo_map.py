@@ -43,7 +43,7 @@ def _entry(value, base, key):
 
 def from_map_file(map_file, photos_dir):
     try:
-        data = json.loads(Path(map_file).read_text())
+        data = json.loads(Path(map_file).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
         raise PhotoMapError(f'Cannot read map file {map_file}: {error}') from error
     if not isinstance(data, dict) or not data:
@@ -95,7 +95,7 @@ def caption_boards(photos_dir):
         path = Path(photos_dir) / name
         if path.is_file():
             found = set()
-            for line in path.read_text(errors='replace').splitlines():
+            for line in path.read_text(errors='replace', encoding="utf-8").splitlines():
                 match = re.match(r'\s*[-*]?\s*(?:B|board[_ -]?)(\d{1,2})(?![0-9])\s*[:,\- ]*\S', line, re.I)
                 if match:
                     found.add(board_id(match.group(1)))

@@ -272,14 +272,14 @@ def render_markdown(text: str, siblings=lambda name: None) -> dict:
 def git_info(path: Path) -> dict | None:
     try:
         d = path.parent
-        r = subprocess.run(["git", "-C", str(d), "log", "-1", "--format=%h%x09%cs%x09%s", "--", path.name], capture_output=True, text=True, timeout=3)
+        r = subprocess.run(["git", "-C", str(d), "log", "-1", "--format=%h%x09%cs%x09%s", "--", path.name], capture_output=True, text=True, timeout=3, encoding="utf-8", errors="replace")
         if r.returncode != 0 or not r.stdout.strip():
-            chk = subprocess.run(["git", "-C", str(d), "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True, timeout=3)
+            chk = subprocess.run(["git", "-C", str(d), "rev-parse", "--is-inside-work-tree"], capture_output=True, text=True, timeout=3, encoding="utf-8", errors="replace")
             if chk.returncode == 0 and chk.stdout.strip() == "true":
                 return {"commit": None, "note": "not committed yet", "dirty": True}
             return None
         h, date, subj = (r.stdout.strip().split("\t") + ["", ""])[:3]
-        st = subprocess.run(["git", "-C", str(d), "status", "--porcelain", "--", path.name], capture_output=True, text=True, timeout=3)
+        st = subprocess.run(["git", "-C", str(d), "status", "--porcelain", "--", path.name], capture_output=True, text=True, timeout=3, encoding="utf-8", errors="replace")
         return {"commit": h, "date": date, "subject": subj, "dirty": bool(st.stdout.strip())}
     except Exception:
         return None

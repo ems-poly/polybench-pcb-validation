@@ -22,6 +22,8 @@ import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+
+from polybench import platform as _platform
 from urllib.parse import urlparse
 
 from polybench.aoi import board_view as BV
@@ -51,7 +53,7 @@ class ReviewApp:
 
     # ---- state
     def state(self):
-        document = json.loads(self.result_path.read_text())
+        document = json.loads(self.result_path.read_text(encoding="utf-8"))
         items = M.review_items(document)
         data = M.load_decisions(self.decisions_path, self.result_path)
         bv = BV.load(self.folder)
@@ -110,7 +112,7 @@ class ReviewApp:
                     return self._send(403, {'error': 'bad host'})
                 url = urlparse(self.path)
                 if url.path == '/':
-                    html = PAGE.read_text().replace("__TOKEN__", app.token).replace("__BASE__", "")
+                    html = PAGE.read_text(encoding="utf-8").replace("__TOKEN__", app.token).replace("__BASE__", "")
                     return self._send(200, html, 'text/html; charset=utf-8')
                 if url.path == '/api/ping':
                     return self._send(200, {'ok': True, 'result': str(app.result_path)})
@@ -170,7 +172,7 @@ class ReviewApp:
 
     def serve(self, idle_seconds=None, open_browser=False):
         info = self.folder / INFO_NAME
-        info.write_text(json.dumps({'pid': os.getpid(), 'port': self.port, 'url': self.url, 'result': str(self.result_path)}))
+        info.write_text(json.dumps({'pid': os.getpid(), 'port': self.port, 'url': self.url, 'result': str(self.result_path)}), encoding="utf-8")
         if open_browser:
             threading.Timer(0.4, lambda: webbrowser.open(self.url)).start()
         if idle_seconds:
@@ -214,7 +216,7 @@ def launch_detached(result_path, open_browser=True, log=print):
     info_path = result_path.parent / INFO_NAME
     if info_path.exists():
         try:
-            info = json.loads(info_path.read_text())
+            info = json.loads(info_path.read_text(encoding="utf-8"))
             if _alive(info):
                 if open_browser:
                     webbrowser.open(info['url'])
@@ -228,7 +230,7 @@ def launch_detached(result_path, open_browser=True, log=print):
     if not open_browser:
         cmd.append('--no-open')
     root = Path(__file__).resolve().parents[1]
-    subprocess.Popen(cmd, cwd=root, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+    subprocess.Popen(cmd, cwd=root, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, **_platform.detached_kwargs())
     url = f'http://127.0.0.1:{port}/?t={token}'
     for _ in range(40):
         time.sleep(0.15)

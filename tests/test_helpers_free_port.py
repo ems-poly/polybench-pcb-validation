@@ -38,8 +38,8 @@ def test_every_walk_refuses_8750():
     """Each tests/e2e walk (or the shared W.Server it uses) carries an 8750 guard."""
     from pathlib import Path
     d = Path(__file__).parent / "e2e"
-    shared = "assert int(port) != 8750" in (d / "project_page_walk.py").read_text()
+    shared = "assert int(port) != 8750" in (d / "project_page_walk.py").read_text(encoding="utf-8")
     for f in sorted(d.glob("*_walk.py")):
-        t = f.read_text()
+        t = f.read_text(encoding="utf-8")
         uses_shared = "project_page_walk" in t or f.name == "project_page_walk.py"
         assert "!= 8750" in t or (shared and uses_shared), f"{f.name} has no 8750 guard"

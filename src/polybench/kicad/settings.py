@@ -11,6 +11,8 @@ import os
 import tempfile
 from pathlib import Path
 
+from .. import platform as _platform
+
 ENABLE_HINT = ("enable the KiCad API server (KiCad, Preferences, Plugins, 'Enable KiCad API server'; the setting is "
                "api.enable_server in kicad_common.json) and restart KiCad")
 NOT_RUNNING_DETAIL = "KiCad is not running or its API server is off"
@@ -19,7 +21,7 @@ API_OFF_DETAIL = "KiCad's API server is off (api.enable_server is false in kicad
 
 def prefs_dir() -> Path:
     env = os.environ.get("POLYBENCH_KICAD_PREFS")
-    return Path(env) if env else Path.home() / "Library" / "Preferences" / "kicad"
+    return Path(env) if env else _platform.kicad_prefs_dir()
 
 
 def common_json_paths() -> list[Path]:
@@ -49,7 +51,7 @@ def api_enabled() -> tuple[bool | None, str]:
 
 
 def socket_dirs() -> list[str]:
-    dirs = ["/tmp/kicad"]
+    dirs = list(_platform.kicad_socket_candidates())
     t = os.path.join(tempfile.gettempdir(), "kicad")        # KiCad documents "a kicad folder of the temp directory"
     if t not in dirs:
         dirs.append(t)

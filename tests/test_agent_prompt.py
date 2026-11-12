@@ -8,7 +8,7 @@ from polybench import agent_prompt
 from polybench.protocol import load
 from polybench.server import Session, create_app
 
-PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text()
+PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text(encoding="utf-8")
 FULL = {"project_name": "DEMO-1", "revision": "A", "ecad_program": "KiCad", "ecad_document": "demo-board", "ecad_skipped": False,
         "bom_path": "/work/demo_bom.csv", "bom_lines": 18, "plan_configured": True, "plan_path": "/work/PLAN.md", "plan_exists": True,
         "draft_path": "/work/PLAN.draft.md"}
@@ -19,8 +19,8 @@ def session(tmp_path, plan=True):
     shutil.copytree(DEMO, d)
     top = d / "demo.pcbv.yaml"
     if plan:
-        (d / "PLAN.md").write_text(PLAN)
-        top.write_text(top.read_text() + "\ntest_plan: {file: PLAN.md, generate: true}\n")
+        (d / "PLAN.md").write_text(PLAN, encoding="utf-8")
+        top.write_text(top.read_text(encoding="utf-8") + "\ntest_plan: {file: PLAN.md, generate: true}\n", encoding="utf-8")
     return Session(load(top), tmp_path / "data", "ap", True, 3, None, operator="Op"), d
 
 

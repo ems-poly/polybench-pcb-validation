@@ -399,7 +399,7 @@ def pcbusb_holders() -> list[str]:
             pid = ln[1:]
         elif ln.startswith("c") and pid and pid != str(os.getpid()):
             try:
-                cmd = subprocess.run(["ps", "-o", "command=", "-p", pid], capture_output=True, text=True, timeout=2).stdout.strip()
+                cmd = subprocess.run(["ps", "-ww", "-o", "command=", "-p", pid], capture_output=True, text=True, timeout=2).stdout.strip()
             except Exception:
                 cmd = ln[1:]
             toks = cmd.split()

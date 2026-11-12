@@ -128,9 +128,10 @@ PID_FILE = "openocd.pid"
 
 
 def _proc_command(pid: int) -> str | None:
-    """Command line of a live process, or None when it is gone. `ps` only reads."""
+    """Command line of a live process, or None when it is gone. `ps` only reads. `-ww` lifts the width limit: Linux procps
+    cuts the line at 80 columns when output is not a terminal, which clipped a long path to ".../openoc" and hid the process."""
     try:
-        out = subprocess.run(["ps", "-o", "command=", "-p", str(int(pid))], capture_output=True, text=True, timeout=4).stdout.strip()
+        out = subprocess.run(["ps", "-ww", "-o", "command=", "-p", str(int(pid))], capture_output=True, text=True, timeout=4).stdout.strip()
     except Exception:
         return None
     return out or None

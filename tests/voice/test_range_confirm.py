@@ -139,8 +139,10 @@ def test_grace_accepts_range_with_accepted_reply(vc):
     vc.set_config({"grace_s": 0.2})
     ask(vc)
     vc.handle_text("yes")
-    assert wait(lambda: cell(vc, "S01")["status"] == "accepted")
-    assert vc.eng.state.voice[-1]["reply"] == "Accepted." and vc.ctx["test_id"] == "U01"
+    # The timer thread accepts the cell first and appends its "Accepted." voice entry a moment later, so wait for the entry:
+    # reading voice[-1] as soon as the status flips races that append (it lost on a slow Linux runner).
+    assert wait(lambda: cell(vc, "S01")["status"] == "accepted" and vc.eng.state.voice[-1]["reply"] == "Accepted.")
+    assert vc.ctx["test_id"] == "U01"
 
 
 def test_replay_from_journal(vc, tmp_path):
@@ -225,5 +227,5 @@ def test_accept_stays_and_timer_says_accepted(vc, nlu):
     vc.set_context("unpowered", "U02", "S01")
     nlu.script["w"] = {"intent": "values", "values": [{"board": "S01", "test_id": "U02", "value": "9", "unit": "kOhm", "heard": "9"}]}
     vc.handle_text("w")
-    assert wait(lambda: cell(vc, "S01", "U02")["status"] == "accepted")
-    assert vc.eng.state.voice[-1]["reply"] == "Accepted." and vc.ctx["test_id"] == "U02"
+    assert wait(lambda: cell(vc, "S01", "U02")["status"] == "accepted" and vc.eng.state.voice[-1]["reply"] == "Accepted.")   # see above: the entry follows the accept
+    assert vc.ctx["test_id"] == "U02"

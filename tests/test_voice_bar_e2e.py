@@ -1,4 +1,4 @@
-"""UIR-13 round 2, Playwright WebKit, own server on port 8909 (PB_E2E_PORT; never 8750), no sound, no microphone. HOST-ONLY.
+"""UIR-13 round 2, Playwright WebKit, own server on a free port (PB_E2E_PORT overrides; never 8750), no sound, no microphone. HOST-ONLY.
 Bar shows the configured key; the input warning shows only with Voice input on, as separate lines; the state says 'not installed' when speech to
 text is missing; a push-to-talk click never leaves 'Transcribing' (fake microphone: the usual result; no microphone: gives up at once)."""
 from __future__ import annotations
@@ -17,9 +17,9 @@ import pytest
 pytest.importorskip("playwright")
 from playwright.sync_api import sync_playwright
 
-from helpers import ROOT
+from helpers import ROOT, free_port
 
-PORT = int(os.environ.get("PB_E2E_PORT", "8909"))
+PORT = free_port("PB_E2E_PORT")          # a free port per run: a fixed one is shared with parallel runs and answers for the wrong server
 BASE = f"http://127.0.0.1:{PORT}/"
 PROTOCOL = ROOT / "tests" / "e2e" / "fixtures" / "voice_demo" / "voice_demo.pcbv.yaml"
 sys.path.insert(0, str(ROOT / "tests" / "e2e"))
@@ -39,6 +39,8 @@ def serve(tmp, fake_mic, key=None):
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(PROTOCOL), "--simulate", "--data-dir", str(tmp / "data"),
                             "--batch", "DEMO-BAR", "--boards", "4", "--no-browser", "--port", str(PORT)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
     for _ in range(100):
+        if srv.poll() is not None:
+            raise RuntimeError("server exited at start")
         try:
             urllib.request.urlopen(BASE + "api/state", timeout=2)
             return srv

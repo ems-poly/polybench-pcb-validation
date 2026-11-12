@@ -14,7 +14,7 @@ from polybench.protocol import load
 from polybench.server import Session
 from polybench.engine import CmdError
 
-EX = Path(__file__).resolve().parents[1] / "src/polybench/examples/demo_automated"
+EX = Path(__file__).resolve().parents[1] / "tests/data/demo_automated"
 STEP = "function"
 
 

@@ -219,7 +219,7 @@ class EsptoolIdentify(_Base):
 
 class EsptoolFlash(_Base):
     """params: image (path; relative paths resolve against the server's working directory), offset ('0x0' for a merged
-    factory image), sha256 (optional: the expected SHA-256 of the image; a mismatch refuses to flash, and `polybench doctor` reads it once its image check is merged), port, baud (460800), timeout_s (150), map: {flashed, image_sha256} -> test ids.
+    factory image), simulate_without_image (bool, simulator only: with a pinned sha256 and no image file, run on and use that hash as the digest), sha256 (optional: the expected SHA-256 of the image; a mismatch refuses to flash, and `polybench doctor` reads it once its image check is merged), port, baud (460800), timeout_s (150), map: {flashed, image_sha256} -> test ids.
     Writes with esptool write-flash (which verifies by MD5 of the written region), then hard-resets. Proposes flashed = Y and
     the image SHA-256 only after esptool reports the hash verified; anything else raises and proposes nothing."""
 
@@ -229,17 +229,28 @@ class EsptoolFlash(_Base):
         p = ctx.params
         mp = p.get("map") or {}
         image = Path(str(need(p, "image"))).expanduser()
-        if not image.is_file():
+        want = p.get("sha256")
+        # Simulator only: a pinned `sha256` plus `simulate_without_image: true` lets the run go on without the binary (a wheel does
+        # not carry it), and the pinned hash stands in for the digest. A real flash always needs the file.
+        if ctx.simulate and p.get("simulate_without_image") and want and not image.is_file():
+            ctx.log(f"simulated: {image.name} is not on this machine; the protocol's pinned sha256 stands in for the digest "
+                    "(nothing was hashed, a real flash needs the file)", "warn")
+            absent = True
+        else:
+            absent = False
+        if not absent and not image.is_file():
             raise ParamError(f"image not found: {image} (relative paths resolve against the directory polybench was started in)")
         if image.suffix.lower() not in (".bin", ".img"):
             raise ParamError("esptool.flash takes a raw .bin; for ELF use the PlatformIO upload")
         offset = to_int(p.get("offset", 0), "offset")
         timeout_param(p.get("timeout_s", FLASH_TIMEOUT_S))
-        digest = sha256_file(image)
-        want = p.get("sha256")
-        if want and str(want).strip().lower() != digest:
-            raise ParamError(f"image SHA-256 {digest} does not match the protocol's sha256 {str(want).strip().lower()}; refusing to flash")
-        ctx.log(f"image {image.name} ({image.stat().st_size} bytes) at 0x{offset:x}, sha256 {digest}")
+        if absent:
+            digest = str(want).strip().lower()
+        else:
+            digest = sha256_file(image)
+            if want and str(want).strip().lower() != digest:
+                raise ParamError(f"image SHA-256 {digest} does not match the protocol's sha256 {str(want).strip().lower()}; refusing to flash")
+            ctx.log(f"image {image.name} ({image.stat().st_size} bytes) at 0x{offset:x}, sha256 {digest}")
         if ctx.simulate:
             for f, t in ((0.2, "simulated erase"), (0.6, "simulated write"), (0.9, "simulated verify")):
                 if ctx.cancelled():

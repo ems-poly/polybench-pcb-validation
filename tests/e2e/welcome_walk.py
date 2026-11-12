@@ -95,6 +95,7 @@ class Walk:
 
 def main() -> int:
     port = int(os.environ.get("PB_E2E_PORT", "8960"))
+    assert port != 8750, "8750 is the live bench server"
     shots = Path(sys.argv[1] if len(sys.argv) > 1 else "/private/tmp/claude-502/pbshots-welcome")
     shots.mkdir(parents=True, exist_ok=True)
     scratch = Path(tempfile.mkdtemp(prefix="pbwel-"))

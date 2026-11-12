@@ -40,6 +40,7 @@ def check(name, ok, extra=""):
 
 class Server:
     def __init__(self, port, scratch, protocol, data_dir, batch):
+        assert int(port) != 8750, "8750 is the live bench server"
         self.base = f"http://127.0.0.1:{port}/"
         env = {**os.environ, "POLYBENCH_NO_REVEAL": "1", "POLYBENCH_CONFIG_DIR": str(scratch / "cfg")}
         env.pop("POLYBENCH_ECAD", None)

@@ -1,4 +1,4 @@
-"""polybench CLI: serve (default), lint, plan, selftest, doctor."""
+"""polybench CLI: serve (default), lint, plan, selftest, doctor, example."""
 from __future__ import annotations
 
 import argparse
@@ -248,8 +248,14 @@ def main(argv=None) -> int:
         from .aoi.derive import derive
         print(_json.dumps(derive(a2.cam_zip, a2.assembly, a2.design, a2.out_dir), indent=1))
         return 0
+    if argv and argv[0] == "example":
+        from .example_cmd import main as example_main
+        return example_main(argv[1:])
     if argv and argv[0] == "plan":
         return cmd_plan(argv[1:])
+    if argv and argv[0] == "plugins":
+        from .plugins_cmd import main as plugins_main
+        return plugins_main(argv[1:])
     if argv and argv[0] in ("mcp", "ai"):          # AI connector: MCP server, setup text, skill installer (src/polybench/ai/cli.py)
         from .ai.cli import main as ai_main
         return ai_main(argv)
@@ -267,9 +273,17 @@ def main(argv=None) -> int:
     ap.add_argument("--data-dir", help="the project folder that holds the batch folders (default ~/polybench-data with --protocol)")
     ap.add_argument("--ecad", help="ECAD program: fusion (default) or kicad; also selects the scanner client (env POLYBENCH_ECAD)")
     ap.add_argument("--operator", help="operator name recorded with results")
+    ap.add_argument("--from-open-ecad", action="store_true", help="create the project from the ECAD document that is open now (KiCad or Fusion; needs --protocol; read only)")
+    ap.add_argument("--document", help="with --from-open-ecad: part of the name of the document or schematic to use when several are open")
     ap.add_argument("--no-meter", action="store_true", help="do not start the live multimeter reader (also env POLYBENCH_METER=off)")
     ap.add_argument("--no-browser", action="store_true")
-    return cmd_serve(ap.parse_args(argv))
+    args = ap.parse_args(argv)
+    if args.from_open_ecad:
+        from .open_ecad import run as open_ecad_run
+        code = open_ecad_run(args)
+        if code is not None:
+            return code
+    return cmd_serve(args)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,7 @@
+# sdist: the example tree that setup.py copies into the wheel (the subset rule is is_shipped in src/polybench/example_cmd.py)
+graft examples/esp32-s3-board
+prune examples/esp32-s3-board/screenshots
+prune examples/esp32-s3-board/firmware/prebuilt
+prune examples/esp32-s3-board/kicad/yd-esp32-s3/evidence
+prune examples/esp32-s3-board/kicad/yd-esp32-s3/tools
+global-exclude *.pyc

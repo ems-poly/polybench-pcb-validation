@@ -19,9 +19,9 @@ import pytest
 pytest.importorskip("playwright")
 from playwright.sync_api import sync_playwright
 
-from helpers import DEMO, ROOT
+from helpers import DEMO, ROOT, free_port
 
-PORT = int(os.environ.get("PB_TP_PORT", "8903"))
+PORT = free_port("PB_TP_PORT")
 BASE = f"http://127.0.0.1:{PORT}/"
 TOKEN = "tp-test-token"
 PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text()

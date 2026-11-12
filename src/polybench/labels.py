@@ -58,4 +58,11 @@ def expand(codes) -> tuple[list[str], int | None]:
         for x in info["candidates"]:
             if x not in out:
                 out.append(x)
+        from polybench import label_readers      # vendor readers add their own part numbers (mpn, then the vendor's)
+        got = label_readers.read_label(c)
+        if got:
+            qty = qty if qty is not None else got.get("qty")
+            for x in (got.get("mpn"), got.get("vendor_pn")):
+                if x and x not in out:
+                    out.append(x)
     return out, qty

@@ -7,8 +7,9 @@ import re
 import zipfile
 from pathlib import Path
 
-import numpy as np
 import pytest
+
+np = pytest.importorskip("numpy", reason="needs the aoi extra (pip install -e .[aoi])")
 
 from polybench import extras
 

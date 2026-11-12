@@ -39,6 +39,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import make_voice_clips  # noqa: E402
 
 PORT = int(os.environ.get("PB_E2E_PORT", "8829"))
+assert PORT != 8750, "8750 is the live bench server"
 BASE = f"http://127.0.0.1:{PORT}/"
 PROTOCOL = ROOT / "tests" / "e2e" / "fixtures" / "voice_demo" / "voice_demo.pcbv.yaml"
 REAL_STT = os.environ.get("PB_E2E_REAL_STT") == "1"
@@ -80,7 +81,6 @@ def until(fn, timeout=20.0, step=0.15):
 
 
 def main(shots: Path):
-    assert PORT != 8750, "8750 is the live server"
     shots.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix="pb-voice-e2e-"))
     clips = make_voice_clips.make(tmp / "clips")

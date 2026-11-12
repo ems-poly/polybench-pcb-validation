@@ -34,7 +34,7 @@ def setup_text(url: str) -> str:
             f"One question, non-interactive (claude -p cannot show the permission prompt, so pre-approve the Polybench tools only):\n  {c['claude_trial_p']}\n\n"
             f"Claude Code, add the MCP server permanently (edits your Claude Code configuration; run it in your project folder):\n  {c['claude']}\n\n"
             f"Codex, add to ~/.codex/config.toml yourself:\n" + "\n".join("  " + x for x in c["codex"].splitlines()) + "\n\n"
-            f"Skills for Claude Code (copies the four polybench-* skills shipped with Polybench):\n  {c['skills']}            (into ~/.claude/skills)\n"
+            f"Skills for Claude Code (copies the polybench-* skills shipped with Polybench):\n  {c['skills']}            (into ~/.claude/skills)\n"
             f"  {c['skills']} --project .  (into ./.claude/skills)\n\n"
             "Codex reads AGENTS.md in the repo root.\n"
             "Permissions: set POLYBENCH_AI_PERMISSIONS=propose (default) | read | off in the app's environment.\n"

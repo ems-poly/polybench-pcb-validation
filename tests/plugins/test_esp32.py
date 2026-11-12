@@ -403,3 +403,26 @@ def test_flash_sha256_param_matches_or_refuses():
 def test_protocol_flash_action_carries_manifest_sha256():
     txt = (EX / "function.yaml").read_text()
     assert (EX / "firmware/prebuilt/MANIFEST.txt").read_text().split()[0] in txt
+
+
+def test_flash_simulated_without_the_binary_uses_the_pinned_hash(tmp_path):
+    """Wheel copies of the example carry no firmware binary; the simulated flash must still propose F01 and F02."""
+    pin = "ab" * 32
+    params = {"image": str(tmp_path / "absent.factory.bin"), "sha256": pin, "simulate_without_image": True, "map": {"flashed": "F01", "image_sha256": "F02"}}
+    msgs, err, rc = run_child("esptool.flash", params, tmp_path)
+    assert rc == 0, err
+    props = {m["test_id"]: m["value"] for m in msgs if m["t"] == "proposal"}
+    assert props == {"F01": "Y", "F02": pin}
+    # the escape hatch needs both the flag and a pinned hash; without them a missing image is still refused
+    for drop in ("simulate_without_image", "sha256"):
+        q = {k: v for k, v in params.items() if k != drop}
+        msgs, err, rc = run_child("esptool.flash", q, tmp_path)
+        assert rc == 1 and "image not found" in msgs[-1]["text"]
+
+
+def test_example_flash_actions_declare_simulate_without_image():
+    import yaml
+    for f in ("function.yaml", "function_devkitc-1.yaml"):
+        d = yaml.safe_load((EX / f).read_text())
+        flash = [a for s in d["steps"] for g in s.get("sections", []) for a in g.get("actions", []) if a["plugin"] == "esptool.flash"]
+        assert flash and all(a["params"].get("simulate_without_image") and a["params"].get("sha256") for a in flash), f

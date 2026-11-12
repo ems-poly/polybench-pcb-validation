@@ -431,6 +431,9 @@ body.aoi-dragging .aoi-tile{border-style:dashed;border-color:var(--accent)}
 .tp-meta .sp{flex:1} .tp-path{word-break:break-all;color:var(--text)}
 .tp-props{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11px;color:var(--faint);margin:0 0 8px}
 .tp-none{padding:24px 10px;background:var(--panel);border:1px dashed var(--border);border-radius:3px;margin-top:8px}
+.tp-prompt{margin:0 0 12px;padding:8px 10px;border:1px solid var(--border2);border-radius:3px;background:var(--panel)}
+.tp-prompt-hd{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;margin-bottom:6px;font-size:12px} .tp-prompt-hd .sp{flex:1}
+.tp-prompt textarea{width:100%;box-sizing:border-box;font:11.5px/1.45 ui-monospace,Menlo,monospace;background:var(--panel-w);color:var(--text);border:1px solid var(--border);border-radius:3px;padding:6px;resize:vertical}
 .tp-planned{margin:16px 0 4px;padding:8px 10px;border:1px dashed var(--border);border-radius:3px;color:var(--faint);font-size:12px}
 .tp-doc{background:var(--panel-w);border:1px solid var(--border);border-radius:3px;padding:6px 22px 14px;line-height:1.55;font-size:13.5px;overflow-wrap:anywhere}
 .tp-doc h1{font-size:21px;margin:.9em 0 .4em;padding-bottom:.2em;border-bottom:1px solid var(--border2)} .tp-doc h2{font-size:17px;margin:1.3em 0 .4em;padding-bottom:.15em;border-bottom:1px solid var(--border2)}

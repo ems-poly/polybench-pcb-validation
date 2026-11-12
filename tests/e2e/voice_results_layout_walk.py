@@ -20,6 +20,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 PORT = int(os.environ.get("PB_E2E_PORT", "8942"))
+assert PORT != 8750, "8750 is the live bench server"
 BASE = f"http://127.0.0.1:{PORT}/"
 checks: list[tuple[str, bool]] = []
 
@@ -58,7 +59,6 @@ OVERLAP = """(sels) => { const rs = sels.map(s => { const e = document.querySele
 
 
 def main(shots: Path, browser_name: str):
-    assert PORT != 8750
     shots.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix="pb-vrl-e2e-"))
     cfgp = tmp / "voice.json"

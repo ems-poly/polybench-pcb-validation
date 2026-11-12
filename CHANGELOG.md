@@ -8,6 +8,8 @@ First public release. Alpha.
 
 ### Added
 
+- `polybench example esp32-s3 [--dest DIR]` copies the ESP32-S3 example (protocol, test plan, BOM, KiCad files, AOI layout and photos, firmware source; no screenshots, no firmware binary) out of the wheel and prints the run command. The README try-it section shows the package and clone paths. The unused `demo_automated` protocol moved from the package to `tests/data/` (a test fixture only).
+- Design step 4: a **Copy agent prompt** button builds a prompt from the project (name, ECAD document, BOM, plan and draft paths, plan format pointers, the MCP tools to use) for the operator's own agent. It never includes notes or journal text. If no ECAD is linked the prompt says so and tells the agent to ask. HOST-ONLY. Phase 2 (running an agent in the background) is a design note only: `docs/AGENT_PROMPT_PHASE2.md`.
 - Table results: a test of `kind: table` with columns, per-column limits, a verdict per row and a plot; `ctx.propose_table(...)` for plug-ins; the report prints each table. `demo.sweep` shows it in the demo project.
 - Twelve-step browser workspace: Project, Batch setup, Assembly aid, Visual (AOI review), Unpowered and Powered testing, Program and function, Characterisation, Report. Steps 2 (Schematic analysis) and 3 (BOM and manufacturing) are planned.
 - Protocol file (`pcbv.protocol/2`) and markdown test plan as master (`plan_format: 1`) with tiers, a decision gate and a power interlock. Limits carry a class (`hard`, `guess`, `tbr`, `record`) and a source; only a hard limit can fail a board.

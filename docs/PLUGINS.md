@@ -21,6 +21,8 @@ Install: `pipx install polybench-pcb-validation` or `pip install -e .` from a ch
 | `kicad` | KiCad 10 through its IPC API (kicad-python, optional extra `kicad`, local nng socket `/tmp/kicad/api.sock`). Step 1 (`status`, `documents`, `designators`, expected-document guard), plain highlight and, through the scanner client `polybench.kicad.client.KicadScannerClient`, the test highlight (parts, `REF.PIN` pads, nets as pads), the Assembly aid, board choice and the polarity card's placed footprints. Read-only: reads footprints, pads and nets, and sets or clears the PCB editor selection; nothing is edited, saved or moved. Choose it with `--ecad kicad` (or env `POLYBENCH_ECAD=kicad`): that selects the bridge and the scanner client together, and Fusion is never contacted. Details below. | HARDWARE-VALIDATED, 17 Oct 2026, KiCad 10.0.7, a test board (selection read back through the API after every call, files byte-identical). The selection, zoom and net highlight were looked at in screenshots by the implementer, not yet by the maintainer's eye; the busy, no-board and KiCad-quit states are UNVALIDATED live (they need an operator at KiCad). |
 | `altium` | Interface only. `status()` says "not installed"; `highlight()` returns `ok: false`. | Stub |
 
+**Open-document report (`polybench --from-open-ecad`).** The command reads only `status()`, `documents()` and `designators()` of each registered bridge. KiCad reports the board file, project name and folder and the part count (the schematic path is the folder plus the schematic file name, checked to exist); Fusion reports document name and id, editor and part count, with no file path; `altium` reports nothing. No bridge reports a BOM. Readiness: HOST-ONLY (fake bridges and simulators; not yet run against a real open KiCad and Fusion session, and whether KiCad 10 names the open schematic through `GetOpenDocuments` is UNVALIDATED).
+
 Result of `highlight`: `{ok, highlighted, missing, message, command, document, editor}`.
 
 ### KiCad bridge (`kicad`)
@@ -173,8 +175,47 @@ Labels: HARDWARE-VALIDATED means the plug-in did what it should against the real
 2. `safe_state()` has no params in the contract; `n6705b.*` remembers the last connection in `~/.cache/polybench/n6705b_last.json`.
 3. The CAN actions need the adapter free: stop any other program that holds the channel first.
 
+## Sharing a plug-in
+
+<!-- Lane D (UIR-49). A plug-in you write for your own bench stays in your own package; this is how to make it installable by others. -->
+
+**A separate package.** A shared plug-in is its own pip package, not a patch to Polybench. Name it `polybench-plugin-<vendor-or-instrument>` (distribution name; the import package is `polybench_plugin_<...>` with underscores). It depends on `polybench-pcb-validation` plus your instrument library (or puts that in an extra, as Polybench does). A complete minimal package is in `examples/plugin-template/`: copy it, rename it, replace `plugin.py`.
+
+**The entry point.** The package declares the class in its own `pyproject.toml`:
+
+```toml
+[project.entry-points."polybench.actions"]
+"acme.read" = "polybench_plugin_acme.plugin:AcmeRead"
+# an ECAD bridge goes under [project.entry-points."polybench.ecad"] instead
+```
+
+The entry point name is the action name a protocol uses (`plugin: acme.read`). Form: `<vendor-or-instrument>.<verb>`, lower case, one dot. Do not reuse a name Polybench ships (`polybench plugins list --core`). **On a name clash the core plug-in always wins**: Polybench runs its own class, your package does not run, a warning is raised when the clash is resolved, and `polybench plugins list` shows your package as a separate row flagged SHADOWED and UNVALIDATED. Readiness belongs to the class that runs, never to the name. Two non-core packages with the same name: the first found runs, the other is flagged SHADOWED. Polybench finds the plug-in after `pip install` with no other step, and `polybench doctor` reports one that does not load.
+
+**`selftest()` and the simulate path are required.** `selftest()` runs with no hardware and returns `True` when the plug-in's own logic (parsing, mapping) works. With `ctx.simulate` true the action returns realistic values with no hardware and no network. Without both, the plug-in cannot be run in a simulated session and cannot be tested by anyone without your instrument. Plug-ins never compute verdicts; see the conventions above and `src/polybench/ai/skills/polybench-plugin-authoring/SKILL.md` for the full rules.
+
+**Readiness.** Say in the docstring and the package README what was observed on a real instrument (model, date, which paths ran), or say `HOST-ONLY` or `UNVALIDATED`. A simulator or fake never validates hardware. Polybench lists every installed plug-in with `polybench plugins list`; a plug-in with no readiness recorded in Polybench itself shows UNVALIDATED, whatever its own README says.
+
+**Check it.**
+
+```
+pip install -e path/to/your-package
+polybench plugins list          # your action appears, with its package name
+polybench selftest
+pytest path/to/your-package/tests
+```
+
+**Asking for a listing.** Publish the package (for example on PyPI), then open an issue on the Polybench repository titled `Plug-in listing: <name>` with: the package name and link, the entry point names, the instrument it controls, and the readiness evidence (instrument model, date, what ran, what did not). Accepted plug-ins are added to the table below, with the label the evidence supports and never a higher one. Plug-ins shipped in this repository are listed, with their readiness, in `docs/SUPPORTED_EQUIPMENT.md`, generated by `polybench plugins list --md --core` (a test fails when that file is stale; a readiness change is made in `src/polybench/plugins_cmd.py` and the file regenerated).
+
+### Third-party plug-ins
+
+| Package | Entry points | Instrument | Readiness | Evidence |
+|---|---|---|---|---|
+| (none listed yet) | | | | |
+
 ## Revision
 
 | Rev | Date | Change |
 |---|---|---|
 | 1 | 2026-10-27 | Added `dmm.read`, the `dmm` extra and the doctor multimeter line (T6.8). Earlier revisions were not tracked here. |
+| 2 | 2026-11-12 | Name clash: core wins, shadowed packages flagged. Added "Sharing a plug-in", `polybench plugins list` and the generated `docs/SUPPORTED_EQUIPMENT.md` (UIR-48, UIR-49). |
+| 3 | 2026-11-12 | Open-document report for `--from-open-ecad` (HOST-ONLY). |

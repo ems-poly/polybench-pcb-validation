@@ -1,6 +1,6 @@
 """Lists and panels, UIR-17..21: collapsible group headings and the count bar, the Journal filters (no Assembly log tab), one Plugins
 entry, the Assembly aid start page and the assembly check groups in build order. HOST-ONLY.
-Own server on port 8908 (PB_LP_PORT, one server at a time), DEMO protocol, simulated bench, Playwright WebKit (skipped without
+Own server on a free port (PB_LP_PORT overrides), DEMO protocol, simulated bench, Playwright WebKit (skipped without
 playwright or WebKit). Screenshots go to PB_SHOTS (default: a temp folder)."""
 from __future__ import annotations
 
@@ -19,9 +19,9 @@ import pytest
 pytest.importorskip("playwright")
 from playwright.sync_api import sync_playwright
 
-from helpers import DEMO
+from helpers import DEMO, free_port
 
-PORT = int(os.environ.get("PB_LP_PORT", "8908"))
+PORT = free_port("PB_LP_PORT")          # a free port per run: a fixed one is shared with parallel runs and answers for the wrong server
 BASE = f"http://127.0.0.1:{PORT}/"
 TOKEN = "lp-test-token"
 
@@ -110,7 +110,7 @@ def server(tmp, boards=4, groups=False, name="b"):
                             "--data-dir", str(Path(tmp) / f"data-{name}"), "--batch", "LP-E2E", "--boards", str(boards), "--no-browser", "--port", str(PORT)],
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
     try:
-        assert until(lambda: urllib.request.urlopen(BASE + "api/state", timeout=5).status == 200, 30), "server did not start"
+        assert until(lambda: srv.poll() is None and urllib.request.urlopen(BASE + "api/state", timeout=5).status == 200, 30), "server did not start"
         yield proj
     finally:
         srv.terminate()                                    # our own PID only

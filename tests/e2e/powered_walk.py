@@ -27,6 +27,7 @@ import opauth  # noqa: F401,E402
 
 ROOT = Path(__file__).resolve().parents[2]
 PORT = int(os.environ.get("PB_E2E_PORT", "8914"))
+assert PORT != 8750, "8750 is the live bench server"
 BASE = f"http://127.0.0.1:{PORT}/"
 checks: list[tuple[str, bool]] = []
 
@@ -80,7 +81,6 @@ def make_protocol(tmp: Path) -> Path:
 
 
 def main(shots: Path, browser_name: str):
-    assert PORT != 8750
     shots.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix="pb-powered-e2e-"))
     proto = make_protocol(tmp)

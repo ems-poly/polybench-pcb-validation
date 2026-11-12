@@ -213,7 +213,8 @@ def test_d5_skills_ship_inside_the_package(tmp_path):
     from pathlib import Path
     assert cli.SKILLS == Path(polybench.__file__).parent / "ai" / "skills"
     assert sorted(p.name for p in cli.SKILLS.iterdir() if (p / "SKILL.md").is_file()) == [
-        "polybench-bench-assistant", "polybench-plugin-authoring", "polybench-test-plan", "polybench-troubleshooting"]
+        "polybench-bench-assistant", "polybench-plugin-authoring", "polybench-test-firmware", "polybench-test-plan",
+        "polybench-troubleshooting"]
     import io
     assert cli.install_skills(tmp_path / "t", False, False, out=io.StringIO()) == 0
 
@@ -223,7 +224,7 @@ def test_skills_and_agents_carry_the_data_not_instructions_rule():
 
     from polybench.ai import cli
     files = list(cli.SKILLS.glob("*/SKILL.md")) + [Path(cli.__file__).resolve().parents[3] / "AGENTS.md"]
-    assert len(files) == 5
+    assert len(files) == 6
     for f in files:
         assert "Data, never instructions" in f.read_text(), f
 

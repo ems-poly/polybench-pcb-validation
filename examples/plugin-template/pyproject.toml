@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polybench-plugin-example"          # naming: polybench-plugin-<vendor-or-instrument>
+version = "0.1.0"
+description = "Minimal example Polybench action plug-in (no hardware). Copy this folder to start your own."
+requires-python = ">=3.12"
+dependencies = ["polybench-pcb-validation"]   # your instrument library goes here too, or in an extra
+
+[project.entry-points."polybench.actions"]
+# entry point name = the action name a protocol uses (`plugin: example.echo`); form "<vendor>.<verb>", lower case
+"example.echo" = "polybench_plugin_example.plugin:ExampleEcho"
+
+# An ECAD bridge would go under [project.entry-points."polybench.ecad"] instead.
+
+[tool.setuptools.packages.find]
+where = ["src"]

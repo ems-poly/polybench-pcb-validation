@@ -116,8 +116,50 @@ actions:
   - {id: count, title: "Count", plugin: demo.counter, params: {count: 3, map: {total: F09}}, proposes: [F09]}
 ```
 
+## Sharing a plugin (separate package)
+
+<!-- Lane D (UIR-49) -->
+Write a plugin for sharing as its **own package**, never as a patch to Polybench. Start from `examples/plugin-template/` (copy the folder). Full text: "Sharing a plug-in" in `docs/PLUGINS.md`.
+
+1. Distribution `polybench-plugin-<name>`, import package `polybench_plugin_<name>`, depends on `polybench-pcb-validation`.
+2. Entry point in the package's own `pyproject.toml` under `polybench.actions` (or `polybench.ecad`): name `<vendor>.<verb>`, lower case, one dot, value `module:Class`. Never reuse a name Polybench ships (`polybench plugins list --core`): on a clash the core class runs, yours does not, and the list flags it SHADOWED and UNVALIDATED.
+3. `selftest()` and the `ctx.simulate` path are required, exactly as in the rules above. `safe_state()` takes no arguments.
+4. State readiness honestly in the docstring: what was observed on which instrument and when, else `HOST-ONLY` or `UNVALIDATED`. A simulator never validates hardware. Do not edit `docs/SUPPORTED_EQUIPMENT.md` (generated); `polybench plugins list` shows any plugin with no recorded readiness as UNVALIDATED.
+5. Verify: `pip install -e <package>`, `polybench plugins list` shows it, `polybench selftest`, and the package's own tests. Do not claim it works until you have seen the list line.
+6. A listing is the maintainer's decision. Tell the human to open an issue `Plug-in listing: <name>` with the package link, entry points, instrument and readiness evidence. Never open it, publish to PyPI or push for them.
+
 ## Tests
 
 Put them in `tests/plugins/`. Use `run_child` from `tests/plugins/pb_plugin_helpers.py` to run the plugin exactly as the core does, with `simulate=True`, and assert on the JSON lines (a `proposal` for each mapped key, a final `done`). Also assert: `selftest()` is true, `safe_state()` returns text with no setup, an unmapped key is not proposed, a bad param gives a plain `ParamError`, and cancel stops early. Keep stdin open in any child you start yourself (EOF means cancel).
 
 **Tests are silent.** The suite blocks `say` without `-o` and `open`, and uses a log voice backend. Do not speak, open windows or files, touch port 8750 or `~/polybench-data`, or need hardware. Run `pytest tests/plugins -q`, then `polybench selftest`.
+
+## Label reader (a distributor's bag or reel label)
+
+A label reader turns the text of one decoded barcode into what the label says. It does not match the BOM and has no verdict. Code: `src/polybench/label_readers.py`; the examples are `MouserReader`, `DigikeyReader` and the `LcscReader` stub.
+
+```python
+from polybench.label_readers import LabelReader, _result
+
+class AcmeReader(LabelReader):
+    name = "acme"                 # the entry point name
+    status = "UNVALIDATED"        # keep it until real labels were scanned
+
+    def parse(self, raw: str) -> dict | None:
+        # None = "not my label". Otherwise {"vendor", "mpn", "qty", "vendor_pn", "lot", ...extra keys allowed}
+        ...
+```
+
+Register it (then `pip install -e .`):
+
+```toml
+[project.entry-points."polybench.label_readers"]
+acme = "pkg.module:AcmeReader"
+```
+
+Rules:
+- **Public documentation only.** Cite the source (URL and date read) in the class docstring. If no public format description exists, write the stub (`parse` returns `None`, `status = "STUB"`), say what is missing, and do not guess a format. Never copy a client's real label.
+- Never return the customer part number (ECIA field `P`): the buyer shortens it on purpose. Return `None` for a string that is not yours so the next reader gets it. Two readers must not claim the same string (check an overlap such as `-ND` against Mouser's `NNN-...`).
+- `parse` must not raise on odd input, touch the network, or read the BOM. A reader that raises is skipped.
+- Tests go in `tests/test_label_readers.py` on synthetic DEMO strings, built with the ECIA envelope helper `env(...)` (`[)>` RS `06`, GS between fields, RS EOT). A simulator or a synthetic string never makes a reader HARDWARE-VALIDATED.
+- Match misses are recorded by the engine in the `scan` journal event (`miss.reason`: `no_mpn`, `not_in_bom`, `ambiguous`, `quantity_mismatch`). Do not tune the matcher from a guess; read the misses first.

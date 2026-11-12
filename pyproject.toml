@@ -42,7 +42,7 @@ voice = ["sounddevice", "mlx-whisper; sys_platform == 'darwin'", "numpy"]     # 
 # KiCad ECAD link: KiCad 10 IPC API. Pinned to the version verified live against KiCad 10.0.7 (TBR-12); newer KiCad is a note, not a failure.
 kicad = ["kicad-python==0.8.0"]
 dmm = ["hidapi>=0.14"]     # live multimeter: UNI-T UT161E over the CH9329 HID cable (import hid)
-dev = ["pytest", "playwright==1.58.0", "httpx", "kicad-python==0.8.0"]   # 1.58 matches the Chromium build cached on the bench Mac
+dev = ["pytest", "setuptools>=77", "playwright==1.58.0", "httpx", "kicad-python==0.8.0"]   # 1.58 matches the Chromium build cached on the bench Mac
 
 [project.urls]
 Homepage = "https://github.com/polystage/polybench"          # PENDING D2 (owner and repository name)
@@ -76,6 +76,11 @@ polybench-mcp = "polybench.ai.mcp_server:main"
 fusion = "polybench.plugins.fusion:FusionBridge"
 kicad = "polybench.kicad.bridge:KicadBridge"
 altium = "polybench.plugins.ecad_stubs:AltiumBridge"
+
+[project.entry-points."polybench.label_readers"]
+mouser = "polybench.label_readers:MouserReader"
+digikey = "polybench.label_readers:DigikeyReader"
+lcsc = "polybench.label_readers:LcscReader"
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -18,12 +18,12 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 PORT = int(os.environ.get("PB_E2E_PORT", "8909"))
+assert PORT != 8750, "8750 is the live bench server"
 BASE = f"http://127.0.0.1:{PORT}/"
 PROTOCOL = ROOT / "tests" / "e2e" / "fixtures" / "voice_demo" / "voice_demo.pcbv.yaml"
 
 
 def main() -> int:
-    assert PORT != 8750
     tmp = Path(tempfile.mkdtemp(prefix="pb-console-"))
     cfgp = tmp / "voice.json"
     cfgp.write_text('{"tts_backend": "log", "llm_enabled": false, "stt_backend": "sidecar"}')

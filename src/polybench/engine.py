@@ -617,7 +617,8 @@ class State:
         self.scans.append({**p, "ts": ev["ts"]})
         self.alog.append({"id": ev["id"], "ts": ev["ts"], "operator": ev.get("operator", ""), "kind": "scan" if p.get("line") else "scan_miss",
                           "line": p.get("line"), "boards": [], "designators": [], "via": p.get("via", "typed"),
-                          "code": p.get("code", ""), "matched_by": p.get("matched_by", ""), "qty": p.get("qty")})
+                          "code": p.get("code", ""), "matched_by": p.get("matched_by", ""), "qty": p.get("qty"),
+                          "miss": (p.get("miss") or {}).get("reason", "")})
 
     def _on_sequence(self, ev, p):
         """One event type, a `phase` each: start, end, proceed, defects, final. Rebuilds the record the verdict panel and the report show."""
@@ -1823,6 +1824,27 @@ class Engine:
             return (*partial, qty)
         return None, "", "", qty
 
+    def _scan_miss(self, seen, b, how, qty):
+        """Why a scan did not match cleanly, for measuring match quality later. Recorded only; the matcher is not changed.
+        reasons: no_mpn (the label gave no part number), not_in_bom (a part number, no BOM line), ambiguous (exact candidates hit
+        different BOM lines; the first still wins), quantity_mismatch (label quantity is below what the batch needs)."""
+        cands, _ = labels.expand(seen)
+        if not cands:
+            return {"reason": "no_mpn", "detail": "no part number could be read from the codes"}
+        if b is None:
+            return {"reason": "not_in_bom", "detail": f"{len(cands)} candidate(s), none is a BOM key"}
+        hits = {}
+        for c in cands:
+            x, how2 = self.find_line(c)
+            if x and "partial" not in how2:
+                hits.setdefault(x["line"], c)
+        if len(hits) > 1:
+            return {"reason": "ambiguous", "detail": "candidates match BOM lines " + ", ".join(str(n) for n in sorted(hits))}
+        need = len(b["designators"]) * len(self.state.boards)
+        if qty is not None and not b.get("dnf") and qty < need:
+            return {"reason": "quantity_mismatch", "detail": f"label {qty}, batch needs {need} ({len(b['designators'])} per board x {len(self.state.boards)})"}
+        return None
+
     def scan(self, code, via="typed", codes=None, fmt=""):
         seen = [str(x) for x in (codes if codes else [code]) if str(x).strip()]
         b, how, hit, qty = self.resolve_codes(seen)
@@ -1834,6 +1856,9 @@ class Engine:
             payload["format"] = fmt
         if qty is not None:
             payload["qty"] = qty
+        miss = self._scan_miss(seen, b, how, qty)
+        if miss:
+            payload["miss"] = miss
         self._emit("scan", payload)
         return {"ok": bool(b), "line": b["line"] if b else None, "matched_by": how, "code": shown, "qty": qty}
 

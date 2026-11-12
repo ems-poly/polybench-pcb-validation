@@ -14,6 +14,7 @@ steps:
               image: examples/esp32-s3-board/firmware/prebuilt/esp32s3-devkitc-demo.factory.bin
               offset: "0x0"
               sha256: bc5d5d08e9454dfeafeb3dd1689e2144835b8ae2613c50877ada4777dd8f50d0
+              simulate_without_image: true     # --simulate runs without the binary (wheel copies do not carry it); a real flash needs the file
               prompt: "Is the board plugged in by the Micro-USB port marked UART (data cable)? Only if esptool cannot connect: hold BOOT, tap RESET, release BOOT, then run again."
               map: {flashed: F01, image_sha256: F02}
             proposes: [F01, F02]

@@ -1663,6 +1663,14 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
             out["plan"] = await asyncio.to_thread(sess.plan_report)
         return out
 
+    @app.get("/api/testplan/agent_prompt")
+    async def testplan_agent_prompt():
+        """UIR-46: the prompt the operator copies into their own agent. Built from an allow-list of project facts only."""
+        from . import agent_prompt
+        facts = await asyncio.to_thread(agent_prompt.facts_of, sess)
+        return {"prompt": agent_prompt.build(facts), "ecad_linked": bool(facts["ecad_document"]), "bom_loaded": bool(facts["bom_path"]),
+                "plan_configured": facts["plan_configured"]}
+
     @app.get("/api/polarity")
     async def polarity(line: int, d: str | None = None):
         if not sess.engine.state.project["skipped"]:

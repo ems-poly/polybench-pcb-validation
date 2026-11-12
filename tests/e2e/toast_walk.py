@@ -18,6 +18,7 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 PORT = int(os.environ.get("PB_E2E_PORT", "8902"))
+assert PORT != 8750, "8750 is the live bench server"
 BASE = f"http://127.0.0.1:{PORT}/"
 res: list[bool] = []
 
@@ -45,7 +46,6 @@ def until(fn, timeout=15.0):
 
 
 def main(shots: Path):
-    assert PORT != 8750
     shots.mkdir(parents=True, exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix="pb-toast-e2e-"))
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(ROOT / "src/polybench/examples/demo/demo.pcbv.yaml"),

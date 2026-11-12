@@ -19,9 +19,9 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 PORT = int(os.environ.get("PB_E2E_PORT", "8901"))
-assert PORT != 8750
+assert PORT != 8750, "8750 is the live bench server"
 BASE = f"http://127.0.0.1:{PORT}/"
-EX = ROOT / "src/polybench/examples/demo_automated"
+EX = ROOT / "tests/data/demo_automated"
 SHOTS = Path(sys.argv[1] if len(sys.argv) > 1 else tempfile.mkdtemp(prefix="uir01-shots-"))
 checks = []
 

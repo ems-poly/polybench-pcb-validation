@@ -151,12 +151,29 @@ TP.coverage = function (r) {
     ${hist ? `<h3>Plan loads</h3><p class="muted">${hist}</p>` : ''}</div>`;
 };
 
+/* UIR-46: Copy agent prompt. The server builds the text from the project facts (agent_prompt.py); the panel shows exactly what was copied, so
+   the operator can read it and, if the browser blocks the clipboard, select it by hand. */
+TP.prompt = null;
+TP.promptBtn = () => '<button class="primary" data-tp="agentprompt" id="tp-agentprompt" title="Copy a ready prompt for your own agent (Claude Code, Codex) that writes this test plan with the Polybench MCP tools. Nothing is sent anywhere.">Copy agent prompt</button>';
+TP.promptPanel = function () {
+  const p = TP.prompt; if (!p) return '';
+  return `<div class="tp-prompt" id="tp-prompt"><div class="tp-prompt-hd"><b>${p.copied ? 'Copied to the clipboard' : 'Could not copy automatically: select the text and copy it'}</b>
+    <span class="muted">Paste it into your agent. It writes a draft next to the plan; you review it here and press Approve.</span><span class="sp"></span><button class="sm" data-tp="promptclose">Close</button></div>
+    <textarea readonly rows="14" id="tp-prompt-text" aria-label="Agent prompt">${tpEsc(p.text)}</textarea></div>`;
+};
+TP.copyText = async function (text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch (e) { /* blocked: try the old route */ }
+  try {
+    const t = document.createElement('textarea'); t.value = text; t.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(t); t.select();
+    const ok = document.execCommand('copy'); t.remove(); return !!ok;
+  } catch (e) { return false; }
+};
 TP.centre = function (el) {
   const fs = TP.files();
   const planned = '<div class="tp-planned">Planned: generate this plan for approval from the schematic and layout loaded in step 1.</div>';
   const crumb = '<div class="crumb"><span>Design</span><span class="sep">/</span><span>Test plan</span></div>';
   if (!fs.length) {
-    el.innerHTML = `<div class="pane">${crumb}<h1 class="tt">Test plan</h1><div class="empty tp-none">No test plan configured. Add <code>test_plan: &lt;path to markdown&gt;</code> to the top protocol file.</div>${planned}</div>`;
+    el.innerHTML = `<div class="pane">${crumb}<h1 class="tt">Test plan</h1><div class="tp-meta"><span class="sp"></span>${TP.promptBtn()}</div>${TP.promptPanel()}<div class="empty tp-none">No test plan configured. Add <code>test_plan: &lt;path to markdown&gt;</code> to the top protocol file.</div>${planned}</div>`;
     return;
   }
   if (TP.idx >= fs.length) TP.idx = 0;
@@ -167,7 +184,7 @@ TP.centre = function (el) {
   const g = d.git;
   const gtxt = g ? (g.commit ? `commit <span class="mono">${tpEsc(g.commit)}</span> ${tpEsc(g.date || '')}${g.subject ? ' &ndash; ' + tpEsc(g.subject) : ''}${g.dirty ? ' <span class="badge bad">edited since commit</span>' : ''}` : '<span class="muted">in a git repo, not committed yet</span>') : '<span class="faint">not in a git repo</span>';
   const meta = `<div class="tp-meta">${back}<span class="mono tp-path" title="${tpEsc(d.path)}">${tpEsc(d.path)}</span>
-    ${d.exists ? `<span>modified <b>${tpEsc(d.mtime)}</b></span><span>${gtxt}</span>` : ''}<span class="sp"></span><button data-tp="reload" title="Read the file again">Reload</button></div>`;
+    ${d.exists ? `<span>modified <b>${tpEsc(d.mtime)}</b></span><span>${gtxt}</span>` : ''}<span class="sp"></span>${TP.promptBtn()}<button data-tp="reload" title="Read the file again">Reload</button></div>${TP.promptPanel()}`;
   let body;
   if (!d.exists) body = `<div class="empty tp-none"><b>No test plan file yet.</b><br>Expected at <span class="mono">${tpEsc(d.path || (fs[TP.idx] && fs[TP.idx].path) || '')}</span>${d.error ? '<br>' + tpEsc(d.error) : ''}</div>`;
   else {
@@ -195,6 +212,15 @@ document.addEventListener('click', async e => {
   switch (el.dataset.tp) {
     case 'reload': delete TP.cache[TP.key()]; TP.load(true); break;
     case 'regen': { const r = await cmd('plan_reload', {}, true); if (r.ok && r.data.ok) { toast('Tests regenerated from the plan' + (r.data.plan_loaded ? ' (plan_loaded journalled)' : '')); } else toast((r.data && r.data.error) || 'could not regenerate', true); delete TP.cache[TP.key()]; TP.load(true); break; }
+    case 'agentprompt': {
+      const r = await api('/api/testplan/agent_prompt');
+      if (!r.ok || !r.data.prompt) { toast((r.data && r.data.error) || 'could not build the prompt', true); break; }
+      const ok = await TP.copyText(r.data.prompt);
+      TP.prompt = { text: r.data.prompt, copied: ok };
+      toast(ok ? 'Agent prompt copied' : 'Copy was blocked: the prompt is shown below', !ok);
+      render(); break;
+    }
+    case 'promptclose': TP.prompt = null; render(); break;
     case 'file': TP.idx = +el.dataset.i; TP.sub = null; render(); break;
     case 'back': TP.sub = null; render(); break;
   }

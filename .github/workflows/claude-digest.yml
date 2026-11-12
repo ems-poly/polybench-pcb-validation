@@ -48,7 +48,7 @@ jobs:
           echo "since=$since" >> "$GITHUB_OUTPUT"
 
       - id: claude
-        uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967  # v1.0.252
+        uses: anthropics/claude-code-action@9eb012b6d0900c2b9eede65ee1758cec4d2973e9  # v1.0.270
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.GITHUB_TOKEN }}   # read-only

@@ -1,7 +1,10 @@
 """AI connector fix round (gate review D1 to D10, UX 1 and 2). HOST-ONLY: TestClient on a copy of the DEMO protocol."""
 import json
 import re
+import sys
 import threading
+
+import pytest
 
 from test_ai_connector import AI, PLAN, events, make
 

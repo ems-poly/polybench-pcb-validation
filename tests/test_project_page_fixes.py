@@ -164,7 +164,7 @@ def test_valid_but_short_settings_get_every_field_on_write(tmp_path):
 
 
 # ------------------------------------------------------------------------------------------------------------ D4
-@pytest.mark.skipif(os.geteuid() == 0, reason="root can read everything")
+@pytest.mark.skipif(getattr(os, "geteuid", lambda: 1)() == 0, reason="root can read everything")
 def test_unreadable_folders_are_marked_not_500(tmp_path):
     """D4: fs/list, inspect and locate cope with a folder the user may not read."""
     sess = new_project_session(tmp_path / "proj")

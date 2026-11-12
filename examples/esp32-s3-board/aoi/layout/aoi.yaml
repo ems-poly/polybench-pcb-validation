@@ -1,0 +1,5 @@
+# AOI configuration (layout mode) for the YD-ESP32-S3 example. Paths are relative to this file. Regenerate: layout/build_layout.py
+aoi:
+  protocol: aoi_protocol.json
+  layout: layout.json
+  cam_zip: yd-esp32-s3_cam.zip

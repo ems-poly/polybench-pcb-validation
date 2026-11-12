@@ -1,0 +1,63 @@
+name: Plug-in request
+description: Ask for support for an instrument, programmer, bus adapter or ECAD program that Polybench does not drive yet.
+title: "[plugin] "
+labels: ["type: plugin-request", "status: needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Plug-ins are maintained on a best-effort basis by one person. A request with a link to the
+        programming manual and an offer to test on the real hardware is far more likely to be picked up.
+        See CONTRIBUTING.md for what a plug-in must do (simulator path, selftest, safe_state, no verdicts).
+  - type: input
+    id: instrument
+    attributes:
+      label: Make and model
+      placeholder: "Vendor Model-1234"
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Control interface
+      multiple: true
+      options:
+        - USB-TMC / VISA
+        - LAN (SCPI raw socket, VXI-11, HiSLIP)
+        - Serial / USB-serial
+        - GPIB
+        - CAN
+        - SWD / JTAG programmer
+        - Local API of an ECAD program
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: manual
+    attributes:
+      label: Link to the programming manual or protocol description
+    validations:
+      required: true
+  - type: textarea
+    id: functions
+    attributes:
+      label: Functions needed
+      description: Measurements and outputs you need, with ranges, for example "DC voltage 0 to 30 V".
+    validations:
+      required: true
+  - type: textarea
+    id: safety
+    attributes:
+      label: Outputs that can energise a board
+      description: Supplies, loads or sources the plug-in would control. These define what `safe_state` must switch off.
+  - type: dropdown
+    id: help
+    attributes:
+      label: Can you help?
+      options:
+        - I can test on the real hardware
+        - I can write the plug-in and submit a pull request
+        - I can lend or donate the hardware
+        - No, request only
+    validations:
+      required: true

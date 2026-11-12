@@ -1,0 +1,168 @@
+[
+ {
+  "id": "h01",
+  "said": "C06 all five open load",
+  "expect": {
+   "C06 B1": "OL",
+   "C06 B2": "OL",
+   "C06 B3": "OL",
+   "C06 B4": "OL",
+   "C06 B5": "OL"
+  }
+ },
+ {
+  "id": "h02",
+  "said": "board four C07 about one megaohm",
+  "expect": {
+   "C07 B4": "1000000"
+  }
+ },
+ {
+  "id": "h03",
+  "said": "C08 board one zero point six two volts, board two zero point six three",
+  "expect": {
+   "C08 B1": "0.62",
+   "C08 B2": "0.63"
+  }
+ },
+ {
+  "id": "h04",
+  "said": "PV12 all boards three point three, pass",
+  "expect": {
+   "PV12 B1": "3.3",
+   "PV12 B2": "3.3",
+   "PV12 B3": "3.3",
+   "PV12 B4": "3.3",
+   "PV12 B5": "3.3",
+   "PV12 Pass/fail": "P"
+  }
+ },
+ {
+  "id": "h05",
+  "said": "PI05 B5 one hundred and twelve milliamps",
+  "expect": {
+   "PI05 B5": "112",
+   "PI05 Pass/fail": "F5"
+  }
+ },
+ {
+  "id": "h06",
+  "said": "C05 B2 zero point eight volts, fail",
+  "expect": {
+   "C05 B2": "0.8",
+   "C05 Pass/fail": "F2"
+  }
+ },
+ {
+  "id": "h07",
+  "said": "AOI clear on B5 only",
+  "expect": {
+   "AOI_clear B5": "Y"
+  },
+  "row": "AOI_clear"
+ },
+ {
+  "id": "h08",
+  "said": "AOI not cleared on B5, there's a lifted pad on U2",
+  "expect": {
+   "AOI_clear B5": "N",
+   "AOI_clear Pass/fail": "F5",
+   "AOI_clear Notes": {
+    "re": "lifted"
+   }
+  },
+  "row": "AOI_clear"
+ },
+ {
+  "id": "h09",
+  "said": "V04 all boards OK pass",
+  "expect": {
+   "V04 B1": "OK",
+   "V04 B2": "OK",
+   "V04 B3": "OK",
+   "V04 B4": "OK",
+   "V04 B5": "OK",
+   "V04 Pass/fail": "P"
+  }
+ },
+ {
+  "id": "h10",
+  "said": "V07a B1, B2, B4 OK, B3 D3 reversed, fail",
+  "expect": {
+   "V07a B1": "OK",
+   "V07a B2": "OK",
+   "V07a B4": "OK",
+   "V07a B3": {
+    "re": "revers"
+   },
+   "V07a Pass/fail": "F3"
+  }
+ },
+ {
+  "id": "h11",
+  "said": "P06 hot yes on all boards",
+  "expect": {
+   "P06_hot B1": "Y",
+   "P06_hot B2": "Y",
+   "P06_hot B3": "Y",
+   "P06_hot B4": "Y",
+   "P06_hot B5": "Y"
+  }
+ },
+ {
+  "id": "h12",
+  "said": "PV05 B1 to B4 three point three, B5 three point four five",
+  "expect": {
+   "PV05 B1": "3.3",
+   "PV05 B2": "3.3",
+   "PV05 B3": "3.3",
+   "PV05 B4": "3.3",
+   "PV05 B5": "3.45",
+   "PV05 Pass/fail": "F5"
+  }
+ },
+ {
+  "id": "h13",
+  "said": "next row",
+  "expect": {},
+  "expect_command": "next"
+ },
+ {
+  "id": "h14",
+  "said": "twelve meg",
+  "expect": {
+   "C07 B2": "12000000"
+  },
+  "row": "C07",
+  "board": "B2"
+ },
+ {
+  "id": "h15",
+  "said": "C07 B1 three hundred ohms, B2 five hundred, B3 four point seven kilohms",
+  "expect": {
+   "C07 B1": "300",
+   "C07 B2": "500",
+   "C07 B3": "4700",
+   "C07 Pass/fail": "F1,2"
+  }
+ },
+ {
+  "id": "h16",
+  "said": "same again for B4 and B5",
+  "expect": {
+   "C07 B4": "2200000",
+   "C07 B5": "2200000"
+  },
+  "row": "C07",
+  "pre": {
+   "C07 B1": "2200000",
+   "C07 B2": "2200000"
+  }
+ },
+ {
+  "id": "h17",
+  "said": "repeat that",
+  "expect": {},
+  "expect_command": "repeat"
+ }
+]

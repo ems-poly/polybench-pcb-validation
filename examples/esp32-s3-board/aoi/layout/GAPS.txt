@@ -1,0 +1,5 @@
+no netlist: every close pad pair has an unknown net, same-net solder (for example GND to GND) is not filtered out
+no polarity data: pin-1 pad positions and the polarity marks are not in the CAM zip (needs the Fusion footprints); polarity is NOT assessed by AOI
+package outlines are estimated from the package name, pads from the paste layer: parts without a paste aperture get the body box only
+no photo of this design exists yet: the exposed-mask presence test is not calibrated, so large=[] and AOI proves no presence or absence
+2 top parts without a paste aperture: J1, J2

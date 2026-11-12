@@ -1,0 +1,1 @@
+bc5d5d08e9454dfeafeb3dd1689e2144835b8ae2613c50877ada4777dd8f50d0  esp32s3-devkitc-demo.factory.bin

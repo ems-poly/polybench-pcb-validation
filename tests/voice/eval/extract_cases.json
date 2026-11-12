@@ -1,0 +1,346 @@
+[
+ {
+  "id": "s01",
+  "said": "board three C07 four point seven k ohms",
+  "expect": {
+   "C07 B3": "4700"
+  }
+ },
+ {
+  "id": "s02",
+  "said": "B2 C06 over range",
+  "expect": {
+   "C06 B2": "OL"
+  }
+ },
+ {
+  "id": "s03",
+  "said": "C05 B1 B2 B4 B5 open load, B3 point seven five volts",
+  "expect": {
+   "C05 B1": "OL",
+   "C05 B2": "OL",
+   "C05 B4": "OL",
+   "C05 B5": "OL",
+   "C05 B3": "0.75",
+   "C05 Pass/fail": "F3"
+  }
+ },
+ {
+  "id": "s04",
+  "said": "C06 all boards OL pass",
+  "expect": {
+   "C06 B1": "OL",
+   "C06 B2": "OL",
+   "C06 B3": "OL",
+   "C06 B4": "OL",
+   "C06 B5": "OL",
+   "C06 Pass/fail": "P"
+  }
+ },
+ {
+  "id": "s05",
+  "said": "C07 board 1 two point two meg ohms, board 2 two point one megohms, board 3 two point three megohms",
+  "expect": {
+   "C07 B1": "2200000",
+   "C07 B2": "2100000",
+   "C07 B3": "2300000"
+  }
+ },
+ {
+  "id": "s06",
+  "said": "C07 on B4 is 800 ohms",
+  "expect": {
+   "C07 B4": "800",
+   "C07 Pass/fail": "F4"
+  }
+ },
+ {
+  "id": "s07",
+  "said": "PV05 3.30 volts on B1, 3.31 on B2, 3.29 on B3",
+  "expect": {
+   "PV05 B1": "3.3",
+   "PV05 B2": "3.31",
+   "PV05 B3": "3.29"
+  }
+ },
+ {
+  "id": "s08",
+  "said": "PI05 all boards 42 milliamps",
+  "expect": {
+   "PI05 B1": "42",
+   "PI05 B2": "42",
+   "PI05 B3": "42",
+   "PI05 B4": "42",
+   "PI05 B5": "42"
+  }
+ },
+ {
+  "id": "s09",
+  "said": "PV12 B1 3.31 B2 3.30 B3 3.40 B4 3.31",
+  "expect": {
+   "PV12 B1": "3.31",
+   "PV12 B2": "3.3",
+   "PV12 B3": "3.4",
+   "PV12 B4": "3.31",
+   "PV12 Pass/fail": "F3"
+  }
+ },
+ {
+  "id": "s10",
+  "said": "PI12 B1 55 B2 58 B3 63 milliamps",
+  "expect": {
+   "PI12 B1": "55",
+   "PI12 B2": "58",
+   "PI12 B3": "63",
+   "PI12 Pass/fail": "F3"
+  }
+ },
+ {
+  "id": "s11",
+  "said": "PI12 about 58 milliamps on all boards, pass",
+  "expect": {
+   "PI12 B1": "58",
+   "PI12 B2": "58",
+   "PI12 B3": "58",
+   "PI12 B4": "58",
+   "PI12 B5": "58",
+   "PI12 Pass/fail": "P"
+  }
+ },
+ {
+  "id": "s12",
+  "said": "P06 hot yes for B1 and B2, B3 no, it smelled",
+  "expect": {
+   "P06_hot B1": "Y",
+   "P06_hot B2": "Y",
+   "P06_hot B3": "N",
+   "P06_hot Pass/fail": "F3",
+   "P06_hot Notes": {
+    "re": "smell"
+   }
+  }
+ },
+ {
+  "id": "s13",
+  "said": "V04 OK on all boards",
+  "expect": {
+   "V04 B1": "OK",
+   "V04 B2": "OK",
+   "V04 B3": "OK",
+   "V04 B4": "OK",
+   "V04 B5": "OK"
+  }
+ },
+ {
+  "id": "s14",
+  "said": "V04 board 4 OK, board 5 bridge on pin 4, fail",
+  "expect": {
+   "V04 B4": "OK",
+   "V04 B5": {
+    "re": "bridge"
+   },
+   "V04 Pass/fail": "F5"
+  }
+ },
+ {
+  "id": "s15",
+  "said": "V07a OK for B1 to B4",
+  "expect": {
+   "V07a B1": "OK",
+   "V07a B2": "OK",
+   "V07a B3": "OK",
+   "V07a B4": "OK"
+  }
+ },
+ {
+  "id": "s16",
+  "said": "V07a B3 D2 is reversed, fail",
+  "expect": {
+   "V07a B3": {
+    "re": "revers"
+   },
+   "V07a Pass/fail": "F3"
+  }
+ },
+ {
+  "id": "s17",
+  "said": "no, B2 was one point two",
+  "expect": {
+   "C05 B2": "1.2"
+  },
+  "row": "C05",
+  "pre": {
+   "C05 B2": "0.8",
+   "C05 Pass/fail": "F2"
+  }
+ },
+ {
+  "id": "s18",
+  "said": "same for all the others",
+  "expect": {
+   "C06 B2": "OL",
+   "C06 B3": "OL",
+   "C06 B4": "OL",
+   "C06 B5": "OL"
+  },
+  "row": "C06",
+  "pre": {
+   "C06 B1": "OL"
+  }
+ },
+ {
+  "id": "s19",
+  "said": "same on the rest",
+  "expect": {
+   "C07 B2": "2200000",
+   "C07 B3": "2200000",
+   "C07 B4": "2200000",
+   "C07 B5": "2200000"
+  },
+  "row": "C07",
+  "pre": {
+   "C07 B1": "2200000"
+  }
+ },
+ {
+  "id": "s20",
+  "said": "C07 board two three megahertz",
+  "expect": {
+   "C07 B2": "3000000"
+  }
+ },
+ {
+  "id": "s21",
+  "said": "C07 B5 eight hundred kilohertz",
+  "expect": {
+   "C07 B5": "800000"
+  }
+ },
+ {
+  "id": "s22",
+  "said": "PI05 B1 forty two milliohms",
+  "expect": {
+   "PI05 B1": "42"
+  }
+ },
+ {
+  "id": "s23",
+  "said": "see oh five on all five boards open load",
+  "expect": {
+   "C05 B1": "OL",
+   "C05 B2": "OL",
+   "C05 B3": "OL",
+   "C05 B4": "OL",
+   "C05 B5": "OL"
+  }
+ },
+ {
+  "id": "s24",
+  "said": "open load",
+  "expect": {
+   "C06 B2": "OL"
+  },
+  "row": "C06",
+  "board": "B2"
+ },
+ {
+  "id": "s25",
+  "said": "four hundred ohms, that's below limit, fail",
+  "expect": {
+   "C07 B3": "400",
+   "C07 Pass/fail": "F3"
+  },
+  "row": "C07",
+  "board": "B3"
+ },
+ {
+  "id": "s26",
+  "said": "C06 all boards OL, B4 point nine volts",
+  "expect": {
+   "C06 B1": "OL",
+   "C06 B2": "OL",
+   "C06 B3": "OL",
+   "C06 B5": "OL",
+   "C06 B4": "0.9",
+   "C06 Pass/fail": "F4"
+  }
+ },
+ {
+  "id": "s27",
+  "said": "C08 B1 point six five, B2 point six six, B3 point six four, B4 zero, B5 point six five",
+  "expect": {
+   "C08 B1": "0.65",
+   "C08 B2": "0.66",
+   "C08 B3": "0.64",
+   "C08 B4": "0",
+   "C08 B5": "0.65",
+   "C08 Pass/fail": "F4"
+  }
+ },
+ {
+  "id": "s28",
+  "said": "PV05 and PV12 are both 3.3 on B2",
+  "expect": {
+   "PV05 B2": "3.3",
+   "PV12 B2": "3.3"
+  }
+ },
+ {
+  "id": "s29",
+  "said": "note B3 pad lifted at U1",
+  "expect": {
+   "C05 Notes": {
+    "re": "B3.*lifted"
+   }
+  },
+  "row": "C05"
+ },
+ {
+  "id": "s30",
+  "said": "pass",
+  "expect": {
+   "C06 Pass/fail": "P"
+  },
+  "row": "C06"
+ },
+ {
+  "id": "s31",
+  "said": "fail boards two and four",
+  "expect": {
+   "C07 Pass/fail": "F2,4"
+  },
+  "row": "C07"
+ },
+ {
+  "id": "s32",
+  "said": "skip this one",
+  "expect": {},
+  "expect_command": "skip"
+ },
+ {
+  "id": "s33",
+  "said": "uh what was that, is the mic on",
+  "expect": {}
+ },
+ {
+  "id": "s34",
+  "said": "all five boards 3.3 volts",
+  "expect": {
+   "PV05 B1": "3.3",
+   "PV05 B2": "3.3",
+   "PV05 B3": "3.3",
+   "PV05 B4": "3.3",
+   "PV05 B5": "3.3"
+  },
+  "row": "PV05"
+ },
+ {
+  "id": "s35",
+  "said": "two point two meg",
+  "expect": {
+   "C07 B1": "2200000"
+  },
+  "row": "C07",
+  "board": "B1"
+ }
+]

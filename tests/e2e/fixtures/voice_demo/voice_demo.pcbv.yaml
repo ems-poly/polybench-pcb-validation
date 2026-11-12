@@ -1,0 +1,39 @@
+# Fixture for tests/e2e/voice_walk.py: one powered-style step, no gates, so nothing blocks the spoken walk.
+# V01: 0.2 V passes. R02: 2 Ohm passes. V03: a spoken 0.9 V FAILs. V04: record only.
+schema: pcbv.protocol/2
+design: {name: VOICE-DEMO, revision: "A", plan_revision: 1}
+batch: {default_boards: 10, label_prefix: S}
+bom:
+  - {line: 1, order: 1, designators: [R3], mpn: "RC0402FR-0710KL", value: "10 kOhm", package: "0402", dnf: false, barcode: ["603-RC0402FR-0710KL"], side: top}
+steps:
+  - id: powered
+    title: Voice demo measurements
+    sections:
+      - id: spoken
+        title: Spoken readings
+        instructions: "Read each value aloud, for example 'S1 0.2 volts' or 'all boards 2 ohms'."
+        tests:
+          - id: V01
+            title: Leakage voltage
+            kind: number
+            unit: V
+            limit: {class: hard, max: 0.5, source: {type: design_calc, doc: "voice fixture"}}
+            inputs: [keyboard]
+          - id: R02
+            title: Series resistance
+            kind: number
+            unit: Ohm
+            limit: {class: hard, min: 1, max: 3, source: {type: design_calc, doc: "voice fixture"}}
+            inputs: [keyboard]
+          - id: V03
+            title: Rail under load
+            kind: number
+            unit: V
+            limit: {class: hard, max: 0.5, source: {type: design_calc, doc: "voice fixture"}}
+            inputs: [keyboard]
+          - id: V04
+            title: Ripple, record only
+            kind: number
+            unit: V
+            limit: {class: record}
+            inputs: [keyboard]

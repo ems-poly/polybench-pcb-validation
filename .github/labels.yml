@@ -1,0 +1,39 @@
+# Source of truth for the repository labels (name, color, description).
+# GitHub has no native labels file. Create them with the commands in RELEASE_CHECKLIST (gh label create ... --force),
+# or with a label-sync action after its SHA has been verified. UNVERIFIED: no sync action chosen.
+# The triage workflow may apply only "type: ", "area: " and "platform: " labels. The rest are set by people or by fixed workflow steps.
+
+- {name: "type: bug", color: "d73a4a", description: "Something does not work as documented"}
+- {name: "type: plugin-request", color: "0e8a16", description: "Request support for an instrument, programmer or ECAD program"}
+- {name: "type: hardware-report", color: "1d76db", description: "How a specific instrument behaved with a plug-in"}
+- {name: "type: enhancement", color: "a2eeef", description: "Improvement to existing behaviour"}
+- {name: "type: docs", color: "0075ca", description: "Documentation only"}
+
+- {name: "area: core", color: "c5def5", description: "Engine, journal, protocol and plan parsing, report"}
+- {name: "area: cli", color: "c5def5", description: "polybench command line"}
+- {name: "area: web-ui", color: "c5def5", description: "Server and browser UI"}
+- {name: "area: plugins", color: "c5def5", description: "Action plug-ins and the plug-in contract"}
+- {name: "area: ecad", color: "c5def5", description: "Fusion, KiCad and other ECAD bridges"}
+- {name: "area: aoi", color: "c5def5", description: "Optical inspection and the camera scanner"}
+- {name: "area: voice", color: "c5def5", description: "Hands-free voice"}
+- {name: "area: ai", color: "c5def5", description: "AI assistant connector"}
+- {name: "area: packaging", color: "c5def5", description: "Install, wheels, releases"}
+- {name: "area: ci", color: "c5def5", description: "GitHub Actions and automation"}
+
+- {name: "platform: macos", color: "bfdadc", description: "macOS-specific"}
+- {name: "platform: linux", color: "bfdadc", description: "Linux-specific"}
+- {name: "platform: windows", color: "bfdadc", description: "Windows (not supported; for tracking)"}
+
+- {name: "status: needs-triage", color: "fbca04", description: "Not yet reviewed by the maintainer"}
+- {name: "status: needs-doctor", color: "fbca04", description: "Waiting for polybench doctor --json output"}
+- {name: "status: needs-repro", color: "fbca04", description: "Cannot reproduce yet; more detail needed"}
+- {name: "status: confirmed", color: "0e8a16", description: "Reproduced by the maintainer"}
+- {name: "status: blocked", color: "b60205", description: "Waiting on something external"}
+
+- {name: "safety", color: "b60205", description: "Instrument output or safe_state behaviour; handle with priority"}
+- {name: "claude:investigate", color: "5319e7", description: "Maintainer only: ask Claude for an analysis comment"}
+- {name: "digest", color: "ededed", description: "Automated weekly digest"}
+- {name: "good first issue", color: "7057ff", description: "Suitable for a first contribution"}
+- {name: "help wanted", color: "008672", description: "Contributions especially welcome"}
+- {name: "duplicate", color: "cfd3d7", description: "Already reported"}
+- {name: "wontfix", color: "ffffff", description: "Out of scope for this project"}

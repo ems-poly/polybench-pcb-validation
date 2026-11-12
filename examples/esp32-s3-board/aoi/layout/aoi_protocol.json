@@ -1,0 +1,165 @@
+{
+ "schema": "polystage.aoi_protocol/0",
+ "protocol": "yd-esp32-s3-visual",
+ "version": 1,
+ "report_ref": "Polybench visual step",
+ "layout": {
+  "design": "YD-ESP32-S3",
+  "cam_zip": "yd-esp32-s3_cam.zip",
+  "recorded": "layout.json"
+ },
+ "reference_board": "D01",
+ "boards": {
+  "D01": {
+   "label": "",
+   "expect_absent": []
+  },
+  "D02": {
+   "label": "",
+   "expect_absent": []
+  }
+ },
+ "dnf": [],
+ "optional": [],
+ "watch_fitted": [],
+ "non_parts": [],
+ "classes": {
+  "large": {
+   "ceiling": "review",
+   "designators": [],
+   "basis": "none: the exposed-mask presence test is not calibrated for this board's solder mask"
+  },
+  "medium": {
+   "ceiling": "review",
+   "designators": [
+    "BOOT",
+    "C3",
+    "C4",
+    "D1",
+    "D2",
+    "D3",
+    "Q1",
+    "Q2",
+    "R3",
+    "R7",
+    "RST",
+    "U1",
+    "U2",
+    "U3"
+   ],
+   "basis": "ICs and parts of 1.6 mm or more"
+  },
+  "small": {
+   "ceiling": "review",
+   "designators": "*",
+   "basis": "everything else"
+  }
+ },
+ "thresholds": {
+  "present_max_exposure": 0.15,
+  "absent_min_exposure": 0.6
+ },
+ "defects": {
+  "fine_pitch_ics": [
+   "U2"
+  ],
+  "tall": [
+   "USB1",
+   "USB2",
+   "U4",
+   "BOOT",
+   "RST",
+   "C3",
+   "C4",
+   "U1",
+   "U3"
+  ],
+  "netlist": "netlist.json"
+ },
+ "rows": [
+  {
+   "id": "V01",
+   "title": "Passives and diodes present, seated and soldered",
+   "stage": "visual",
+   "check": "joint_review",
+   "designators": [
+    "C1",
+    "C10",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "C6",
+    "C7",
+    "C8",
+    "C9",
+    "D1",
+    "D2",
+    "D3",
+    "PWR",
+    "R1",
+    "R10",
+    "R2",
+    "R3",
+    "R4",
+    "R5",
+    "R6",
+    "R7",
+    "R8",
+    "R9",
+    "RST",
+    "RX",
+    "TX"
+   ],
+   "requires": [
+    "top"
+   ],
+   "ceiling": "review",
+   "limits": "AOI supplies crops and flags candidates; the operator's decision records the result."
+  },
+  {
+   "id": "V02",
+   "title": "Polarity: diode cathode bands and CH343P pin 1",
+   "stage": "visual",
+   "check": "polarity_check",
+   "designators": [
+    "D1",
+    "D2",
+    "D3",
+    "U2"
+   ],
+   "requires": [
+    "top"
+   ],
+   "ceiling": "review",
+   "limits": "Polarity is read from the marking in the photo against the redraw footprint; a result is withheld unless the detector's own 180 degree test holds. AOI supplies crops and flags candidates; the operator's decision records the result."
+  },
+  {
+   "id": "V03",
+   "title": "No solder bridges at the CH343P and the diodes",
+   "stage": "visual",
+   "check": "bridge_suspicion",
+   "designators": [
+    "U2",
+    "D1",
+    "D2",
+    "D3"
+   ],
+   "requires": [
+    "top"
+   ],
+   "ceiling": "review",
+   "limits": "AOI supplies crops and flags candidates; the operator's decision records the result."
+  }
+ ],
+ "registration": {
+  "board_colour": "dark",
+  "fit_without_tall": true,
+  "overhang_mm": {
+   "right": 6.24
+  }
+ },
+ "polarity": {
+  "spec": "polarity.json"
+ }
+}

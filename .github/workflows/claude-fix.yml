@@ -1,0 +1,91 @@
+# .github/workflows/claude-fix.yml
+# A collaborator comments "@claude fix" on an ISSUE -> Claude (tag mode, Claude GitHub App)
+# commits to a new claude/ branch -> a step opens a DRAFT PR. Humans review and merge.
+name: Claude fix
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+concurrency:
+  group: fix-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  fix:
+    # Issues only (not PR comments): Claude works on a fresh branch from the default branch,
+    # never on a contributor's fork branch. The action re-checks write access.
+    if: >-
+      !github.event.issue.pull_request
+      && startsWith(github.event.comment.body, '@claude fix')
+      && contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read        # checkout and compare. Pushes use the Claude App token, which the
+                            # action mints with its own contents/PR/issues write scope (src/github/token.ts).
+      pull-requests: write  # the draft-PR step below, using GITHUB_TOKEN
+      id-token: write       # required for the default Claude GitHub App authentication
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install workspace for simulator tests (trusted default-branch code)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - id: claude
+        uses: anthropics/claude-code-action@f27be6b65a4652f08a2ba3cff79114829b588967  # v1.0.252
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # No github_token: authenticate as the Claude GitHub App, so its pushes trigger CI.
+          trigger_phrase: "@claude fix"
+          branch_prefix: "claude/"
+          claude_args: |
+            --model sonnet
+            --max-turns 40
+            --max-budget-usd 5.00
+            --allowedTools "Bash(python -m pytest:*)"
+            --disallowedTools "WebFetch,WebSearch"
+            --append-system-prompt "Follow the CONTRIBUTING.md plug-in rules strictly. Run tests only against the simulator with python -m pytest. Never add network calls, pass/fail verdicts in plug-ins, or changes under .github/. Keep the change minimal and explain it in your comment."
+          # UNVERIFIED: that the action honours --max-budget-usd.
+
+      - name: Open a draft PR from Claude's branch
+        if: steps.claude.outputs.branch_name != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ steps.claude.outputs.branch_name }}
+          BASE: ${{ github.event.repository.default_branch }}
+          ISSUE: ${{ github.event.issue.number }}
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          set -euo pipefail
+          ahead="$(gh api "repos/$REPO/compare/$BASE...$BRANCH" --jq '.ahead_by' 2>/dev/null || echo 0)"
+          if [ "${ahead:-0}" -eq 0 ]; then
+            echo "Branch has no new commits; no PR opened."
+            exit 0
+          fi
+          open="$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq 'length')"
+          if [ "$open" != "0" ]; then
+            echo "A PR for $BRANCH already exists."
+            exit 0
+          fi
+          gh pr create --repo "$REPO" --draft --base "$BASE" --head "$BRANCH" \
+            --title "Draft fix for #$ISSUE: $TITLE" \
+            --body "Draft PR opened automatically from a Claude run requested in #$ISSUE.
+
+          - Not reviewed by a human yet. A maintainer must review, run hardware checks where relevant, and merge.
+          - CI runs on PRs opened by GITHUB_TOKEN need a maintainer's approval before they start.
+
+          Refs #$ISSUE"
+          # UNVERIFIED: the repo setting "Allow GitHub Actions to create and approve pull requests"
+          # may need enabling for gh pr create with GITHUB_TOKEN.

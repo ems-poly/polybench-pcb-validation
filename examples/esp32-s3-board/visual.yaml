@@ -1,0 +1,14 @@
+# Visual step by AOI in LAYOUT mode (default of this example): per-part missing, lifted, bridge, polarity and peer checks against the layout
+# derived from the KiCad redraw (aoi/layout/, rebuilt by aoi/layout/build_layout.py; docs/AOI.md, "YD example"). D01 is the reference photo.
+# `photos` names the example's two photos per board; they load into the batch without any drag and drop (journal assigned_by: protocol).
+# Paths are relative to this file. HOST-ONLY: two photos, not a live camera.
+# The experimental diff mode (no layout needed) stays available: replace the block below with
+#   aoi: {mode: diff, reference: D01, photos: {D01: aoi/D01_top.jpg, D02: aoi/D02_top.jpg}}
+aoi:
+  protocol: aoi/layout/aoi_protocol.json
+  layout: aoi/layout/layout.json
+  cam_zip: aoi/layout/yd-esp32-s3_cam.zip
+  photos: {D01: aoi/D01_top.jpg, D02: aoi/D02_top.jpg}
+steps:
+  - id: visual
+    title: Visual

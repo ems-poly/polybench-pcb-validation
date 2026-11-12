@@ -1,0 +1,42 @@
+/* Polybench documentation: small additions to the Material theme. No external fonts or assets. */
+:root {
+  --md-text-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --md-code-font: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+body { font-family: var(--md-text-font); }
+code, kbd, pre { font-family: var(--md-code-font); }
+
+/* Status badges: Planned (not built), Preview (built, host-tested only) */
+.badge {
+  display: inline-block; padding: 0.05em 0.5em; margin-left: 0.3em; border-radius: 0.25em;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: middle;
+  border: 1px solid currentColor;
+}
+.badge.planned { color: #8a5a00; background: #fff4d6; }
+.badge.preview { color: #1f5fa8; background: #e4efff; }
+.badge.ready { color: #1d6b3a; background: #e3f5e9; }
+[data-md-color-scheme="slate"] .badge.planned { color: #ffd27a; background: #3a2c08; }
+[data-md-color-scheme="slate"] .badge.preview { color: #9cc4ff; background: #12284a; }
+[data-md-color-scheme="slate"] .badge.ready { color: #8fe0ac; background: #10301c; }
+
+/* Screenshots */
+.md-typeset img.shot { border: 1px solid var(--md-default-fg-color--lightest); border-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+.md-typeset figure { margin: 1.2em 0; }
+.md-typeset figcaption { font-size: 0.72rem; color: var(--md-default-fg-color--light); max-width: none; }
+
+/* Home: three-column "why" grid */
+.pb-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 0.8rem; margin: 1em 0; }
+.pb-grid > div { border: 1px solid var(--md-default-fg-color--lightest); border-radius: 6px; padding: 0.6rem 0.8rem; }
+.pb-grid > div p { margin: 0.3em 0; }
+.pb-grid > div strong { display: block; }
+
+/* Footer line added by hooks/page_footer.py */
+.md-typeset .pb-footer { margin-top: 2.5em; padding-top: 0.6em; border-top: 1px solid var(--md-default-fg-color--lightest);
+  font-size: 0.7rem; color: var(--md-default-fg-color--light); }
+
+/* Tables: keep long tables readable on narrow screens */
+.md-typeset table:not([class]) { font-size: 0.72rem; }
+
+/* More room for screenshots on wide screens */
+@media screen and (min-width: 76.25em) { .md-grid { max-width: 1440px; } }
+.md-typeset a > img.shot { cursor: zoom-in; }

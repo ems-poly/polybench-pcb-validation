@@ -1,0 +1,88 @@
+name: Bug report
+description: Polybench (server, CLI, web UI, a plug-in, the install) does not behave as documented.
+title: "[bug] "
+labels: ["type: bug", "status: needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Do **not** report security problems or an output left energised here;
+        use the private route in SECURITY.md. Issues are public: remove client names, board files,
+        photographs, serial numbers and lab addresses.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Server or CLI
+        - Web UI
+        - Journal, report or protocol/plan parsing
+        - Plug-in (action or ECAD bridge)
+        - AOI or camera scanner
+        - Voice
+        - AI assistant connector
+        - Install / packaging
+        - Documentation
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Polybench version and how you installed it
+      placeholder: "0.1.0, pipx"
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Simulator or real instrument?
+      options:
+        - Simulator (--simulate)
+        - Real instrument
+        - Both
+        - Not instrument-related
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Include the exact error text.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Ideally with the DEMO-1 example and --simulate.
+      placeholder: |
+        1. polybench --protocol src/polybench/examples/demo/demo.pcbv.yaml --simulate
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `polybench doctor --json`
+      description: If `doctor` itself fails, paste its error instead.
+      render: json
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and discussions.
+          required: true
+        - label: I removed confidential client or board data from this report.
+          required: true

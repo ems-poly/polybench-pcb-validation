@@ -1,0 +1,7 @@
+# Polybench public demo: Espressif ESP32-S3-DevKitC-1 (N16R8). Runs with --simulate and on a real board.
+# The markdown test plan is the master for the unpowered and powered steps (docs/TEST_PLAN_FORMAT.md).
+schema: pcbv.protocol/2
+design: {name: ESP32-S3-DevKitC-1, revision: "v1.1", plan_revision: 1}
+batch: {default_boards: 3, label_prefix: D}
+test_plan: {file: ESP32_S3_BOARD_TEST_PLAN.md, generate: true}
+include: [assembly_devkitc-1.yaml, visual_devkitc-1.yaml, powered.yaml, function_devkitc-1.yaml]

@@ -1,0 +1,18 @@
+capabilities:
+  - {name: programmer, kind: programmer, optional: false}
+  - {name: bus_adapter, kind: bus_adapter, optional: false}
+  - {name: source, kind: dc_source, optional: true}
+  - {name: ecad, kind: ecad, optional: true}
+steps:
+  - id: assembly
+    title: Assembly aid
+bom:
+  - {line: 1, order: 3, designators: [U1], mpn: "DEMOMCU-32", package: TQFP-32, polarity: "pin 1 dot to the chamfered corner", dnf: false, barcode: ["595-DEMOMCU32", "DEMOMCU-32"], side: top, note: "Place first, tack two corner pins"}
+  - {line: 2, order: 4, designators: [U2], mpn: "DEMOADC-16", package: TSSOP-16, polarity: "pin 1 dot", dnf: false, barcode: ["595-DEMOADC16"], side: top}
+  - {line: 3, order: 5, designators: [U3], mpn: "DEMOCAN-8", package: SOIC-8, polarity: "pin 1 dot", dnf: false, barcode: ["595-DEMOCAN8"], side: top}
+  - {line: 4, order: 1, designators: [C1, C2, C3, C4, C5, C6], mpn: "CL05B104KO5NNNC", value: "100 nF", package: "0402", dnf: false, barcode: ["187-CL05B104KO5NNNC"], side: top, note: "Decoupling, no polarity"}
+  - {line: 5, order: 2, designators: [R3, R4, R5], mpn: "RC0402FR-0710KL", value: "10 kOhm", package: "0402", dnf: false, barcode: ["603-RC0402FR-0710KL"], side: top}
+  - {line: 6, order: 6, designators: [D1], mpn: "DEMOTVS-SMA", package: SMA, polarity: "cathode band toward J1", dnf: false, barcode: ["621-DEMOTVS"], side: top}
+  - {line: 7, order: 7, designators: [C7], mpn: "DEMOTANT-10U", value: "10 uF", package: "3216", polarity: "stripe is plus, toward U3", dnf: false, barcode: ["581-DEMOTANT10U"], side: top}
+  - {line: 8, order: 8, designators: [R1, R2], mpn: "RC0402FR-07120RL", value: "120 Ohm", package: "0402", dnf: true, barcode: ["603-RC0402FR-07120RL"], side: top, note: "CAN termination: NOT fitted on this board"}
+  - {line: 9, order: 9, designators: [J1, J2], mpn: "DEMOCONN-4", package: "THT", dnf: false, barcode: ["538-DEMOCONN4"], side: top, note: "Fit last"}

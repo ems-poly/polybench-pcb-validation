@@ -1,0 +1,113 @@
+# DEMO automated step: one Run for a board in the fixture (simulated actions). Used by the tests and the screenshots.
+# Images are tiny made-up Intel HEX files under images/; the simulator only hashes them.
+steps:
+  - id: function
+    kind: automated
+    title: Program and function
+    applies_to: all
+    sequence:
+      - identify
+      - flash_selftest
+      - operator_check: {id: led, test: A15, question: "Is the LED cycling red, green, blue?"}
+      - read_selftest
+      - flash_final
+    verdict_prompt: "Every result in band: accept and proceed. Anything outside: record defects."
+    manifest: images/DEMO_FW_IMAGES.md
+    equipment:
+      - id: probe
+        title: "Atmel-ICE (SWD programmer)"
+        kind: openocd_probe
+        match: {vid_pid: "03eb:2141"}
+        purpose: "Identify the chip and flash images over SWD"
+        connections:
+          - {from: "Probe SAM port pin 1 (VTref)", to: "5V pad", note: "the probe reads the target voltage; it does not power the board"}
+          - {from: "Probe pin 2 (SWDIO)", to: "SW pad", note: ""}
+          - {from: "Probe pin 4 (SWCLK)", to: "CLK pad", note: ""}
+          - {from: "Probe pin 6 (GND)", to: "GND pad", note: ""}
+        notes: |
+          Use the **SAM** port of the probe, not the AVR port.
+          The board needs its own 12 V supply before you press Run.
+      - id: pcan
+        title: "PCAN-USB adapter"
+        kind: pcan
+        match: {channel: PCAN_USBBUS1}
+        channel: PCAN_USBBUS1
+        bitrate: 1000000
+        purpose: "Read the self-test results over CAN"
+        connections:
+          - {from: "PCAN D-sub pin 2 (CAN_L)", to: "CAN_L pad", note: ""}
+          - {from: "PCAN D-sub pin 7 (CAN_H)", to: "CAN_H pad", note: "120 ohm across CAN_H and CAN_L at the adapter end"}
+        notes: "Close any other program that uses the adapter."
+      - id: uart
+        title: "USB-serial adapter"
+        kind: serial
+        match: "usbserial|usbmodem"
+        baud: 115200
+        required: false
+        purpose: "UART console"
+        connections:
+          - {from: "Adapter RX", to: "TX pad", note: ""}
+    final_images:
+      - {label: "Application (default)", path: images/app.hex, sha256: "4f41e62c2ca89140282363107ba6642fab6889e948b85e371ffd08b62be3e118", default: true}
+      - {label: "Application, debug build", path: images/app_debug.hex, sha256: "60ea6b6f5f5bcc399a1972d0636ed4ef8fe78eb90ca63daa284f14f3b144783c"}
+    actions:
+      - id: identify
+        title: Identify chip
+        plugin: openocd.identify
+        needs: [probe]
+        params: {map: {probe_serial: A01, device_id: A02, flash_kb: A03}}
+        proposes: [A01, A02, A03]
+      - id: flash_selftest
+        title: Flash self-test
+        plugin: openocd.flash
+        needs: [probe]
+        params: {image: images/selftest.hex, map: {image_sha256: A10}}
+        proposes: [A10]
+      - id: read_selftest
+        title: Read self-test results
+        plugin: demo.measure
+        needs: [pcan]
+        params:
+          values: {A20: [10, 0.02, Hz], A21: [3.3, 0.01, V], A22: [25, 0.05, C]}
+        proposes: [A20, A21, A22]
+      - id: flash_final
+        title: Flash final image
+        plugin: openocd.flash
+        final: true
+        needs: [probe]
+        params: {image_from: final_images, map: {image_sha256: A90}}
+        proposes: [A90]
+    sections:
+      - id: results
+        title: Chip, self-test, final image
+        tests:
+          - {id: A01, title: Programmer serial, kind: text, limit: {class: record}}
+          - id: A02
+            title: Chip ID
+            kind: hex
+            stop: true
+            limit: {class: hard, equals: "0x11001106", source: {type: datasheet, doc: "DEMOMCU DS", section: "9.1"}}
+          - {id: A03, title: Flash size, kind: number, unit: kB, limit: {class: hard, min: 256, max: 256, source: {type: datasheet, doc: "DEMOMCU DS", section: "9.2"}}}
+          - {id: A10, title: Self-test image hash, kind: text, limit: {class: record}}
+          - {id: A15, title: LED cycles red, green, blue, kind: yn}
+          - {id: A20, title: Heartbeat rate, kind: number, unit: Hz, limit: {class: hard, min: 9, max: 11, source: {type: design_calc, doc: "firmware spec"}}}
+          - {id: A21, title: 3V3 rail, kind: number, unit: V, limit: {class: hard, min: 3.2, max: 3.4, source: {type: design_calc, doc: "power budget"}}}
+          - {id: A22, title: Board temperature, kind: number, unit: C, limit: {class: hard, min: 10, max: 60, source: {type: design_calc, doc: "bench conditions"}}}
+          - {id: A90, title: Final image hash, kind: text, limit: {class: record}}
+    diagnose:
+      - id: probe_again
+        title: Identify again, holding the part in reset
+        instructions: "Use the RST wire, then press Identify."
+        actions:
+          - id: identify
+            title: Identify
+            plugin: openocd.identify
+            params: {map: {probe_serial: A01, device_id: A02, flash_kb: A03}}
+            proposes: [A01, A02, A03]
+        tests:
+          - {id: A01, title: Programmer serial, kind: text, limit: {class: record}}
+      - id: rail_by_hand
+        title: Measure the 3V3 rail by hand
+        instructions: "Meter on 3V3 and GND."
+        tests:
+          - {id: D01, title: 3V3 rail by meter, kind: number, unit: V, limit: {class: hard, min: 3.2, max: 3.4, source: {type: design_calc, doc: "power budget"}}}

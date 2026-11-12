@@ -1,0 +1,8 @@
+# Polybench public demo, default variant: VCC-GND Studio YD-ESP32-S3 (N16R8), a clone-style ESP32-S3-WROOM-1 dev board with two USB-C ports.
+# The other variant is devkitc-1.pcbv.yaml (Espressif ESP32-S3-DevKitC-1); it keeps ESP32_S3_BOARD_TEST_PLAN.md. This variant's plan uses the designators, pads and nets of kicad/yd-esp32-s3/.
+# Runs with --simulate and, for the function step, on a real board (UNVALIDATED).
+schema: pcbv.protocol/2
+design: {name: YD-ESP32-S3, variant: N16R8, plan_revision: 2}
+batch: {default_boards: 2, label_prefix: D}
+test_plan: {file: YD_ESP32_S3_TEST_PLAN.md, generate: true}
+include: [assembly.yaml, visual.yaml, powered.yaml, function.yaml]

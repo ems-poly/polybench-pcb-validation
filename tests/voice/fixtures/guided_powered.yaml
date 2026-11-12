@@ -1,0 +1,61 @@
+steps:
+  - id: powered
+    title: Powered testing
+    gate: {requires: [unpowered]}
+    sections:
+      - id: rails_in_band
+        title: Rails in band
+        instructions: "Set the supply to 12 V. Switch on, then read each rail."
+        actions:
+          - id: power_on
+            title: Turn on 12 V
+            plugin: demo.measure
+            params: {volts: 12, ilim_a: 0.1, hold_s: 60, values: {}}
+          - id: read_5v
+            title: Read 5V
+            plugin: %(read)s
+            params: {values: {P02: [5.0, 0.002, V]}, force: {"S02:P02": 4.5}}
+            proposes: [P02]
+          - id: read_5v_an
+            title: Read 5V_AN
+            plugin: demo.measure
+            params: {values: {P03: [5.0, 0.002, V]}, force: {"S02:P03": 5.2}}
+            proposes: [P03]
+        tests:
+          - id: P02
+            title: 5V rail
+            kind: number
+            unit: V
+            limit: {class: hard, min: 4.85, max: 5.15, source: {type: datasheet, doc: "DEMO DS", page: 3}}
+            probe: [{net: 5V, point: TP3}]
+            inputs: [keyboard, action]
+          - id: P03
+            title: 5V_AN rail
+            kind: number
+            unit: V
+            limit: {class: guess, min: 4.95, max: 5.05, source: {type: estimate}, closes_on: "first 3 boards"}
+            inputs: [keyboard, action]
+      - id: manual_checks
+        title: Bench checks
+        instructions: "Connect the scope. Then measure the ripple."
+        actions:
+          - id: arm
+            title: Arm the scope
+            plugin: demo.fail
+            params: {}
+        tests:
+          - id: M01
+            title: Ripple on 5V
+            kind: number
+            unit: mV
+            limit: {class: hard, max: 50, source: {type: design_calc, doc: "DEMO calc"}}
+            probe: [{point: TP3, pole: "+"}]
+            inputs: [keyboard]
+      - id: long_capture
+        title: Long capture
+        instructions: "Runs until you stop it."
+        actions:
+          - id: capture_slow
+            title: Capture until stopped
+            plugin: demo.slow
+            params: {}

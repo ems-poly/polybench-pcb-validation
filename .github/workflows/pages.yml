@@ -1,0 +1,57 @@
+# Builds the Polybench documentation site (site/) with MkDocs and, once enabled, publishes it to GitHub Pages.
+#
+# Inert until the owner turns it on:
+#   1. Settings > Pages > Source: "GitHub Actions".
+#   2. Settings > Secrets and variables > Actions > Variables: POLYBENCH_PAGES = true.
+# Until then the build job still runs (it checks that `mkdocs build --strict` passes) and nothing is deployed.
+name: Documentation site
+
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", ".github/workflows/pages.yml", "pyproject.toml"]
+  pull_request:
+    paths: ["site/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0            # full history: the "Last updated" date of each page comes from git
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install the site tooling
+        run: pip install -r site/requirements.txt
+      - name: Build (strict)
+        run: mkdocs build --strict -f site/mkdocs.yml
+      - name: Upload the site
+        if: github.event_name != 'pull_request' && vars.POLYBENCH_PAGES == 'true'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9  # v5.0.0
+        with:
+          path: site/_build
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && vars.POLYBENCH_PAGES == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346  # v5.0.1

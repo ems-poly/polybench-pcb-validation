@@ -1,0 +1,24 @@
+steps:
+  - id: characterisation
+    title: Characterisation
+    applies_to: [S01]
+    gate: {requires: [function]}
+    sections:
+      - id: noise
+        title: Front-end noise
+        instructions: "The tool asks you to connect the bridge simulator. Four captures of 250 samples."
+        actions:
+          - id: capture
+            title: Capture noise at 2 mV/V
+            plugin: demo.capture
+            params: {prompt: "Fit the 350 Ohm bridge simulator on J1 and set it to 2 mV/V, then press Continue.", ask: "Bridge simulator connected and at 2 mV/V?", captures: 4, tests: {mean: C01, std: C02, pp: C03}}
+            proposes: [C01, C02, C03]
+        tests:
+          - {id: C01, title: Mean at 2 mV/V input, kind: number, unit: mV/V, limit: {class: guess, min: 1.999, max: 2.001, source: {type: estimate, note: "simulator accuracy"}, closes_on: "simulator calibration certificate"}}
+          - {id: C02, title: RMS noise, kind: number, unit: uV/V, limit: {class: tbr, max: 1.0, source: {type: estimate}, closes_on: "ADC datasheet noise table plus first capture"}}
+          - {id: C03, title: Peak to peak noise, kind: number, unit: uV/V, limit: {class: record}}
+      - id: accuracy
+        title: Accuracy notes
+        tests:
+          - {id: C04, title: Bridge simulator serial number, kind: text, limit: {class: record}}
+          - {id: C05, title: Gain error acceptable, kind: yn, limit: {class: record}}

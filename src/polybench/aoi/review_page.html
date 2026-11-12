@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AOI review</title>
+<style>
+:root{--bg:#f4f5f7;--panel:#fff;--ink:#16181d;--muted:#5b6270;--line:#d9dce2;--accent:#1b5fd1;
+--ok:#b3261e;--no:#2e7d32;--un:#a15c00;--none:#8a909c;--focus:#1b5fd1}
+@media (prefers-color-scheme:dark){:root{--bg:#14161a;--panel:#1d2026;--ink:#eceef2;--muted:#9aa2b1;--line:#2d313a;--accent:#6aa0ff;
+--ok:#ff6b61;--no:#6fcf75;--un:#f0b04a;--none:#6a7080;--focus:#6aa0ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,system-ui,Segoe UI,sans-serif}
+header{display:flex;align-items:center;gap:16px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+h1{font-size:16px;margin:0}
+.progress{flex:1;min-width:220px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);width:0}
+.counts{color:var(--muted);font-size:12px;margin-top:3px}
+button{font:inherit;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button:focus-visible,textarea:focus-visible,.row:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+main{display:grid;grid-template-columns:300px 1fr;gap:12px;padding:12px 16px;max-width:1700px;margin:0 auto}
+#list{background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:calc(100vh - 110px);overflow:auto}
+@media (max-width:1100px){main{grid-template-columns:1fr}#list{max-height:190px;overflow:auto}}
+#filters{padding:8px;border-bottom:1px solid var(--line);display:flex;gap:6px;flex-wrap:wrap;position:sticky;top:0;background:var(--panel)}
+.row{display:flex;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);cursor:pointer}
+.row.cur{background:color-mix(in srgb,var(--accent) 14%,transparent)}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--none);flex:none}
+.dot.confirmed{background:var(--ok)}.dot.rejected{background:var(--no)}.dot.unsure{background:var(--un)}
+.row small{color:var(--muted)} .row small.nmk{color:var(--accent);font-weight:600}
+.row .id{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#view{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+.meta{display:flex;gap:10px;flex-wrap:wrap;align-items:baseline}
+.meta h2{margin:0;font-size:18px}
+.tag{font-size:12px;padding:1px 8px;border-radius:10px;border:1px solid var(--line);color:var(--muted)}
+.tag.fail{color:var(--ok);border-color:var(--ok)}
+.note{margin:8px 0;color:var(--muted)}
+#imgbox{border:1px solid var(--line);border-radius:6px;overflow:auto;max-height:62vh;background:#222}
+#imgbox img{display:block;width:100%;height:auto}
+#imgbox.fit img{width:auto;max-width:100%;max-height:62vh;margin:0 auto}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 8px}
+.actions button{min-width:150px;font-weight:600}
+.actions .confirmed.on{background:var(--ok);color:#fff;border-color:var(--ok)}
+.actions .rejected.on{background:var(--no);color:#fff;border-color:var(--no)}
+.actions .unsure.on{background:var(--un);color:#fff;border-color:var(--un)}
+kbd{font:11px ui-monospace,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;margin-left:6px;opacity:.85}
+textarea{width:100%;min-height:54px;font:inherit;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:6px}
+.saved{font-size:12px;color:var(--muted);height:16px}
+.help{color:var(--muted);font-size:12px;margin-top:8px}
+#banner{display:none;margin:8px 16px 0;padding:10px 12px;border-radius:8px;background:color-mix(in srgb,var(--accent) 14%,var(--panel));border:1px solid var(--accent)}
+#warn{display:none;margin:8px 16px 0;padding:8px 12px;border-radius:8px;border:1px solid var(--un);color:var(--un)}
+#imgbox img{cursor:zoom-in}
+#imgwrap{position:relative;display:block}
+#imgbox.fit #imgwrap{width:fit-content;margin:0 auto}
+.ptile{position:absolute;pointer-events:none;border:4px solid;box-sizing:border-box}
+.ptile .ptag{position:absolute;left:0;right:0;bottom:0;padding:3px 6px;font:600 12px/1.25 -apple-system,system-ui,sans-serif;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.ptile.red{border-color:#d92d20}.ptile.red .ptag{background:rgba(185,28,28,.92)}
+.ptile.amber{border-color:#f0a020}.ptile.amber .ptag{background:rgba(180,110,0,.92)}
+.ptile.grey{border-color:#8a909c;border-style:dashed}.ptile.grey .ptag{background:rgba(90,96,108,.9)}
+#peerline{display:none;margin:6px 0;font-size:13px;max-height:104px;overflow:auto}
+#peerline b{margin-right:4px}
+.pp{display:inline-block;margin:0 6px 2px 0;padding:1px 8px;border-radius:10px;border:1px solid;font-size:12px;font-weight:600}
+.pp.red{color:var(--ok);border-color:var(--ok)}.pp.amber{color:var(--un);border-color:var(--un)}.pp.grey{color:var(--muted);border-color:var(--line)}
+#lb{display:none;position:fixed;inset:0;z-index:50;background:rgba(10,12,16,.98);flex-direction:column}
+#lb.open{display:flex}
+#lbbar{display:flex;gap:12px;align-items:baseline;padding:8px 14px;color:#eceef2;flex-wrap:wrap}
+#lbbar b{font-size:16px}#lbbar span{color:#aeb6c4;font-size:12px}
+#lbwrap{flex:1;min-height:0;position:relative}
+#lbc{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
+#lbc.drag{cursor:grabbing}
+#lbbar button{padding:2px 10px;font-size:12px;background:#232831;color:#eceef2;border-color:#3a4150}
+#lbbar button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#lbbar .lbb{display:inline-flex;gap:4px;align-items:center}
+#lbc.add{cursor:crosshair}
+#lbform{display:none;position:absolute;right:14px;bottom:14px;width:min(340px,calc(100% - 28px));background:#15181e;border:1px solid #3a4150;border-radius:8px;padding:12px;color:#eceef2;z-index:5}
+#lbform.open{display:block}
+#lbform label{display:block;font-size:12px;color:#aeb6c4;margin:8px 0 2px}
+#lbform select,#lbform input,#lbform textarea{width:100%;font:inherit;background:#0e1014;color:#eceef2;border:1px solid #3a4150;border-radius:6px;padding:5px 8px}
+#lbform textarea{min-height:48px}
+#lbform .fb{display:flex;gap:8px;margin-top:10px}
+#lbform .msg{color:#ff8a80;font-size:12px;min-height:16px;margin-top:6px}
+#lbform .sug{font-size:11px;color:#aeb6c4;margin-top:2px}
+.ptile.plain{border-color:transparent}
+.ptile .padd,.ptile .ptri{pointer-events:auto;position:absolute;top:4px;cursor:pointer;font:600 12px/1 -apple-system,system-ui,sans-serif}
+.ptile .padd{right:4px;padding:4px 8px;background:rgba(20,22,28,.82);color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:5px;opacity:.55}
+.ptile:hover .padd,.ptile .padd:focus-visible{opacity:1}
+.ptile .ptri{left:4px;padding:0;border:0;background:transparent;width:34px;height:30px}
+.ptile .ptri svg{width:34px;height:30px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))}
+.ptri.red svg path{fill:#d92d20}.ptri.amber svg path{fill:#f0a020}.ptri.grey svg path{fill:#8a909c}
+.pp{cursor:pointer;background:transparent;font:inherit;font-size:12px;font-weight:600}
+.pp.man::after{content:" · added by you";font-weight:400}
+.tag.man{color:var(--accent);border-color:var(--accent)}
+#lbmsg{position:absolute;top:40%;left:0;right:0;text-align:center;color:#eceef2;pointer-events:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>AOI review <span id="expbadge" style="display:none;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:#b26a00;color:#fff;border-radius:4px;padding:2px 7px;vertical-align:middle" title="Layout-free diff mode: experimental, unvalidated">Experimental diff mode</span></h1>
+  <div class="progress"><div class="bar"><i id="barfill"></i></div><div class="counts" id="counts">loading</div></div>
+  <button id="exportBtn" title="Write aoi_result.reviewed.json">Export reviewed result <kbd>E</kbd></button>
+</header>
+<div id="warn"></div>
+<div id="banner"></div>
+<main>
+  <div id="list"><div id="filters">
+    <select id="fBoard" aria-label="Board"><option value="">All boards</option></select>
+    <select id="fKind" aria-label="Kind"><option value="">All kinds</option><option>POLSYS</option><option>POL</option><option>BRIDGE</option><option>MISSING</option><option>LIFT</option><option>ANOM</option><option>DIFF</option><option>PART</option></select>
+    <label><input type="checkbox" id="fOpen"> undecided only</label></div><div id="rows"></div></div>
+  <div id="view">
+    <div class="meta"><h2 id="title"></h2><span class="tag" id="tStatus"></span><span class="tag" id="tKind"></span><span class="tag" id="tConf"></span><span class="tag" id="tPos"></span></div>
+    <div class="note" id="note"></div>
+    <div id="peerline"></div>
+    <div id="imgbox"><div id="imgwrap"><img id="img" alt="Suspect crop beside the same crop on the other boards"></div></div>
+    <div id="which" style="display:none;margin:10px 0 0"><b>Which board has the issue?</b> <span id="whichchips"></span>
+      <span class="help" style="display:block">Two photos can show that boards differ, not which one is wrong. You decide, and you name the board. Needed for Issue (Y).</span></div>
+    <div class="actions">
+      <button class="confirmed" id="bY" data-d="fixed">Defect &mdash; fixed<kbd>F</kbd></button>
+      <button class="rejected" data-d="rejected">No fault found<kbd>N</kbd></button>
+      <button class="unsure" id="bU" data-d="unsure">Ignore<kbd>I</kbd></button>
+      <button id="prev">Previous<kbd>&larr;</kbd></button><button id="next">Next<kbd>&rarr;</kbd></button>
+    </div>
+    <label for="opnote">Note (optional)</label><kbd>T</kbd>
+    <textarea id="opnote" placeholder="What you saw, or how you checked"></textarea>
+    <div class="saved" id="saved"></div>
+    <div class="help">F defect fixed (recorded as confirmed and reworked), N no fault found, I ignore (does not block, listed in the report), then it moves to the next undecided item. &larr;/&rarr; or J/K move without deciding. Backspace clears the decision. W toggles fit/full width of the crop. Click the crop, or press Space or B, for the whole board with this candidate marked (S toggles the silkscreen outlines, wheel zooms, drag pans, R refits, Esc closes). Decisions are saved to the decisions file next to the result as you go; reloading resumes here. The suspect board is the first tile with the red border; yellow boxes are pads, magenta is the gap or zone tested. Candidates are prompts to look, not verdicts.</div>
+  </div>
+</main>
+<div id="lb" role="dialog" aria-label="Board view">
+  <div id="lbbar"><b id="lbtitle"></b><span id="lbsub"></span><span class="lbb" id="lbboards" aria-label="Board shown"></span><button id="lbadd" title="Add an issue AOI did not list: click, or drag a box, on the photo (I)">+ Issue <kbd>I</kbd></button><span id="lbhelp">Esc, Space or click closes &middot; wheel zooms, drag pans, R refits &middot; S silkscreen overlay &middot; Y/N/U and arrows still decide and move</span></div>
+  <div id="lbwrap"><canvas id="lbc"></canvas><div id="lbmsg"></div>
+    <form id="lbform" aria-label="Add an issue"><b id="lbfhead">Add an issue</b>
+      <label for="lbfkind">Kind</label><select id="lbfkind"><option>bridge</option><option>missing</option><option>lifted</option><option>polarity</option><option>tombstone</option><option>damage</option><option>other</option></select>
+      <label for="lbfdes">Designator(s)</label><input id="lbfdes" autocomplete="off" placeholder="C8, R14"><div class="sug" id="lbfsug"></div>
+      <label for="lbfnote">Note (optional)</label><textarea id="lbfnote" placeholder="What you saw"></textarea>
+      <div class="msg" id="lbfmsg"></div>
+      <div class="fb"><button type="submit" id="lbfok">Add as confirmed issue</button><button type="button" id="lbfno">Cancel</button></div></form></div>
+</div>
+<script>
+const TOKEN="__TOKEN__",BASE="__BASE__";
+let S=null, idx=0, view=[], saveTimer=null, busy=false;
+const $=id=>document.getElementById(id);
+async function api(path,body){
+  const r=await fetch(BASE+path,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','X-Token':TOKEN},body:JSON.stringify(body)});
+  const j=await r.json(); if(!r.ok) throw new Error(j.error||r.status); return j;
+}
+function counts(){const p=S.progress;
+  $('counts').textContent=`${p.decided} of ${p.total} decided · ${p.confirmed} defects · ${p.rejected} no fault · ${p.unsure} ignored · ${p.undecided} to go`;
+  $('barfill').style.width=(p.total?100*p.decided/p.total:100)+'%';
+  const b=$('banner');
+  if(p.total&&p.undecided===0){b.style.display='block';b.textContent='Every candidate is decided. Export writes the reviewed result for the report tool (press E).';}
+  else b.style.display='none';
+  const w=$('warn');
+  const msgs=[]; if(!S.same_run) msgs.push('The decisions file belongs to an earlier run of the tool; decisions are matched by board and result id.');
+  if(p.stale_keys.length) msgs.push(p.stale_keys.length+' saved decision(s) refer to results that are not in this run and are kept but not applied.');
+  w.style.display=msgs.length?'block':'none'; w.textContent=msgs.join(' ');
+}
+function filtered(){const fb=$('fBoard').value,fk=$('fKind').value,fo=$('fOpen').checked;
+  return S.items.map((it,i)=>({it,i})).filter(x=>(!fb||x.it.board===fb)&&(!fk||x.it.kind===fk)&&(!fo||!x.it.decision||x.i===idx));}
+function renderList(){const rows=$('rows');rows.innerHTML='';
+  filtered().forEach(({it,i})=>{const d=document.createElement('div');d.className='row'+(i===idx?' cur':'');d.tabIndex=0;
+    d.innerHTML=`<span class="dot ${it.decision||''}"></span><span class="id">${it.board} ${itemName(it)}</span><small>${it.manual?'added by you':it.status==='fail'?'FAIL':''}</small>${NOTEN[it.key]?`<small class="nmk" title="${NOTEN[it.key]} note(s)">&#9998;${NOTEN[it.key]}</small>`:''}`;
+    d.onclick=()=>go(i);d.onkeydown=e=>{if(e.key==='Enter')go(i)};rows.appendChild(d);
+    if(i===idx) d.scrollIntoView({block:'nearest'});});}
+function itemName(x){return x.manual?`${x.manual_kind}${x.designators&&x.designators.length?' '+x.designators.join(' '):''}`:x.id.replace('AOI-','');}
+function renderItem(){
+  if(!S.items.length){$('title').textContent='No candidates in this result';return;}
+  const it=S.items[idx];
+  $('title').textContent=`${it.board}  ${itemName(it)}`;
+  const st=$('tStatus');st.textContent='AOI: '+it.status;st.className='tag '+(it.status==='fail'?'fail':'');
+  $('tKind').textContent=it.manual?'AOI missed':it.kind;$('tConf').textContent='confidence '+it.confidence;$('tPos').textContent=`${idx+1} / ${S.items.length}`;
+  $('note').textContent=it.manual?('Added by you (operator-found, recorded as an AOI miss). '+it.note):(it.value?it.value+'. ':'')+it.note;
+  $('img').src=it.image||'';$('img').alt=it.image?'evidence':'no evidence image';
+  renderDiff(it);$('expbadge').style.display=S.items.some(x=>x.diff)?'inline-block':'none';
+  document.querySelectorAll('.actions [data-d]').forEach(b=>b.classList.toggle('on',b.dataset.d===(it.decision==='confirmed'&&it.reworked?'fixed':it.decision)));
+  const ta=$('opnote'); if(document.activeElement!==ta) ta.value=it.operator_note||'';
+  $('saved').textContent=it.decision==='confirmed'&&!it.reworked?'Confirmed in an earlier session, not reworked: it blocks Unpowered until Reworked (right-hand checklist).':it.decision?('Saved'+(it.decided_by?' by '+it.decided_by:'')):'';
+  if((it.kind==='POL'||it.kind==='POLSYS')&&!it.decision)$('note').textContent+='  LOOK BY EYE: AOI does not establish polarity; undecided is not a pass.';
+  $('note').textContent+=(it.tests&&it.tests.length)?`  Visual checks it feeds: ${it.tests.join(', ')} (Defect &mdash; fixed records FAIL there).`:'  No visual check names this part.';
+}
+/* ---- peers: the same designator flagged on another board (live decision state) */
+const PEER_WORD={POL:'POLARITY',POLSYS:'SYSTEMIC',BRIDGE:'BRIDGE',MISSING:'MISSING',LIFT:'LIFT',ANOM:'ANOMALY',PART:'FAIL'};
+function peerState(kind,decision){
+  const w=PEER_WORD[kind]||kind;
+  if(decision==='confirmed')return{level:'red',rank:0,word:w,text:'you confirmed'};
+  if(decision==='rejected')return{level:'grey',rank:2,word:w,text:'you marked not a defect'};
+  if(decision==='unsure')return{level:'amber',rank:1,word:w,text:'unsure'};
+  return{level:'amber',rank:1,word:w,text:'not yet reviewed'};
+}
+function peersByBoard(it){   // {board: [state...]} worst first, from the live decisions
+  const by={};const dec={};S.items.forEach(x=>dec[x.key]=x.decision);
+  (it.peers||[]).forEach(p=>{(by[p.board]=by[p.board]||[]).push(Object.assign({board:p.board,key:p.key,id:p.id,manual:p.manual,designator:p.designator},peerState(p.kind,dec[p.key])));});
+  Object.values(by).forEach(a=>a.sort((x,y)=>x.rank-y.rank));
+  return by;
+}
+function peerLabel(a){const t=a.slice(0,2).map(s=>`${s.word} — ${s.text}`).join('; ');return `${a[0].board}: ${t}${a.length>2?` (+${a.length-2} more)`:''}`;}
+function peerName(p){const x=S.items.find(i=>i.key===p.key);return x?itemName(x):p.id;}
+function jumpKey(key){const i=S.items.findIndex(x=>x.key===key);if(i>=0)go(i);}
+const TRI='<svg viewBox="0 0 34 30" aria-hidden="true"><path d="M17 2 33 29H1Z" stroke="#fff" stroke-width="2" stroke-linejoin="round"/><rect x="15.4" y="11" width="3.2" height="9" rx="1" fill="#fff"/><circle cx="17" cy="24" r="1.9" fill="#fff"/></svg>';
+function renderPeers(){
+  const it=S.items[idx],wrap=$('imgwrap');wrap.querySelectorAll('.ptile').forEach(e=>e.remove());
+  const line=$('peerline');line.innerHTML='';line.style.display='none';
+  if(!it)return;
+  const by=peersByBoard(it),boards=Object.keys(by);
+  if(boards.length){
+    line.style.display='block';const b=document.createElement('b');b.textContent='Other issues in this region:';line.appendChild(b);
+    boards.forEach(bd=>by[bd].forEach(x=>{const s=document.createElement('button');s.type='button';s.className='pp '+x.level+(x.manual?' man':'');s.dataset.key=x.key;
+      s.title='Jump to this issue';s.textContent=`${bd} ${peerName(x)} · ${x.word.toLowerCase()} · ${x.text}`;s.onclick=()=>jumpKey(x.key);line.appendChild(s);}));
+  }
+  const im=$('img'),W=im.naturalWidth,H=im.naturalHeight;
+  if(!W||!it.tiles)return;
+  // evidence sheet geometry (aoi/defects.py evidence_sheet): 3 columns, 30 px title strip, 22 px label strip over each tile
+  const cols=3,n=it.tiles.length,rows=Math.ceil(n/cols),cw=W/cols,ch=(H-30)/rows;
+  it.tiles.forEach((bd,k)=>{const a=by[bd];
+    const r=Math.floor(k/cols),c=k%cols,x=c*cw+2,y=30+r*ch+20,w=cw-4,h=ch-22;
+    const d=document.createElement('div');d.className='ptile '+(a?a[0].level:'plain');d.dataset.board=bd;
+    d.style.cssText=`left:${100*x/W}%;top:${100*y/H}%;width:${100*w/W}%;height:${100*h/H}%`;
+    if(a){const t=document.createElement('div');t.className='ptag';t.textContent=peerLabel(a);d.appendChild(t);
+      const tri=document.createElement('button');tri.type='button';tri.className='ptri '+a[0].level;tri.innerHTML=TRI;
+      tri.title=`${bd} has ${a.length} issue${a.length>1?'s':''} here: ${a.map(z=>peerName(z)).join(', ')}. Click to jump to ${peerName(a[0])}.`;
+      tri.setAttribute('aria-label',tri.title);tri.onclick=e=>{e.stopPropagation();jumpKey(a[0].key);};d.appendChild(tri);}
+    const add=document.createElement('button');add.type='button';add.className='padd';add.textContent='+ Issue';
+    add.title=`Add an issue you spotted on ${bd}: opens the board view at this place, drag a box on the photo`;
+    add.onclick=e=>{e.stopPropagation();lbOpen({board:bd,add:true,zoom:true});};d.appendChild(add);
+    wrap.appendChild(d);});
+}
+$('img').addEventListener('load',renderPeers);
+function render(){counts();renderList();renderItem();renderPeers();lbRefresh();}
+async function go(i){if(i<0||i>=S.items.length)return;idx=i;LB.board=null;render();tellParent();try{await api('/api/cursor',{index:i});}catch(e){}}
+function nextUndecided(from){const n=S.items.length;for(let k=1;k<=n;k++){const j=(from+k)%n;if(!S.items[j].decision)return j;}return Math.min(from+1,n-1);}
+const WHICH={};
+function renderDiff(it){   // diff mode (no layout): Y / N / U and the board the issue is on
+  const dm=!!it.diff;$('which').style.display=dm?'block':'none';
+  $('bY').dataset.d=dm?'confirmed':'fixed';$('bY').innerHTML=dm?'Issue (Y)<kbd>Y</kbd>':'Defect &mdash; fixed<kbd>F</kbd>';
+  $('bU').innerHTML=dm?'Unsure (U)<kbd>U</kbd>':'Ignore<kbd>I</kbd>';
+  if(!dm)return;
+  if(!(it.key in WHICH)&&it.decision==='confirmed'&&it.issue_board)WHICH[it.key]=it.issue_board;
+  $('whichchips').innerHTML=it.diff.boards.map(b=>`<label style="margin-right:14px"><input type="radio" name="wb" value="${b}" ${WHICH[it.key]===b?'checked':''}> ${b}${b===it.diff.reference?' (reference)':''}</label>`).join('');
+  $('whichchips').querySelectorAll('input').forEach(i=>i.onchange=()=>{WHICH[it.key]=i.value;});
+}
+async function decide(d){
+  if(busy||!S.items.length)return;busy=true;const it=S.items[idx];
+  try{
+    const note=$('opnote').value;
+    const body={key:it.key,decision:d,note};
+    if(it.diff&&d==='confirmed'){if(!WHICH[it.key]){$('saved').textContent='Choose which board has the issue ('+it.diff.boards.join(' or ')+') first.';busy=false;return;}body.issue_board=WHICH[it.key];}
+    const r=await api('/api/decision',body);
+    it.decision=d==='fixed'?'confirmed':d;it.reworked=d==='fixed';it.issue_board=body.issue_board||null;it.operator_note=note;S.progress=r.progress;
+    $('saved').textContent=d?'Saved '+new Date().toLocaleTimeString():'Cleared';
+    if(d){idx=nextUndecided(idx);try{await api('/api/cursor',{index:idx});}catch(e){}}
+    render();
+  }catch(e){$('saved').textContent='NOT SAVED: '+e.message;}
+  busy=false;
+}
+function saveNote(){const it=S.items[idx];if(!it)return;clearTimeout(saveTimer);
+  saveTimer=setTimeout(async()=>{try{const note=$('opnote').value;
+    const r=await api('/api/decision',{key:it.key,decision:it.decision||null,note});it.operator_note=note;S.progress=r.progress;
+    $('saved').textContent='Note saved';counts();}catch(e){$('saved').textContent='NOT SAVED: '+e.message;}},500);}
+async function doExport(){
+  try{const r=await api('/api/export',{});const s=r.summary;
+    $('banner').style.display='block';
+    $('banner').innerHTML=`Exported. ${s.confirmed} confirmed (fail), ${s.rejected} not a defect (informational), ${s.unsure} ignored (review), ${s.undecided} undecided (unchanged).<br>Reviewed result: <code>${r.paths.reviewed}</code><br>Provenance: <code>${r.paths.provenance}</code>`;
+  }catch(e){alert('Export failed: '+e.message);}
+}
+document.querySelectorAll('.actions [data-d]').forEach(b=>b.onclick=()=>decide(b.dataset.d));
+$('prev').onclick=()=>go(idx-1);$('next').onclick=()=>go(idx+1);$('exportBtn').onclick=doExport;
+['fBoard','fKind','fOpen'].forEach(id=>$(id).onchange=renderList);
+$('opnote').addEventListener('input',saveNote);
+$('opnote').addEventListener('keydown',e=>{if(e.key==='Escape')e.target.blur();});
+$('imgbox').onclick=()=>lbOpen();
+document.addEventListener('keydown',e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey)return;
+  const tag=(e.target.tagName||'').toLowerCase();if(tag==='textarea'||tag==='input'||tag==='select')return;
+  const k=e.key.toLowerCase();
+  if(e.key==='Escape'&&LB.open){if(LB.pending||LB.add){lbCancelAdd();LB.add=false;lbBar();lbDraw();}else lbClose();e.preventDefault();return;}
+  if(e.key===' '||k==='b'){lbToggle();e.preventDefault();return;}
+  if(LB.open&&k==='s'){LB.silk=!LB.silk;lbDraw();e.preventDefault();return;}
+  if(LB.open&&k==='i'){lbAddMode(!LB.add);e.preventDefault();return;}
+  if(LB.open&&k==='r'){if(LB.bv){lbFit();lbDraw();}e.preventDefault();return;}
+  const dm=S.items[idx]&&S.items[idx].diff;
+  if(dm&&k==='y')decide('confirmed');else if(dm&&k==='u')decide('unsure');else if(k==='f'&&!dm)decide('fixed');else if(k==='n')decide('rejected');else if(k==='i'&&!dm)decide('unsure');
+  else if(k==='arrowright'||k==='j')go(idx+1);else if(k==='arrowleft'||k==='k')go(idx-1);
+  else if(k==='backspace'||k==='0'){e.preventDefault();decide(null);}
+  else if(k==='t'||k==='/'){e.preventDefault();$('opnote').focus();}
+  else if(k==='w')$('imgbox').classList.toggle('fit');
+  else if(k==='e')doExport();else return;
+  e.preventDefault();
+});
+
+/* ---- Polybench notes (only when embedded): the parent sends note counts per candidate and is told which candidate is open */
+let NOTEN={};
+function tellParent(){if(window.parent!==window&&S&&S.items[idx])window.parent.postMessage({pbCursor:S.items[idx].key},'*');}
+let syncTimer=null;
+async function resync(){try{const keep=S.items[idx]&&S.items[idx].key;S=await api('/api/state');const i=S.items.findIndex(x=>x.key===keep);
+  idx=i>=0?i:Math.min(idx,Math.max(S.items.length-1,0));render();}catch(e){}}
+window.addEventListener('message',e=>{const m=e.data;if(m&&m.pbNotes&&S){NOTEN=m.pbNotes;renderList();}if(m&&m.pbAsk)tellParent();
+  if(m&&m.pbGoto&&S)jumpKey(m.pbGoto);
+  if(m&&m.pbSync&&S&&!busy){clearTimeout(syncTimer);syncTimer=setTimeout(resync,120);}});
+document.addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey||e.altKey||window.parent===window)return;const tag=(e.target.tagName||'').toLowerCase();
+  if(tag==='textarea'||tag==='input'||tag==='select'||e.key.toLowerCase()!=='c'||!S||!S.items[idx])return;e.preventDefault();window.parent.postMessage({pbNote:S.items[idx].key},'*');});
+
+/* ---- full-board view */
+const LB={open:false,bv:null,img:{},scale:1,ox:0,oy:0,fit:1,silk:true,drag:null,moved:false,loading:null,err:'',board:null,add:false,pending:null,rb:null};
+const lbc=$('lbc'),ctx2=lbc.getContext('2d');
+const lbBoard=()=>LB.board||(S.items[idx]&&S.items[idx].board);
+function lbLoadData(){
+  if(LB.bv)return Promise.resolve();
+  if(!LB.loading)LB.loading=api('/api/boardview').then(j=>{LB.bv=j;}).catch(e=>{LB.err=e.message;}).finally(()=>{LB.loading=null;});
+  return LB.loading;
+}
+function lbImage(board){
+  if(LB.img[board])return LB.img[board];
+  const im=new Image();im.onload=()=>{if(LB.open)lbDraw();};im.src=BASE+"/bvimg/"+encodeURIComponent(board)+"?r="+LB.bv.run;LB.img[board]=im;return im;
+}
+function lbSize(){const r=lbc.parentElement.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  lbc.width=Math.round(r.width*d);lbc.height=Math.round(r.height*d);return [r.width,r.height,d];}
+function lbFit(){
+  const [w,h]=lbSize();const [iw,ih]=LB.bv.size_px;
+  LB.fit=Math.min(w/iw,h/ih)*0.96;LB.scale=LB.fit;LB.ox=(w-iw*LB.scale)/2;LB.oy=(h-ih*LB.scale)/2;
+}
+function lbZoomTo(box,spanMm=12){   // centre the view on a board-mm box, about spanMm across
+  const [w,h]=lbSize(),pp=LB.bv.ppmm,b=LB.bv.box_mm;
+  LB.scale=Math.max(LB.fit,Math.min(LB.fit*40,Math.min(w,h)/(spanMm*pp)));
+  const cx=(box[0]+box[2])/2,cy=(box[1]+box[3])/2;
+  LB.ox=w/2-(cx-b[0])*pp*LB.scale;LB.oy=h/2-(b[3]-cy)*pp*LB.scale;
+}
+function lbPt(x,y){const b=LB.bv.box_mm,pp=LB.bv.ppmm;return [LB.ox+(x-b[0])*pp*LB.scale,LB.oy+(b[3]-y)*pp*LB.scale];}
+function lbMm(px,py){const b=LB.bv.box_mm,pp=LB.bv.ppmm;return [b[0]+(px-LB.ox)/(pp*LB.scale),b[3]-(py-LB.oy)/(pp*LB.scale)];}
+function halo(c,draw,w,col){c.lineWidth=w+4;c.strokeStyle='rgba(0,0,0,.85)';draw();c.lineWidth=w;c.strokeStyle=col;draw();}
+function lbRect(c,box,col,w,dash,label){
+  const [ax,ay]=lbPt(box[0],box[3]),[bx,by]=lbPt(box[2],box[1]);
+  c.save();c.setLineDash(dash||[]);halo(c,()=>{c.beginPath();c.rect(ax,ay,bx-ax,by-ay);c.stroke();},w,col);c.setLineDash([]);
+  if(label){c.font='bold 12px -apple-system,system-ui,sans-serif';c.textAlign='left';c.textBaseline='bottom';const tw=c.measureText(label).width+8;
+    c.fillStyle='rgba(8,10,14,.85)';c.fillRect(ax,ay-17,tw,16);c.fillStyle=col;c.fillText(label,ax+4,ay-3);}
+  c.restore();
+}
+function lbDraw(){
+  if(!LB.open||!LB.bv)return;
+  const it=S.items[idx];if(!it)return;
+  const board=lbBoard();
+  const d=window.devicePixelRatio||1,w=lbc.width/d,h=lbc.height/d,c=ctx2;
+  c.setTransform(d,0,0,d,0,0);c.clearRect(0,0,w,h);
+  if(!LB.bv.boards[board]){$('lbmsg').textContent='No board image for '+board+'.';return;}
+  const im=lbImage(board);
+  c.imageSmoothingQuality='high';
+  if(im.complete&&im.naturalWidth)c.drawImage(im,LB.ox,LB.oy,LB.bv.size_px[0]*LB.scale,LB.bv.size_px[1]*LB.scale);
+  const mmpx=LB.bv.ppmm*LB.scale;
+  if(LB.silk){
+    c.save();c.lineWidth=1;c.strokeStyle='rgba(255,255,255,.5)';
+    c.font=`${Math.max(9,Math.min(16,mmpx*0.9))}px ui-monospace,monospace`;c.textAlign='center';c.textBaseline='alphabetic';
+    for(const p of Object.values(LB.bv.parts)){
+      if(!p.outline)continue;
+      c.beginPath();p.outline.forEach(([x,y],k)=>{const [sx,sy]=lbPt(x,y);k?c.lineTo(sx,sy):c.moveTo(sx,sy);});c.closePath();c.stroke();
+    }
+    for(const [name,p] of Object.entries(LB.bv.parts)){
+      if(!p.outline)continue;
+      const [x0,y0]=lbPt(p.box[0],p.box[3]),[x1,y1]=lbPt(p.box[2],p.box[1]);
+      if(x1-x0>14){const tw=c.measureText(name).width+4;c.fillStyle='rgba(0,0,0,.5)';c.fillRect((x0+x1)/2-tw/2,(y0+y1)/2-9,tw,13);
+        c.fillStyle='rgba(255,255,255,.8)';c.fillText(name,(x0+x1)/2,(y0+y1)/2+2);}
+    }
+    c.restore();
+  }
+  // the other issues of this board (AOI candidates amber, operator-found red), so a new one is not added twice
+  S.items.forEach((o,i)=>{if(o.board!==board||i===idx||!o.marker)return;
+    lbRect(c,o.marker.box,o.manual?'#ff6b61':'#f0b04a',2,[5,4],itemName(o).slice(0,22)+(o.decision==='rejected'?' (N)':''));});
+  const m=it.marker;
+  if(LB.pending)lbRect(c,LB.pending.box,'#ff4fd8',2.5,null,'new issue');
+  if(LB.rb){const a=LB.rb;lbRect(c,[Math.min(a.x0,a.x1),Math.min(a.y0,a.y1),Math.max(a.x0,a.x1),Math.max(a.y0,a.y1)],'#ff4fd8',2,[4,3]);}
+  if(!m){$('lbmsg').textContent='No location is known for this result (no layout geometry for it).';return;}
+  $('lbmsg').textContent='';
+  if(board!==it.board){lbRect(c,m.box,'#00e5ff',2,[6,4],`same place as ${it.board} ${itemName(it)}`.slice(0,40));return;}
+  const [ax,ay]=lbPt(m.box[0],m.box[3]),[bx,by]=lbPt(m.box[2],m.box[1]);
+  const cx=(ax+bx)/2,cy=(ay+by)/2;
+  const pad=5,bw=Math.max(bx-ax,10)+2*pad,bh=Math.max(by-ay,10)+2*pad;
+  const col='#00e5ff';
+  c.save();c.lineJoin='round';
+  halo(c,()=>{c.beginPath();c.rect(cx-bw/2,cy-bh/2,bw,bh);c.stroke();},2.5,col);
+  const R=Math.max(34,Math.hypot(bw,bh)/2+14);
+  halo(c,()=>{c.beginPath();c.arc(cx,cy,R,0,2*Math.PI);c.stroke();},3,col);
+  const [mx,my]=lbPt((LB.bv.box_mm[0]+LB.bv.box_mm[2])/2,(LB.bv.box_mm[1]+LB.bv.box_mm[3])/2);
+  let dx=mx-cx,dy=my-cy;const n=Math.hypot(dx,dy)||1;dx/=n;dy/=n;
+  if(n<R*1.5){dx=0;dy=-1;}
+  const L=R+46,lx=cx+dx*L,ly=cy+dy*L;
+  halo(c,()=>{c.beginPath();c.moveTo(cx+dx*R,cy+dy*R);c.lineTo(lx,ly);c.stroke();},2.5,col);
+  const ang=Math.atan2(dy,dx),tx=cx+dx*R,ty=cy+dy*R,ah=16;   // arrow head: tip on the ring, wings pointing outward
+  halo(c,()=>{c.beginPath();c.moveTo(tx+Math.cos(ang+0.5)*ah,ty+Math.sin(ang+0.5)*ah);c.lineTo(tx,ty);c.lineTo(tx+Math.cos(ang-0.5)*ah,ty+Math.sin(ang-0.5)*ah);c.stroke();},2.5,col);
+  c.font='bold 17px -apple-system,system-ui,sans-serif';c.textBaseline='middle';c.textAlign='center';
+  const text=m.label,sub=it.kind==='PART'||it.manual?'':it.kind;
+  let tw=c.measureText(text).width+18;const th=sub?44:28;
+  if(sub){c.font='12px -apple-system,system-ui,sans-serif';tw=Math.max(tw,c.measureText(sub).width+18);c.font='bold 17px -apple-system,system-ui,sans-serif';}
+  let bxl=lx-tw/2,byl=ly-th/2;bxl=Math.max(6,Math.min(w-tw-6,bxl));byl=Math.max(6,Math.min(h-th-6,byl));
+  c.fillStyle='rgba(8,10,14,.92)';c.strokeStyle=col;c.lineWidth=2;
+  c.beginPath();c.rect(bxl,byl,tw,th);c.fill();c.stroke();
+  c.fillStyle='#fff';c.fillText(text,bxl+tw/2,byl+(sub?15:th/2));
+  if(sub){c.font='12px -apple-system,system-ui,sans-serif';c.fillStyle=col;c.fillText(sub,bxl+tw/2,byl+33);}
+  c.restore();
+}
+function lbBar(){
+  const it=S.items[idx];if(!it||!LB.bv)return;
+  const box=$('lbboards');box.innerHTML='';
+  Object.keys(LB.bv.boards).forEach(b=>{const x=document.createElement('button');x.type='button';x.textContent=b;x.dataset.board=b;
+    x.className=b===lbBoard()?'on':'';x.title='Show the photo of '+b;x.onclick=()=>{LB.board=b;lbCancelAdd();lbBar();lbDraw();lbHeader();};box.appendChild(x);});
+  $('lbadd').classList.toggle('on',LB.add);lbc.classList.toggle('add',LB.add);
+  $('lbhelp').textContent=LB.add?'Add an issue: click, or drag a box, on the photo (Shift+drag pans) · wheel zooms · Esc cancels':'Esc, Space or click closes · wheel zooms, drag pans, R refits · S silkscreen overlay · I add an issue · Y/N/U and arrows still decide and move';
+}
+function lbHeader(){const it=S.items[idx];if(!it)return;
+  const here=lbBoard();
+  $('lbtitle').textContent=here===it.board?`${it.board}  ${itemName(it)}`:`${here}  (same place as ${it.board} ${itemName(it)})`;
+  const by=peersByBoard(it),pe=Object.keys(by).map(b=>`${b} (${by[b][0].word.toLowerCase()}, ${by[b][0].text})`).join(', ');
+  $('lbsub').textContent=(it.marker?`${it.marker.label}; ${idx+1} / ${S.items.length}`:`${idx+1} / ${S.items.length}`)+(pe?` · other issues here: ${pe}`:'');
+  lbBar();}
+async function lbOpen(o){
+  if(!S||!S.items.length)return;
+  o=o||{};
+  LB.open=true;LB.board=o.board||null;LB.add=!!o.add;lbCancelAdd();$('lb').classList.add('open');lbHeader();$('lbmsg').textContent='';
+  await lbLoadData();
+  if(!LB.bv){$('lbmsg').textContent='No board views for this run ('+LB.err+')';return;}
+  lbFit();if(o.zoom&&S.items[idx].marker)lbZoomTo(S.items[idx].marker.box);lbHeader();lbDraw();
+}
+function lbClose(){LB.open=false;LB.add=false;lbCancelAdd();$('lb').classList.remove('open');}
+function lbToggle(){LB.open?lbClose():lbOpen();}
+function lbRefresh(){if(LB.open){lbHeader();lbDraw();}}
+function lbAddMode(on){LB.add=on;if(!on)lbCancelAdd();lbBar();lbDraw();}
+/* ---- + Issue: a box on the photo of any board, kind, designators from the layout under the box, optional note */
+function suggestParts(box){
+  const hit=[];for(const [name,p] of Object.entries(LB.bv.parts)){
+    const ov=(a,b)=>a[0]<b[2]&&b[0]<a[2]&&a[1]<b[3]&&b[1]<a[3];
+    if(!ov(box,p.box))continue;
+    const onPad=(p.pads||[]).some(r=>ov(box,r));
+    hit.push({name,onPad,area:(p.box[2]-p.box[0])*(p.box[3]-p.box[1])});}
+  hit.sort((a,b)=>(b.onPad-a.onPad)||(a.area-b.area));
+  return hit.slice(0,3).map(h=>h.name);
+}
+function lbShowForm(box){
+  LB.pending={box};const sug=suggestParts(box);
+  $('lbfhead').textContent=`Add an issue on ${lbBoard()}`;$('lbfdes').value=sug.join(', ');
+  $('lbfsug').textContent=sug.length?`Suggested from the layout under the box: ${sug.join(', ')}. Edit as needed.`:'No part under the box. Type the designator(s), or leave empty.';
+  $('lbfmsg').textContent='';$('lbfnote').value='';$('lbform').classList.add('open');lbDraw();$('lbfkind').focus();
+}
+function lbCancelAdd(){LB.pending=null;LB.rb=null;const f=$('lbform');if(f)f.classList.remove('open');}
+$('lbfno').onclick=()=>{lbCancelAdd();lbDraw();};
+$('lbform').addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();lbCancelAdd();lbDraw();}});
+$('lbform').addEventListener('submit',async e=>{
+  e.preventDefault();if(!LB.pending)return;
+  const des=$('lbfdes').value.split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);
+  try{
+    const r=await api('/api/manual',{board:lbBoard(),box_mm:LB.pending.box,kind:$('lbfkind').value,designators:des,note:$('lbfnote').value});
+    S=await api('/api/state');const i=S.items.findIndex(x=>x.key===r.key);if(i>=0)idx=i;
+    lbCancelAdd();LB.add=false;LB.board=null;render();tellParent();try{await api('/api/cursor',{index:idx});}catch(_){}
+    $('saved').textContent=`Added by you: ${r.failed.length?'fails '+r.failed.join(', '):'no visual check names this part'}`;
+  }catch(err){$('lbfmsg').textContent='NOT SAVED: '+err.message;}
+});
+$('lbadd').onclick=()=>lbAddMode(!LB.add);
+function zoomAt(px,py,f){const ns=Math.max(LB.fit*0.5,Math.min(LB.fit*40,LB.scale*f)),k=ns/LB.scale;
+  LB.ox=px-(px-LB.ox)*k;LB.oy=py-(py-LB.oy)*k;LB.scale=ns;lbDraw();}
+lbc.addEventListener('wheel',e=>{if(!LB.bv)return;e.preventDefault();const r=lbc.getBoundingClientRect();
+  zoomAt(e.clientX-r.left,e.clientY-r.top,Math.exp(-e.deltaY*0.0015));},{passive:false});
+lbc.addEventListener('pointerdown',e=>{
+  const r=lbc.getBoundingClientRect();LB.moved=false;lbc.setPointerCapture(e.pointerId);
+  if(LB.add&&!e.shiftKey&&LB.bv){const [x,y]=lbMm(e.clientX-r.left,e.clientY-r.top);lbCancelAdd();LB.rb={x0:x,y0:y,x1:x,y1:y,sx:e.clientX,sy:e.clientY};return;}
+  LB.drag={x:e.clientX,y:e.clientY,ox:LB.ox,oy:LB.oy};lbc.classList.add('drag');});
+lbc.addEventListener('pointermove',e=>{
+  if(LB.rb){const r=lbc.getBoundingClientRect(),[x,y]=lbMm(e.clientX-r.left,e.clientY-r.top);LB.rb.x1=x;LB.rb.y1=y;
+    if(Math.abs(e.clientX-LB.rb.sx)+Math.abs(e.clientY-LB.rb.sy)>4)LB.moved=true;lbDraw();return;}
+  if(!LB.drag)return;const dx=e.clientX-LB.drag.x,dy=e.clientY-LB.drag.y;
+  if(Math.abs(dx)+Math.abs(dy)>4)LB.moved=true;if(LB.moved){LB.ox=LB.drag.ox+dx;LB.oy=LB.drag.oy+dy;lbDraw();}});
+lbc.addEventListener('pointerup',e=>{
+  if(LB.rb){const a=LB.rb;LB.rb=null;let box;
+    if(LB.moved)box=[Math.min(a.x0,a.x1),Math.min(a.y0,a.y1),Math.max(a.x0,a.x1),Math.max(a.y0,a.y1)];
+    else box=[a.x0-0.75,a.y0-0.75,a.x0+0.75,a.y0+0.75];      // a click: a 1.5 mm box on the spot
+    if(box[2]-box[0]<0.2||box[3]-box[1]<0.2){lbDraw();return;}
+    lbShowForm(box);return;}
+  lbc.classList.remove('drag');const was=LB.moved;LB.drag=null;if(!was&&!LB.add)lbClose();});
+$('lb').addEventListener('click',e=>{if(e.target===$('lb')||e.target===$('lbbar'))lbClose();});
+window.addEventListener('resize',()=>{if(LB.open&&LB.bv){lbFit();lbDraw();}});
+(async function init(){
+  try{S=await api('/api/state');}catch(e){$('counts').textContent='Cannot load: '+e.message;return;}
+  S.boards.forEach(b=>{const o=document.createElement('option');o.textContent=b;o.value=b;$('fBoard').appendChild(o);});
+  const first=S.items.findIndex(i=>!i.decision);
+  idx=Math.min(S.cursor||0,Math.max(S.items.length-1,0));
+  if(S.cursor===0&&first>0)idx=first;
+  if(S.items[idx]&&S.items[idx].decision&&first>=0&&S.cursor===0)idx=first;
+  render();
+  tellParent();
+  if(window.parent!==window)window.parent.postMessage({pbReady:1},'*');
+})();
+</script>
+</body>
+</html>

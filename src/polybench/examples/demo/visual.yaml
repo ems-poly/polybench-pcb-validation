@@ -1,0 +1,15 @@
+steps:
+  - id: visual
+    title: Visual
+    sections:
+      - id: solder
+        title: Solder and placement
+        instructions: "Inspect under the lamp. **N** is a fail; write what you see in a note."
+        tests:
+          - {id: V01, title: No solder bridges on U1, kind: yn, highlight: [U1], instructions: "Look at all four sides."}
+          - {id: V02, title: U1 pin 1 orientation, kind: yn, highlight: [U1]}
+          - {id: V03, title: D1 and C7 polarity, kind: yn, highlight: [D1, C7]}
+      - id: cleanliness
+        title: Cleanliness
+        tests:
+          - {id: V04, title: Flux residue, kind: choice, options: [clean, light residue, heavy residue], limit: {class: guess, equals: clean, source: {type: workmanship, doc: "house rule"}, closes_on: "customer workmanship class"}}

@@ -1,0 +1,61 @@
+steps:
+  - id: powered
+    title: Powered testing
+    gate: {requires: [unpowered]}
+    sections:
+      - id: first_power
+        title: First power
+        instructions: "Set the supply to 12 V, current limit 150 mA. Switch on, read, switch off."
+        actions:
+          - id: read_rails
+            title: Read rails and current
+            plugin: demo.measure
+            params:
+              values: {P01: [22, 0.15, mA], P02: [5.0, 0.01, V], P03: [3.3, 0.01, V], P04: [14, 0.2, mA]}
+              force: {"S03:P02": 5.4, "S02:P04": 31}
+            proposes: [P01, P02, P03, P04]
+          - id: load_sweep
+            title: Sweep the 5 V rail against load
+            plugin: demo.sweep
+            params: {test: P05, loads: [0, 10, 20, 40, 80], v0: 5.0, droop: 0.0006, force_droop: {"S03": 0.004}}
+            proposes: [P05]
+        tests:
+          - id: P01
+            title: Supply current at 12 V
+            kind: number
+            unit: mA
+            limit: {class: hard, max: 40, source: {type: design_calc, doc: "power budget rev 1"}}
+            stop_if: {above: 100, text: "over-current: switch off now"}
+            inputs: [keyboard, action]
+          - id: P02
+            title: 5V rail
+            kind: number
+            unit: V
+            limit: {class: hard, min: 4.85, max: 5.15, source: {type: datasheet, doc: "DEMOBUCK DS", page: 3}}
+            probe: [{net: 5V, point: TP3}]
+            highlight: [TP3]
+            inputs: [keyboard, action]
+          - id: P03
+            title: 3V3 rail
+            kind: number
+            unit: V
+            limit: {class: hard, min: 3.2, max: 3.4, source: {type: datasheet, doc: "DEMOLDO DS", page: 4}}
+            probe: [{net: 3V3, point: TP4}]
+            highlight: [TP4]
+            inputs: [keyboard, action]
+          - id: P04
+            title: Idle current after boot
+            kind: number
+            unit: mA
+            limit: {class: guess, max: 25, source: {type: estimate}, closes_on: "measurement on the first 3 boards"}
+            inputs: [keyboard, action]
+          - id: P05
+            title: 5V rail against load
+            kind: table
+            columns:
+              - {id: load_ma, title: Load, unit: mA}
+              - {id: rail_v, title: Rail, unit: V}
+            limits:
+              rail_v: {class: hard, min: 4.85, max: 5.15, source: {type: datasheet, doc: "DEMOBUCK DS", page: 3}}
+            plot: {x: load_ma, y: rail_v}
+            inputs: [action]

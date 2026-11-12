@@ -1,0 +1,14 @@
+# Visual: a checklist for the demo. An AOI step (Polybench's camera-based Visual inspection, extra `aoi`) can replace it
+# once a golden reference photo exists for the board; that needs a camera and is not part of this demo.
+steps:
+  - id: visual
+    title: Visual
+    sections:
+      - id: board
+        title: Board and module
+        instructions: "Inspect under good light. **N** is a fail; write what you see in a note. This is a checklist, not AOI."
+        tests:
+          - {id: V01, title: Module shield present and marked ESP32-S3-WROOM-1 (N16R8), kind: yn, highlight: [U1]}
+          - {id: V02, title: No bent or missing header pins on J1 and J3, kind: yn, highlight: [J1, J3]}
+          - {id: V03, title: Both USB connectors straight and undamaged, kind: yn, highlight: [USB1, USB2]}
+          - {id: V04, title: BOOT and RESET switches present and not stuck, kind: yn, highlight: [SW1, SW2]}

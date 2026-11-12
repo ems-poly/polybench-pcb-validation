@@ -1,0 +1,325 @@
+{
+ "schema": "polystage.aoi_polarity_spec/0",
+ "min_decided": 2,
+ "note": "min_decided is 2 here: the example has two photos. The default is 3 (docs/AOI.md, 'Polarity: min_decided').",
+ "parts": {
+  "D1": {
+   "kind": "band",
+   "cathode_pad": "1",
+   "cathode_net": "5V",
+   "footprint": {
+    "element": {
+     "x": 122.824,
+     "y": -101.528,
+     "angle": 180.0
+    },
+    "pads": [
+     {
+      "name": "1",
+      "x": 124.224,
+      "y": -101.528,
+      "net": "5V"
+     },
+     {
+      "name": "2",
+      "x": 121.424,
+      "y": -101.528,
+      "net": "VBUSB"
+     }
+    ]
+   },
+   "expected": {
+    "side": "right",
+    "marking": "cathode band",
+    "why": "cathode band at the pad 1 (K) end (redraw schematic; marking S4 / D26 not identified, T9)"
+   },
+   "datasheet": {
+    "document": "none read for this file: package convention, band at the cathode",
+    "page": null
+   },
+   "detector": {
+    "method": "ridge",
+    "length_mm": 2.7,
+    "width_mm": 1.6,
+    "band_width_mm": 0.35,
+    "zone_mm": [
+     0.45,
+     1.15
+    ],
+    "view_half_mm": 2.2,
+    "row_fraction": 0.4,
+    "sigma_mm": 0.03,
+    "flank_mm": [
+     0.1,
+     0.4
+    ],
+    "locate_mm": 1.2
+   }
+  },
+  "D2": {
+   "kind": "band",
+   "cathode_pad": "1",
+   "cathode_net": "5V",
+   "footprint": {
+    "element": {
+     "x": 122.824,
+     "y": -98.916,
+     "angle": 180.0
+    },
+    "pads": [
+     {
+      "name": "1",
+      "x": 124.224,
+      "y": -98.916,
+      "net": "5V"
+     },
+     {
+      "name": "2",
+      "x": 121.424,
+      "y": -98.916,
+      "net": "VBUS2"
+     }
+    ]
+   },
+   "expected": {
+    "side": "right",
+    "marking": "cathode band",
+    "why": "cathode band at the pad 1 (K) end (redraw schematic; marking S4 / D26 not identified, T9)"
+   },
+   "datasheet": {
+    "document": "none read for this file: package convention, band at the cathode",
+    "page": null
+   },
+   "detector": {
+    "method": "ridge",
+    "length_mm": 2.7,
+    "width_mm": 1.6,
+    "band_width_mm": 0.35,
+    "zone_mm": [
+     0.45,
+     1.15
+    ],
+    "view_half_mm": 2.2,
+    "row_fraction": 0.4,
+    "sigma_mm": 0.03,
+    "flank_mm": [
+     0.1,
+     0.4
+    ],
+    "locate_mm": 1.2
+   }
+  },
+  "D3": {
+   "kind": "band",
+   "cathode_pad": "1",
+   "cathode_net": "5V",
+   "footprint": {
+    "element": {
+     "x": 122.824,
+     "y": -96.303,
+     "angle": 180.0
+    },
+    "pads": [
+     {
+      "name": "1",
+      "x": 124.224,
+      "y": -96.303,
+      "net": "5V"
+     },
+     {
+      "name": "2",
+      "x": 121.424,
+      "y": -96.303,
+      "net": "5V_HDR"
+     }
+    ]
+   },
+   "expected": {
+    "side": "right",
+    "marking": "cathode band",
+    "why": "cathode band at the pad 1 (K) end (redraw schematic; marking S4 / D26 not identified, T9)"
+   },
+   "datasheet": {
+    "document": "none read for this file: package convention, band at the cathode",
+    "page": null
+   },
+   "detector": {
+    "method": "ridge",
+    "length_mm": 2.7,
+    "width_mm": 1.6,
+    "band_width_mm": 0.35,
+    "zone_mm": [
+     0.45,
+     1.15
+    ],
+    "view_half_mm": 2.2,
+    "row_fraction": 0.4,
+    "sigma_mm": 0.03,
+    "flank_mm": [
+     0.1,
+     0.4
+    ],
+    "locate_mm": 1.2
+   }
+  },
+  "U2": {
+   "kind": "corner_mark",
+   "pin1_pad": "1",
+   "footprint": {
+    "element": {
+     "x": 124.25,
+     "y": -111.22,
+     "angle": -90.0
+    },
+    "pads": [
+     {
+      "name": "",
+      "x": 124.675,
+      "y": -110.795,
+      "net": ""
+     },
+     {
+      "name": "",
+      "x": 123.825,
+      "y": -110.795,
+      "net": ""
+     },
+     {
+      "name": "",
+      "x": 124.675,
+      "y": -111.645,
+      "net": ""
+     },
+     {
+      "name": "",
+      "x": 123.825,
+      "y": -111.645,
+      "net": ""
+     },
+     {
+      "name": "1",
+      "x": 125.0,
+      "y": -109.7575,
+      "net": "VDD33"
+     },
+     {
+      "name": "2",
+      "x": 124.5,
+      "y": -109.7575,
+      "net": "GND"
+     },
+     {
+      "name": "3",
+      "x": 124.0,
+      "y": -109.7575,
+      "net": "VBUSB"
+     },
+     {
+      "name": "4",
+      "x": 123.5,
+      "y": -109.7575,
+      "net": "U0RXD"
+     },
+     {
+      "name": "5",
+      "x": 122.7875,
+      "y": -110.47,
+      "net": "U0TXD"
+     },
+     {
+      "name": "6",
+      "x": 122.7875,
+      "y": -110.97,
+      "net": "CH343_V3"
+     },
+     {
+      "name": "7",
+      "x": 122.7875,
+      "y": -111.47,
+      "net": "D+"
+     },
+     {
+      "name": "8",
+      "x": 122.7875,
+      "y": -111.97,
+      "net": "D-"
+     },
+     {
+      "name": "9",
+      "x": 123.5,
+      "y": -112.6825,
+      "net": "VBUSB"
+     },
+     {
+      "name": "10",
+      "x": 124.0,
+      "y": -112.6825,
+      "net": "unconnected-(U2-ACT#-Pad10)"
+     },
+     {
+      "name": "11",
+      "x": 124.5,
+      "y": -112.6825,
+      "net": "unconnected-(U2-DCD-Pad11)"
+     },
+     {
+      "name": "12",
+      "x": 125.0,
+      "y": -112.6825,
+      "net": "DTR"
+     },
+     {
+      "name": "13",
+      "x": 125.7125,
+      "y": -111.97,
+      "net": "RTS"
+     },
+     {
+      "name": "14",
+      "x": 125.7125,
+      "y": -111.47,
+      "net": "unconnected-(U2-DSR-Pad14)"
+     },
+     {
+      "name": "15",
+      "x": 125.7125,
+      "y": -110.97,
+      "net": "unconnected-(U2-CTS-Pad15)"
+     },
+     {
+      "name": "16",
+      "x": 125.7125,
+      "y": -110.47,
+      "net": "unconnected-(U2-RI-Pad16)"
+     },
+     {
+      "name": "17",
+      "x": 124.25,
+      "y": -111.22,
+      "net": "GND"
+     }
+    ]
+   },
+   "expected": {
+    "side": "NE",
+    "marking": "pin 1 dot",
+    "why": "pin 1 dot at the corner of pad 1 (QFN-16 3x3, redraw footprint; datasheet page not read, UNVALIDATED)"
+   },
+   "datasheet": {
+    "document": "none read for this file: package convention, dot at pin 1",
+    "page": null,
+    "pin1_corner_top_view": "NW"
+   },
+   "detector": {
+    "size_mm": 3.0,
+    "sigma_mm": [
+     0.1,
+     0.22
+    ],
+    "view_half_mm": 2.4,
+    "corner_fraction": 0.45,
+    "locate_mm": 1.2
+   }
+  }
+ }
+}

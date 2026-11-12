@@ -1,0 +1,33 @@
+# Parts of the YD-ESP32-S3 (VCC-GND Studio, N16R8). Designators, values and nets follow the maker's schematic SCH V1.4 (YD-ESP32-S3-SCH-V1.4.pdf, 2022-09-23) as redrawn in
+# kicad/yd-esp32-s3/ (see its PROVENANCE.md). Sides and packages: top-side parts from the rectified photo aoi/D01_top.jpg and the maker's layout drawing; R11, USB-JTAG and USB-OTG are
+# not visible on the top photo and are listed on the bottom side as a best guess (TBR: needs the bottom photo, see PROVENANCE.md). Marking read from the photo is quoted as marked.
+# Nothing here is for purchase: the values are the PDF's, and the MPN column says "TBR" where the PDF names no part number.
+capabilities:
+  - {name: programmer, kind: programmer, optional: false}
+  - {name: bus_adapter, kind: bus_adapter, optional: true}
+  - {name: source, kind: dc_source, optional: true}
+  - {name: ecad, kind: ecad, optional: true}
+steps:
+  - id: assembly
+    title: Assembly aid
+bom:
+  - {line: 1, order: 1, designators: [U4], mpn: "ESP32-S3-WROOM-1-N16R8", package: "module", dnf: false, barcode: [], side: top, note: "SCH V1.4 U4; shield marked ESP32-S3-WROOM-1 and N16R8 (photo)"}
+  - {line: 2, order: 2, designators: [U2], mpn: "CH343P", package: "QFN-16 3x3 (photo: four pads per side, marking CH343P)", dnf: false, barcode: [], side: top, note: "SCH V1.4 U2, USB-UART bridge. Pin 1 orientation from the silkscreen dot at the top-right of the chip in the photo (TBR)"}
+  - {line: 3, order: 3, designators: [U3], mpn: "CJ6107A33GW (SCH V1.4); marking 1117C 33 D550 (photo)", package: "SOT-223", dnf: false, barcode: [], side: top, note: "3.3 V regulator, 5V to VDD33. TBR: whether the marked part is the schematic's CJ6107A33GW"}
+  - {line: 4, order: 4, designators: [U1], mpn: "XL-5050RGBC-WS2812B", package: "5050", dnf: false, barcode: [], side: top, polarity: "pin 1 VDD; schematic numbers DI as pin 3 and GND as pin 4, the redraw follows the part's own numbering (3 GND, 4 DI)", note: "RGB LED, data from GPIO48 through the RGB jumper, which is open on the operator's boards (stated 10 Nov 2026), so the LED is not driven there"}
+  - {line: 5, order: 5, designators: [Q1, Q2], mpn: "SS8050-G", package: "SOT-23 (marking J3Y, photo)", dnf: false, barcode: [], side: top, note: "Auto-program transistors (DTR/RTS to CHIP_PU and GPIO0)"}
+  - {line: 6, order: 6, designators: [D1, D2, D3], mpn: "D26 (SCH V1.4 value; marking S4 on the photo)", package: "SOD-123F-size (TBR)", dnf: false, barcode: [], side: top, polarity: "cathode towards the 5V rail (photo shows the cathode band on the side away from the USB connectors)", note: "D1 USB1 VBUS to 5V; D2 USB2 VBUS to 5V; D3 J1.21 to 5V"}
+  - {line: 7, order: 7, designators: [TX, RX], mpn: "LED2 (SCH V1.4 value)", package: "0603-size LED in a white silkscreen box", dnf: false, barcode: [], side: top, polarity: "TBR: anode/cathode end not visible in the photo", note: "UART activity LEDs on U0TXD and U0RXD"}
+  - {line: 8, order: 8, designators: [PWR], mpn: "LED-RED (SCH V1.4 value)", package: "0603-size LED in a white silkscreen box", dnf: false, barcode: [], side: top, polarity: "TBR", note: "Power LED on VDD33 through R6. Which of the three boxed LEDs is PWR, TX or RX follows the maker's layout drawing and is TBR"}
+  - {line: 9, order: 9, designators: [BOOT, RST], mpn: "ST-1185S", package: "SMD tact switch", dnf: false, barcode: [], side: top, note: "BOOT on GPIO0, RST on CHIP_PU (silkscreen BOOT, RST). BOOT held while RST is pressed enters the ROM download mode"}
+  - {line: 10, order: 10, designators: [USB1, USB2], mpn: "TYPEC-304-BCP16", package: "USB-C receptacle, 16 pin", dnf: false, barcode: [], side: top, note: "USB1 is the UART port: its D+/D- go to U2 (CH343P). USB2 is the native USB of the module (GPIO19, GPIO20). USB1 is the connector beside U2, on the J2 side: stated by the operator (10 Nov 2026), the right-hand port looking at the USB end with the component side up (orientation an interpretation, to confirm); USB2 is the left-hand port"}
+  - {line: 11, order: 11, designators: [J1, J2], mpn: "2 x 22-pin 2.54 mm headers (holes)", package: "THT", dnf: false, barcode: [], side: top, note: "J1 carries 3V3 (pins 1, 2), RST (3), 5V (21), GND (22); J2 carries GND (1, 21, 22), TX (2), RX (3). Pin 1 of each is the square pad at the antenna end"}
+  - {line: 12, order: 12, designators: [IN-OUT, RGB], mpn: "solder jumper (SCH V1.4: 0 ohm 0603)", package: "two-pad solder jumper (photo)", dnf: false, barcode: [], side: top, note: "Photo shows bare, shaped pads with no 0603 fitted. Stated by the operator (10 Nov 2026, not measured): no solder jumper is bridged, RGB and IN-OUT are open; plan tests U06, U07 record the state per board. IN-OUT is in parallel with D3 (open: J1.21 is not driven by USB); RGB joins GPIO48 to U1 data (open: the LED is not driven)"}
+  - {line: 13, order: 13, designators: [R2, R3, R9, R10], mpn: "5.1k", package: "0402", dnf: false, barcode: [], side: top, note: "USB-C CC pull-downs (R2, R3 on USB1; R9, R10 on USB2)"}
+  - {line: 14, order: 14, designators: [R1, R4, R6], mpn: "1k", package: "0402", dnf: false, barcode: [], side: top, note: "LED series resistors (R1 TX, R4 RX, R6 PWR)"}
+  - {line: 15, order: 15, designators: [R5, R7, R8], mpn: "10k", package: "0402", dnf: false, barcode: [], side: top, note: "R5, R7 auto-program bases; R8 CHIP_PU pull-up"}
+  - {line: 16, order: 16, designators: [C1, C2, C5, C6, C7, C8, C9], mpn: "1uF (C1, C7), 100nF (C2, C6, C8, C9), 10uF (C5)", package: "0402 (SCH V1.4: C5 is 0603; the photo shows an 0402-size part)", dnf: false, barcode: [], side: top, note: "Decoupling. C1 and C2 sit above U2 in the photo; which is which is TBR"}
+  - {line: 17, order: 17, designators: [C3, C4], mpn: "10uF", package: "1206", dnf: false, barcode: [], side: top, note: "Bulk capacitors on VDD33 (C3) and 5V (C4)"}
+  - {line: 18, order: 18, designators: [C10], mpn: "1uF", package: "0402", dnf: false, barcode: [], side: top, note: "VIO decoupling of U2 in the schematic. Placed on the lone 0402-size capacitor beside U2 in the photo; the maker's layout drawing does not show it. Designator TBR"}
+  - {line: 19, order: 19, designators: [R11], mpn: "10k", package: "0402", dnf: false, barcode: [], side: bottom, note: "TBR: not visible on the top photo. GPIO3 pull-up, in series with USB-JTAG. Placement is a guess"}
+  - {line: 20, order: 20, designators: [USB-JTAG, USB-OTG], mpn: "solder jumper (SCH V1.4: 0 ohm 0603)", package: "two-pad solder jumper", dnf: false, barcode: [], side: bottom, note: "TBR: not visible on the top photo. USB-JTAG joins R11 to GPIO3; USB-OTG is in parallel with D2. Placement is a guess. Open on the operator's boards by the general statement 'no solder jumper is bridged' (10 Nov 2026)"}

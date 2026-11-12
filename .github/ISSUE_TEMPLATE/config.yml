@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or how-to
+    url: https://github.com/polystage/polybench/discussions/categories/q-a
+    about: Ask usage questions in GitHub Discussions (Q&A). Issues are for bugs, plug-in requests and hardware reports.
+  - name: Security or instrument-safety problem
+    url: https://github.com/polystage/polybench/security/advisories/new
+    about: Report privately. Do not open a public issue.
+  - name: Support policy
+    url: https://github.com/polystage/polybench/blob/main/SUPPORT.md
+    about: Best-effort support from a single maintainer. Read this first.

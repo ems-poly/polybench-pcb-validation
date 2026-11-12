@@ -1,0 +1,21 @@
+# collected data, evidence and batches are never committed
+batches/
+projects/
+*.sal
+*.npz
+*.jsonl
+.venv/
+__pycache__/
+.DS_Store
+# datasheets and vendor PDFs are local-only
+datasheet/
+Datasheets/
+*.pdf
+*.egg-info/
+.pytest_cache/
+*.pyc
+# development walk-through screenshots stay out of git
+docs/screens/
+build/
+dist/
+site/_build/

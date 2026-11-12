@@ -1,0 +1,22 @@
+steps:
+  - id: function
+    title: Program and function
+    gate: {requires: [powered]}
+    sections:
+      - id: program
+        title: Program
+        instructions: "Connect the programmer to the SWD header. Target powered at 12 V."
+        actions:
+          - {id: flash, title: "Flash bring-up image", plugin: demo.flash, params: {device_id_test: F01, ok_test: F02}, proposes: [F01, F02]}
+          - {id: fail_demo, title: "Flash with a missing programmer (error path)", plugin: demo.fail, proposes: []}
+        tests:
+          - {id: F01, title: Device ID, kind: hex, limit: {class: hard, equals: "0x10810A05", source: {type: datasheet, doc: "DEMOMCU DS", section: "7.3"}}}
+          - {id: F02, title: Verify after programming, kind: yn}
+      - id: can
+        title: CAN
+        actions:
+          - {id: heartbeat, title: "Read heartbeat over CAN", plugin: demo.measure, record: propose, params: {values: {F03: [10, 0.02, Hz]}}, proposes: [F03]}
+          - {id: slow, title: "Long capture (abort test)", plugin: demo.slow, proposes: []}
+        tests:
+          - {id: F03, title: Heartbeat rate, kind: number, unit: Hz, limit: {class: hard, min: 9, max: 11, source: {type: design_calc, doc: "firmware spec"}}}
+          - {id: F04, title: Firmware revision, kind: choice, options: [bu1, bu2, release], limit: {class: record}}

@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "polybench-pcb-validation"
+version = "0.1.0"
+description = "Local, browser-based bench validation of a batch of prototype PCBs: guided steps, an append-only journal and a report."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"                 # PENDING the owner's decision (D1). LICENSE carries the same text.
+license-files = ["LICENSE"]
+keywords = ["pcb", "bring-up", "validation", "bench", "test", "hardware", "dvt", "evt"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Manufacturing",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Hardware",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "PyYAML>=6",
+    "python-can>=4.3",     # pcan.* actions (PEAK adapter via the PCBUSB library on macOS)
+    "cantools>=39",        # DBC decoding for pcan.* actions and the bring-up DBC
+]
+
+[project.optional-dependencies]
+# There is deliberately no `bench` extra. The n6705b.* actions need the unpublished `polystage-bench` library,
+# which a public install cannot fetch. The actions stay registered and report "polystage-bench is not installed" when
+# used; install the library yourself if you have it. See CHANGELOG.md (0.1.0) and docs/PACKAGING.md.
+camera = ["opencv-python"]       # camera.snapshot only
+esp32 = ["esptool>=5", "pyserial"]       # esptool.identify, esptool.flash, serial.query (examples/esp32-s3-board)
+scanner = ["opencv-python", "zxing-cpp", "openpyxl", "pillow", "pillow-heif", "pyobjc-framework-AVFoundation; sys_platform == 'darwin'"]   # embedded Assembly Scanner
+aoi = ["opencv-python==5.0.0.93", "pillow", "pillow-heif", "numpy"]     # Visual step AOI (ported Assembly Inspector pipeline)
+voice = ["sounddevice", "mlx-whisper; sys_platform == 'darwin'", "numpy"]     # hands-free voice: microphone and local speech to text
+# KiCad ECAD link: KiCad 10 IPC API. Pinned to the version verified live against KiCad 10.0.7 (TBR-12); newer KiCad is a note, not a failure.
+kicad = ["kicad-python==0.8.0"]
+dmm = ["hidapi>=0.14"]     # live multimeter: UNI-T UT161E over the CH9329 HID cable (import hid)
+dev = ["pytest", "playwright==1.58.0", "httpx", "kicad-python==0.8.0"]   # 1.58 matches the Chromium build cached on the bench Mac
+
+[project.urls]
+Homepage = "https://github.com/polystage/polybench"          # PENDING D2 (owner and repository name)
+Documentation = "https://github.com/polystage/polybench/tree/main/site"
+Issues = "https://github.com/polystage/polybench/issues"
+Changelog = "https://github.com/polystage/polybench/blob/main/CHANGELOG.md"
+
+[project.scripts]
+polybench = "polybench.cli:main"
+polybench-mcp = "polybench.ai.mcp_server:main"
+
+# In-repo plugins register here (the plugins agent owns the lines under these two tables).
+[project.entry-points."polybench.actions"]
+"openocd.identify" = "polybench.plugins.openocd:OpenocdIdentify"
+"openocd.flash" = "polybench.plugins.openocd:OpenocdFlash"
+"openocd.read_ram" = "polybench.plugins.openocd:OpenocdReadRam"
+"pcan.capture" = "polybench.plugins.pcan:PcanCapture"
+"pcan.stats" = "polybench.plugins.pcan:PcanStats"
+"pcan.query" = "polybench.plugins.pcan:PcanQuery"
+"n6705b.identify" = "polybench.plugins.n6705b:N6705bIdentify"
+"n6705b.first_power" = "polybench.plugins.n6705b:N6705bFirstPower"
+"n6705b.measure" = "polybench.plugins.n6705b:N6705bMeasure"
+"n6705b.load_sweep" = "polybench.plugins.n6705b:N6705bLoadSweep"
+"camera.snapshot" = "polybench.plugins.camera:CameraSnapshot"
+"esptool.identify" = "polybench.plugins.esp32:EsptoolIdentify"
+"esptool.flash" = "polybench.plugins.esp32:EsptoolFlash"
+"serial.query" = "polybench.plugins.serialq:SerialQuery"
+"dmm.read" = "polybench.plugins.dmm:DmmRead"
+
+[project.entry-points."polybench.ecad"]
+fusion = "polybench.plugins.fusion:FusionBridge"
+kicad = "polybench.kicad.bridge:KicadBridge"
+altium = "polybench.plugins.ecad_stubs:AltiumBridge"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+polybench = ["static/*", "static/vendor/fonts/*", "examples/demo/*", "assembly_scanner/fusion_scripts/*", "assembly_scanner/*.json", "aoi/*.html", "ai/skills/*/SKILL.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests/assembly_scanner"]
+markers = ["e2e: browser click-through (needs playwright chromium)"]

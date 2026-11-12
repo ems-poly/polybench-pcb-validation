@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>Polybench DV</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/vendor/fonts/fonts.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div id="app">
+  <header id="appbar"></header>
+  <div id="pttbar" hidden>
+    <div class="pttrow"><button type="button" id="ptt-bar" data-vo="pttbar" aria-label="Push to talk: hold to speak" title="Press and hold to talk"><i id="ptt-fill"></i><span id="ptt-label">Hold ` to talk</span></button>
+      <button type="button" id="ptt-latch" data-vo="hf" aria-pressed="false" title="Hands-free: listen continuously. Space does nothing while this is on.">Hands-free</button></div>
+    <div class="ptthint faint" id="ptt-hint">Hold ` to talk (or Space, outside a text box)</div>
+  </div>
+  <nav id="timeline"></nav>
+  <div id="work">
+    <button id="railL" class="rail" data-act="toggleLeft" title="Expand the left panel (Ctrl+B)" aria-label="Expand the left panel">&raquo;</button>
+    <aside id="left"></aside>
+    <main id="centre"></main>
+    <aside id="right"></aside>
+    <button id="railR" class="rail" data-act="toggleRight" title="Expand the right panel" aria-label="Expand the right panel">&laquo;</button>
+  </div>
+  <section id="bottom"></section>
+</div>
+<div id="dialog-root"></div>
+<div id="fsb-root"></div>
+<div id="toast"></div>
+<script src="/static/testplan.js"></script>
+<script src="/static/polarity.js"></script>
+<script src="/static/advance_msg.js"></script>
+<script src="/static/onboarding.js"></script>
+<script src="/static/plugins.js"></script>
+<script src="/static/results.js"></script>
+<script src="/static/automated.js"></script>
+<script src="/static/explorer.js"></script>
+<script src="/static/app.js"></script>
+<script src="/static/aoi.js"></script>
+<script src="/static/notes.js"></script>
+<script src="/static/voice.js"></script>
+<script src="/static/meter.js"></script>
+<script src="/static/ai_card.js"></script>
+<script src="/static/plan_review.js"></script>
+</body>
+</html>

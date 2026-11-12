@@ -1,0 +1,14 @@
+# DEMO-1 for the documentation: the shipped demo protocol plus the test plan as master (step 4, generates steps 8 and 9) and a synthetic AOI layout (step 7).
+# Run:  polybench --protocol site/examples/demo-docs/demo-docs.pcbv.yaml --simulate --batch docs-demo --port 8781
+schema: pcbv.protocol/2
+design: {name: DEMO-1, revision: "A", plan_revision: 1}
+batch: {default_boards: 10, label_prefix: S}
+test_plan: {file: DEMO-1_Test_Plan.md, generate: true}
+include:
+  - ../../../src/polybench/examples/demo/assembly.yaml
+  - ../../../src/polybench/examples/demo/visual.yaml
+  - ../../../src/polybench/examples/demo/unpowered.yaml
+  - ../../../src/polybench/examples/demo/powered.yaml
+  - ../../../src/polybench/examples/demo/function.yaml
+  - ../../../src/polybench/examples/demo/characterisation.yaml
+  - aoi/aoi.yaml

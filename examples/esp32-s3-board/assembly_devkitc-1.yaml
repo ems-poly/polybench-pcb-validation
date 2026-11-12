@@ -1,0 +1,24 @@
+# BOM of the main parts of the ESP32-S3-DevKitC-1 v1.1, as named in Espressif's public documentation:
+#   [1] "ESP32-S3-DevKitC-1 v1.1" user guide, docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/esp32-s3-devkitc-1/user_guide_v1.1.html
+#       (page of the "latest (master)" set, source commit 1f6204a, read 17 Oct 2026)
+#   [2] schematic SCH_ESP32-S3-DevKitC-1_V1.1_20221130.pdf (linked from [1]; this file does not copy it)
+# Designators below are this demo's labels so Polybench can highlight and count them. They are NOT the schematic's reference
+# designators. The user guide names functions, not part numbers, for the bridge, the regulator and the LED: those MPNs say
+# "per schematic [2]" and must be read from the PDF before this BOM is used for ordering. Nothing here is for purchase.
+capabilities:
+  - {name: programmer, kind: programmer, optional: false}
+  - {name: bus_adapter, kind: bus_adapter, optional: true}
+  - {name: source, kind: dc_source, optional: true}
+  - {name: ecad, kind: ecad, optional: true}
+steps:
+  - id: assembly
+    title: Assembly aid
+bom:
+  - {line: 1, order: 1, designators: [U1], mpn: "ESP32-S3-WROOM-1-N16R8", package: "module 18 x 25.5 mm", dnf: false, barcode: ["ESP32-S3-WROOM-1-N16R8"], side: top, note: "Module variant with 16 MB flash and 8 MB octal PSRAM; the shield is marked with the variant [1]. WROOM-1U and WROOM-2 variants also exist."}
+  - {line: 2, order: 2, designators: [U2], mpn: "USB-to-UART bridge, per schematic [2]", package: "per schematic", dnf: false, barcode: [], side: top, note: "Serves the USB-to-UART port; up to 3 Mbps [1]"}
+  - {line: 3, order: 3, designators: [U3], mpn: "5 V to 3.3 V LDO, per schematic [2]", package: "per schematic", dnf: false, barcode: [], side: top, note: "Makes the 3V3 rail from 5 V [1]"}
+  - {line: 4, order: 4, designators: [LED1], mpn: "Addressable RGB LED, per schematic [2]", package: "per schematic", dnf: false, barcode: [], side: top, polarity: "n/a (single-wire data)", note: "Driven by GPIO38 on v1.1, GPIO48 on v1.0 [1]"}
+  - {line: 5, order: 5, designators: [LED2], mpn: "3.3 V power LED, per schematic [2]", package: "per schematic", dnf: false, barcode: [], side: top, note: "Lights when 3V3 is present [1]"}
+  - {line: 6, order: 6, designators: [SW1, SW2], mpn: "Tactile switches BOOT and RESET, per schematic [2]", package: "per schematic", dnf: false, barcode: [], side: top, note: "BOOT held while RESET is pressed enters the download mode [1]"}
+  - {line: 7, order: 7, designators: [USB1, USB2], mpn: "USB connectors: UART port and native USB port, per schematic [2]", package: "per schematic", dnf: false, barcode: [], side: top, note: "USB1 = USB-to-UART port, USB2 = ESP32-S3 USB port (full-speed OTG) [1]. Both connectors are Micro-USB, not USB-C. Use the UART port: it serves flashing and the serial self-test (the demo firmware's Serial is on UART0); the native USB port only serves esptool."}
+  - {line: 8, order: 8, designators: [J1, J3], mpn: "2 x 22-pin 2.54 mm headers", package: "THT", dnf: false, barcode: [], side: top, note: "J1 and J3 carry 3V3, 5V, G and the module I/O [1]. GPIO35, 36 and 37 are used by octal flash/PSRAM and are not available on N16R8 [1]."}

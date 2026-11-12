@@ -1,0 +1,4 @@
+schema: pcbv.protocol/2
+design: {name: DEMO-AUTO, revision: "1", plan_revision: 1}
+batch: {default_boards: 3, label_prefix: S}
+include: [function.yaml]

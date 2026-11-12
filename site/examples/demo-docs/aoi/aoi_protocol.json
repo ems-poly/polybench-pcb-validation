@@ -1,0 +1,86 @@
+{
+ "schema": "polystage.aoi_protocol/0",
+ "protocol": "DEMO-1 visual",
+ "report_ref": "DEMO-1 test plan, Visual",
+ "layout": {
+  "design": "DEMO-1",
+  "cam_zip": "none (synthetic layout)"
+ },
+ "boards": {
+  "S01": {},
+  "S02": {},
+  "S03": {},
+  "S04": {},
+  "S05": {},
+  "S06": {},
+  "S07": {},
+  "S08": {},
+  "S09": {},
+  "S10": {}
+ },
+ "classes": {
+  "large": {
+   "ceiling": "review",
+   "designators": []
+  },
+  "medium": {
+   "ceiling": "review",
+   "designators": [
+    "U1",
+    "U2",
+    "U3"
+   ]
+  },
+  "small": {
+   "ceiling": "review",
+   "designators": "*"
+  }
+ },
+ "thresholds": {
+  "present_max_exposure": 0.15,
+  "absent_min_exposure": 0.6
+ },
+ "dnf": [
+  "R1",
+  "R2"
+ ],
+ "rows": [
+  {
+   "id": "V01",
+   "check": "bridge_suspicion",
+   "ceiling": "review",
+   "designators": [
+    "U1"
+   ],
+   "requires": [
+    "top"
+   ],
+   "limits": "optical bridge suspicion only; the operator decides"
+  },
+  {
+   "id": "V02",
+   "check": "orientation_mark",
+   "ceiling": "review",
+   "designators": [
+    "U1"
+   ],
+   "requires": [
+    "top"
+   ],
+   "limits": "pin-1 mark seen from above"
+  },
+  {
+   "id": "V03",
+   "check": "orientation_mark",
+   "ceiling": "review",
+   "designators": [
+    "D1",
+    "C7"
+   ],
+   "requires": [
+    "top"
+   ],
+   "limits": "band and stripe from above"
+  }
+ ]
+}

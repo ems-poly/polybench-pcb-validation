@@ -1,0 +1,109 @@
+site_name: Polybench
+site_description: Local, browser-based validation of electronics prototypes, from design review to bench bring-up.
+site_dir: _build
+docs_dir: docs
+strict: true
+use_directory_urls: true
+copyright: Polybench documentation. MIT licence.
+
+theme:
+  name: material
+  font: false            # system fonts only: the site makes no request to a font CDN
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      accent: blue
+      toggle: {icon: material/brightness-7, name: Dark theme}
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      accent: blue
+      toggle: {icon: material/brightness-4, name: Light theme}
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - toc.follow
+
+extra_css:
+  - stylesheets/extra.css
+
+hooks:
+  - hooks/page_footer.py
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.keys
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: warn
+    unrecognized_links: warn
+
+nav:
+  - Home: index.md
+  - Concepts: concepts.md
+  - Getting started:
+      - Install: getting-started/install.md
+      - Check the bench with doctor: getting-started/doctor.md
+      - First run with the demo: getting-started/first-run.md
+      - The screen: getting-started/screen-layout.md
+  - The twelve steps:
+      - steps/index.md
+      - 1 Project: steps/project.md
+      - 2 Schematic analysis: steps/schematic-analysis.md
+      - 3 BOM and manufacturing: steps/bom-and-manufacturing.md
+      - 4 Test plan: steps/test-plan.md
+      - 5 Batch setup: steps/batch-setup.md
+      - 6 Assembly aid: steps/assembly-aid.md
+      - 7 Visual and AOI: steps/visual-aoi.md
+      - 8 Unpowered testing: steps/unpowered-testing.md
+      - 9 Powered testing: steps/powered-testing.md
+      - 10 Program and function: steps/program-and-function.md
+      - 11 Characterisation: steps/characterisation.md
+      - 12 Report: steps/report.md
+  - Guides:
+      - Writing a test plan: guides/writing-a-test-plan.md
+      - Results and anomalies: guides/results-and-anomalies.md
+      - Journal and notes: guides/journal-and-notes.md
+      - Voice: guides/voice.md
+      - Plug-ins and instruments: guides/plugins.md
+      - Writing a plug-in: guides/writing-a-plugin.md
+      - Privacy and data: guides/privacy.md
+  - Reference:
+      - Protocol file: reference/protocol.md
+      - Test plan format: reference/plan-format.md
+      - Command line: reference/cli.md
+      - Keyboard: reference/keyboard.md
+  - Troubleshooting: troubleshooting.md
+  - FAQ: faq.md
+  - Glossary: glossary.md
+  - Changelog: changelog.md

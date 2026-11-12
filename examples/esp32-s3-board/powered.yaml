@@ -1,0 +1,6 @@
+# The powered tests come from the plan. This fragment holds nothing but the step gate; readings are typed from a USB power meter
+# and a multimeter. (With a Keysight N6705B the n6705b.* actions can supply the current and rail readings; not used in the demo.)
+steps:
+  - id: powered
+    title: Powered testing
+    gate: {requires: [unpowered]}

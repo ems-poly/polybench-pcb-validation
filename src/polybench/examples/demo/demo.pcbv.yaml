@@ -1,0 +1,5 @@
+# Synthetic demo protocol: generic DEMO-1 board. Exercises every step kind, test kind and limit class.
+schema: pcbv.protocol/2
+design: {name: DEMO-1, revision: "A", plan_revision: 1}
+batch: {default_boards: 10, label_prefix: S}
+include: [assembly.yaml, visual.yaml, unpowered.yaml, powered.yaml, function.yaml, characterisation.yaml]

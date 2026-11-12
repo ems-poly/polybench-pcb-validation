@@ -1,0 +1,36 @@
+steps:
+  - id: unpowered
+    title: Unpowered testing
+    gate: {requires: [visual]}
+    sections:
+      - id: rails
+        title: Rail resistance
+        instructions: "Meter on resistance. Red lead on the first net, black on GND. **Board unpowered.**"
+        tests:
+          - id: U01
+            title: VIN to GND resistance
+            kind: number
+            unit: kOhm
+            limit: {class: hard, min: 10, source: {type: datasheet, doc: "DEMOCAN DS-001", page: 5}}
+            probe: [{net: VIN, point: TP1}, {net: GND, point: TP2}]
+            highlight: [TP1, TP2]
+            stop_if: {below: 1, text: "VIN looks shorted: do not power this board"}
+          - id: U02
+            title: 5V to GND resistance
+            kind: number
+            unit: kOhm
+            limit: {class: guess, min: 2, source: {type: estimate, note: "bulk C plus load"}, closes_on: "first powered board current"}
+            probe: [{net: 5V, point: TP3}, {net: GND, point: TP2}]
+            highlight: [TP3, TP2]
+          - id: U03
+            title: 3V3 to GND resistance
+            kind: number
+            unit: kOhm
+            limit: {class: tbr, min: 1, source: {type: estimate}, closes_on: "datasheet load figure, DEMOMCU datasheet, current revision"}
+            probe: [{net: 3V3, point: TP4}, {net: GND, point: TP2}]
+            highlight: [TP4, TP2]
+      - id: continuity
+        title: Continuity
+        tests:
+          - {id: U04, title: J1 pin 1 to VIN, kind: yn, probe: [{net: VIN, point: J1.1}], highlight: [J1]}
+          - {id: U05, title: Free note on the board, kind: text, inputs: [keyboard], limit: {class: record}}

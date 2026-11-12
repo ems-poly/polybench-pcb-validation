@@ -1,0 +1,59 @@
+name: Hardware report
+description: Report how a specific instrument or board behaved with a Polybench plug-in (works, partly works, fails).
+title: "[hardware] "
+labels: ["type: hardware-report", "status: needs-triage"]
+body:
+  - type: input
+    id: instrument
+    attributes:
+      label: Make, model and firmware version
+    validations:
+      required: true
+  - type: input
+    id: plugin
+    attributes:
+      label: Action or plug-in used, and Polybench version
+      placeholder: "openocd.identify, 0.1.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: interface
+    attributes:
+      label: Connection used
+      options:
+        - USB
+        - LAN
+        - Serial
+        - GPIB
+        - CAN
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result
+      options:
+        - Works fully
+        - Works partly
+        - Does not work
+        - Unsafe behaviour (outputs not returned to a safe state)
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: What worked and what did not
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `polybench doctor --json`
+      description: Remove serial numbers and addresses you do not want public.
+      render: json
+  - type: markdown
+    attributes:
+      value: |
+        If an output stayed energised after an abort or crash, also report it privately (see SECURITY.md),
+        because it can damage boards or hurt people.

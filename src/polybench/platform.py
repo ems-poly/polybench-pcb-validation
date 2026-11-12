@@ -257,9 +257,16 @@ def process_command(pid: int) -> str | None:
             return None
     try:
         if IS_WINDOWS:
-            out = subprocess.run(["powershell", "-NoProfile", "-Command",
-                                  f"(Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}').CommandLine"],
-                                 capture_output=True, text=True, timeout=10, encoding="utf-8", errors="replace").stdout.strip()
+            out = ""
+            for shell in ("powershell", "pwsh"):               # Windows PowerShell first, PowerShell 7 if that is all there is
+                try:
+                    out = subprocess.run([shell, "-NoProfile", "-NonInteractive", "-Command",
+                                          f"(Get-CimInstance Win32_Process -Filter 'ProcessId={int(pid)}').CommandLine"],
+                                         capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace").stdout.strip()
+                except Exception:  # noqa: BLE001
+                    continue
+                if out:
+                    break
         else:
             out = subprocess.run(["ps", "-ww", "-o", "command=", "-p", str(int(pid))], capture_output=True, text=True, timeout=4,
                                  encoding="utf-8", errors="replace").stdout.strip()

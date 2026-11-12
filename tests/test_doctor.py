@@ -424,7 +424,8 @@ def test_data_folder_unwritable_is_red(tmp_path):
     d.chmod(0o500)
     try:
         if os.access(d, os.W_OK):
-            pytest.skip("running as a user that ignores permissions")
+            pytest.skip("Windows: chmod does not make folders unwritable; needs an ACL test" if os.name == "nt"
+                        else "this user ignores directory permissions (root)")
         assert doctor.check_data_dir(d).status == FAIL
     finally:
         d.chmod(0o700)

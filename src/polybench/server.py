@@ -1091,6 +1091,8 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
         name = " ".join(str(b.get("name") or "").split())
         if not name:
             raise CmdError("give the project a name", 422)
+        if any("\x00" in str(b.get(k) or "") for k in ("dir", "protocol", "bom")):
+            raise CmdError("that is not a usable path", 422)                      # a NUL byte
         info = wslib.inspect(b.get("dir") or "")
         if info["kind"] == "corrupt":
             raise CmdError(f"{info['path']} holds a project whose {info['problem']}", 409)
@@ -1126,6 +1128,8 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
         _busy_check()
         cur = holder["cur"]
         b = body or {}
+        if any("\x00" in str(b.get(k) or "") for k in ("dir", "protocol")):
+            raise CmdError("that is not a usable path", 422)                      # a NUL byte
         info = wslib.inspect(b.get("dir") or "")
         if info["kind"] == "corrupt":
             ws_bad = wslib.SettingsUnreadable(Path(info["path"]) / wslib.SETTINGS_NAME, info.get("settings_error", ""),
@@ -1183,7 +1187,12 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
     async def reveal(body: dict):
         cur = holder["cur"]
         raw = str((body or {}).get("path") or "").strip()
-        p = str(Path(raw).expanduser().resolve()) if raw else ""          # resolved: `..` or a symlink cannot climb out
+        try:
+            p = str(Path(raw).expanduser().resolve()) if raw else ""          # resolved: `..` or a symlink cannot climb out
+        except (ValueError, OSError, RuntimeError):                          # a NUL byte, a loop, a name the OS refuses
+            raise CmdError("that is not a usable path", 422)
+        if _platform.IS_WINDOWS and ":" in p[2:]:                            # an alternate data stream (file.txt:name) is not a place to show
+            raise CmdError("only the project, batch, protocol and BOM paths can be shown in Finder", 403)
         allowed = [str(Path(x).expanduser().resolve()) for x in
                    [cur.workspace.dir, cur.dir, cur.proto.path.parent] + [Path(y).parent for y in [cur.workspace.get("bom_path")] if y]]
         if not p or not any(_platform.is_within(p, a) for a in allowed):

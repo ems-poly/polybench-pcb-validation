@@ -75,7 +75,8 @@ def tree(tmp_path):
 def test_stop_tree_ends_the_tool_and_its_grandchild(tree):
     p, pids = tree()
     assert all(pf.pid_alive(x) for x in pids)
-    pf.stop_tree(p)
+    res = pf.stop_tree(p)
+    assert res.stopped and res.survivors == []
     assert _gone(pids) == []
 
 
@@ -89,6 +90,7 @@ def test_stop_tree_without_psutil_still_ends_the_tree(tree, monkeypatch):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="a Windows process has no session to leave; the Windows tree is covered above")
 def test_a_grandchild_that_left_the_group_is_still_stopped_with_psutil(tmp_path):
+    pytest.importorskip("psutil")
     """A wrapper that starts its programmer in a new session would escape a group kill; the process tree catches it."""
     script = ("import os, subprocess, sys, time\nfrom pathlib import Path\nhere = Path(sys.argv[1])\n"
               "(here / 'tool.pid').write_text(str(os.getpid()))\n"
@@ -110,9 +112,113 @@ def test_stop_tree_returns_the_output_so_far(tmp_path):
     p = subprocess.Popen([exe], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", **pf.group_kwargs())
     time.sleep(1.5)
     try:
-        assert "hello from the tool" in pf.stop_tree(p)
+        assert "hello from the tool" in pf.stop_tree(p).output
     finally:
         pf.kill_pid_tree(p.pid)
+
+
+# ---------------------------------------------------------------- a grandchild that ignores the graceful signal (QA D1, D3)
+
+# The root dies on the graceful signal. The grandchild ignores it (SIGTERM and SIGHUP on Unix, SIGBREAK on Windows), so only the
+# forced step (SIGKILL to the group, `taskkill /F`) can end it. `hold_pipe` makes it keep the tool's output pipe open, as a real
+# child of OpenOCD would.
+STUBBORN_TOOL = '''
+import os, signal, subprocess, sys, time
+from pathlib import Path
+here = Path(__file__).parent
+(here / "tool.pid").write_text(str(os.getpid()))
+gc = ("import os, signal, sys, time\\n"
+      "for n in ('SIGTERM', 'SIGBREAK', 'SIGHUP'):\\n"
+      "    s = getattr(signal, n, None)\\n"
+      "    if s is not None: signal.signal(s, signal.SIG_IGN)\\n"
+      "from pathlib import Path\\n"
+      "Path(sys.argv[1]).write_text(str(os.getpid()))\\n"
+      "time.sleep(60)")
+kw = {} if os.environ.get("HOLD_PIPE") == "1" else dict(stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+subprocess.Popen([sys.executable, "-c", gc, str(here / "grandchild.pid")], **kw)
+time.sleep(60)
+'''
+
+
+@pytest.fixture(params=["no_pipe", "hold_pipe"])
+def stubborn(request, tmp_path, monkeypatch):
+    monkeypatch.setenv("HOLD_PIPE", "1" if request.param == "hold_pipe" else "0")
+    started = []
+
+    def start():
+        exe = make_tool(tmp_path, "tool", STUBBORN_TOOL)
+        p = subprocess.Popen([exe], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8",
+                             errors="replace", **pf.group_kwargs())
+        started.append(p)
+        return p, _wait_pids(tmp_path)
+    yield start
+    for p in started:
+        pf.kill_pid_tree(p.pid)
+    for n in ("tool.pid", "grandchild.pid"):
+        try:
+            pf.kill_pid_tree(int((tmp_path / n).read_text()))
+        except (OSError, ValueError):
+            pass
+
+
+def test_a_grandchild_that_ignores_the_graceful_signal_is_killed_and_reported_gone(stubborn):
+    """D1/D3: the root exits on the graceful signal; the stop must still wait for the whole group and force-kill what is left."""
+    p, pids = stubborn()
+    res = pf.stop_tree(p, grace=1.5)
+    assert res.stopped and res.survivors == [], res
+    assert _gone(pids) == []
+
+
+def test_the_same_without_psutil(stubborn, monkeypatch):
+    """The default install has no psutil: the group (Unix) or the PowerShell tree snapshot (Windows) must do the job alone."""
+    monkeypatch.setattr(pf, "_psutil", None)
+    p, pids = stubborn()
+    res = pf.stop_tree(p, grace=1.5)
+    assert res.stopped and res.survivors == [], res
+    assert _gone(pids) == []
+
+
+def test_a_survivor_is_reported_with_its_pid_not_swallowed(stubborn, monkeypatch):
+    """D2: when the forced step does nothing (the OS refuses), stop_tree says so and names the process."""
+    p, pids = stubborn()
+    gc = pids[1]
+    if sys.platform == "win32":
+        real = subprocess
+
+        class Shim:
+            def __getattr__(self, name):
+                return getattr(real, name)
+
+            @staticmethod
+            def run(cmd, *a, **k):
+                if cmd and cmd[0] == "taskkill":
+                    return real.CompletedProcess(cmd, 1, b"", b"refused")
+                return real.run(cmd, *a, **k)
+        monkeypatch.setattr(pf, "subprocess", Shim())
+        monkeypatch.setattr(pf, "_psutil", None)
+    else:
+        real_signal = pf._group_signal
+        monkeypatch.setattr(pf, "_group_signal", lambda pid, sig: None if sig == pf.signal.SIGKILL else real_signal(pid, sig))
+        monkeypatch.setattr(pf, "_psutil", None)
+    res = pf.stop_tree(p, grace=1.0)
+    try:
+        assert not res.stopped and gc in [pid for pid, _ in res.survivors], res
+        text = pf.survivor_message("OpenOCD", res)
+        assert f"pid {gc}" in text and "may still be running" in text and "clean" in text
+    finally:
+        monkeypatch.undo()
+        pf.kill_pid_tree(p.pid)
+        pf.kill_pid_tree(gc)
+
+
+def test_no_psutil_environment_really_has_no_psutil():
+    """The CI step `no psutil` uninstalls it and sets PB_NO_PSUTIL=1: then the fallback is what runs, not a monkeypatch (D6)."""
+    import os
+    if os.environ.get("PB_NO_PSUTIL") != "1":
+        pytest.skip("only in the CI step that uninstalls psutil")
+    with pytest.raises(ImportError):
+        import psutil  # noqa: F401
+    assert pf.have_psutil() is False
 
 
 # ---------------------------------------------------------------- through the real plug-ins
@@ -242,3 +348,57 @@ def test_the_action_child_stops_the_programmer_tree_on_cancel_and_when_the_app_g
                 pf.kill_pid_tree(int((fake_esptool / n).read_text(encoding="utf-8")))
             except (OSError, ValueError):
                 pass
+
+
+# ---------------------------------------------------------------- a survivor is never reported as a clean cancel (D2)
+
+def _refusing_stop(monkeypatch):
+    res = pf.StopResult("", [(424242, "openocd -f interface/cmsis-dap.cfg")])
+    monkeypatch.setattr(pf, "stop_tree", lambda proc, grace=3.0: (pf.kill_pid_tree(proc.pid), proc.wait(), res)[2])
+
+
+def test_openocd_cancel_with_a_survivor_is_an_error_naming_the_pid(tmp_path, monkeypatch):
+    import polybench.plugins.openocd as ocd
+    from polybench.plugins._util import PluginError
+    from polybench.testing import RecordingContext
+    monkeypatch.setattr(ocd, "usb_probes", lambda *a: [])
+    _refusing_stop(monkeypatch)
+    exe = make_tool(tmp_path / "tool", "openocd", "import time\ntime.sleep(60)\n")
+    img = tmp_path / "a.hex"
+    img.write_text(":00000001FF\n", encoding="utf-8")
+    ctx = RecordingContext(params={"openocd": exe, "image": str(img), "timeout_s": 60}, workdir=tmp_path / "run", simulate=False)
+    ctx._cancel = True
+    with pytest.raises(PluginError) as e:
+        ocd.OpenocdFlash().run(ctx)
+    msg = str(e.value)
+    assert "pid 424242" in msg and "may still be running" in msg and "clean" in msg and not msg.startswith("cancelled")
+    assert (tmp_path / "run" / ocd.PID_FILE).exists()          # kept, so the next run and safe_state report the survivor too
+
+
+def test_openocd_timeout_with_a_survivor_is_an_error_naming_the_pid(tmp_path, monkeypatch):
+    import polybench.plugins.openocd as ocd
+    from polybench.plugins._util import PluginError
+    from polybench.testing import RecordingContext
+    monkeypatch.setattr(ocd, "usb_probes", lambda *a: [])
+    _refusing_stop(monkeypatch)
+    exe = make_tool(tmp_path / "tool", "openocd", "import time\ntime.sleep(60)\n")
+    img = tmp_path / "a.hex"
+    img.write_text(":00000001FF\n", encoding="utf-8")
+    ctx = RecordingContext(params={"openocd": exe, "image": str(img), "timeout_s": 1}, workdir=tmp_path / "run", simulate=False)
+    with pytest.raises(PluginError, match=r"may still be running.*pid 424242"):
+        ocd.OpenocdFlash().run(ctx)
+
+
+def test_esptool_cancel_with_a_survivor_is_an_error_naming_the_pid(fake_esptool, monkeypatch):
+    from polybench.plugins import esp32
+    from polybench.testing import RecordingContext
+    _refusing_stop(monkeypatch)
+    ctx = RecordingContext(simulate=False)
+    _cancel_after(ctx, fake_esptool)
+    with pytest.raises(esp32.EspError, match=r"may still be running.*pid 424242"):
+        esp32.run_esptool(["chip_id"], timeout=120, ctx=ctx)
+    for n in ("tool.pid", "grandchild.pid"):
+        try:
+            pf.kill_pid_tree(int((fake_esptool / n).read_text()))
+        except (OSError, ValueError):
+            pass

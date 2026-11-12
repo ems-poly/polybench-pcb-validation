@@ -416,7 +416,7 @@ def test_image_path_with_tcl_syntax_is_refused(tmp_path, argv_dump, monkeypatch,
     try:
         img.write_text("x", encoding="utf-8")
     except OSError:
-        pytest.skip("file name not creatable here")
+        pytest.skip("Windows cannot create this file name")
     with pytest.raises(ParamError, match="image path"):
         OpenocdFlash().run(_flash_ctx(tmp_path, exe, image=img))
     assert not dump.exists()

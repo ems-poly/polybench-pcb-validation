@@ -166,11 +166,46 @@ def test_shell_quote_and_restore_command_for_each_os(as_os):
     assert pf.restore_file_command("/a/P.md", "/h/1.md") == "{ [ ! -e /a/P.md ] || cp -p /a/P.md /a/P.md.broken; } && cp -p /h/1.md /a/P.md"
     as_os("windows")
     assert pf.shell_quote(r"C:\a b\P.md") == '"C:\\a b\\P.md"'
-    cmd = pf.restore_file_command(r"C:\a\P.md", r"C:\h\1.md")
-    assert cmd.startswith("(if exist ") and "copy /Y" in cmd and '"C:\\a\\P.md.broken"' in cmd
+    cmd = pf.restore_file_command(r"C:\a b\P.md", r"C:\h\1.md")
+    # the backup and the copy are chained with &&, never &: a failed backup must not overwrite the broken master
+    assert cmd == ('if exist "C:\\a b\\P.md" (copy /Y "C:\\a b\\P.md" "C:\\a b\\P.md.broken" && copy /Y "C:\\h\\1.md" "C:\\a b\\P.md") '
+                   'else (copy /Y "C:\\h\\1.md" "C:\\a b\\P.md")')
+    assert " & " not in cmd
+    # a % in a path cannot be quoted safely for cmd: no command is made, the caller explains
+    assert pf.restore_file_command(r"C:\a\100%.md", r"C:\h\1.md") == "" and pf.restore_file_command(r"C:\a\P.md", r"C:\h\%PATH%.md") == ""
+    as_os("linux")
+    assert pf.restore_file_command("/a/100%.md", "/h/1.md").endswith("cp -p /h/1.md /a/100%.md")        # sh has no such problem
+
+
+def test_recovery_text_says_what_to_do_when_the_windows_path_has_a_percent(as_os, monkeypatch, tmp_path):
+    from polybench.ai import recovery
+    as_os("windows")
+    info = {"master": "C:\\a\\100%.md", "restored_from": "C:\\h\\1.md", "error": "x",
+            "command": pf.restore_file_command("C:\\a\\100%.md", "C:\\h\\1.md"),
+            "command_note": "the path contains a % sign, which cmd.exe cannot take safely in a command: copy it by hand"}
+    txt = recovery.console_text(info, True)
+    assert "copy it by hand" in txt and "  \n" not in txt
 
 
 def test_is_within_compares_path_parts_not_text(as_os, tmp_path):
     assert pf.is_within(tmp_path / "proj" / "x", tmp_path / "proj") and pf.is_within(tmp_path / "proj", tmp_path / "proj")
     assert not pf.is_within(str(tmp_path / "proj") + "-sibling", tmp_path / "proj")
     assert not pf.is_within(tmp_path, tmp_path / "proj")
+
+
+def test_voice_and_trial_files_stay_in_the_default_folder_when_the_config_env_is_set(monkeypatch, tmp_path):
+    """D7: POLYBENCH_CONFIG_DIR moves the project list only, as on main; voice.json and claude-mcp-trial.json stay where they were."""
+    from polybench.ai import cli
+    from polybench.voice import config as vc
+    monkeypatch.delenv("POLYBENCH_VOICE_CONFIG", raising=False)
+    monkeypatch.setenv("POLYBENCH_CONFIG_DIR", str(tmp_path / "elsewhere"))
+    assert pf.config_dir() == tmp_path / "elsewhere"
+    assert pf.default_config_dir() != tmp_path / "elsewhere"
+    assert vc.path() == pf.default_config_dir() / "voice.json"
+    import inspect
+    assert "default_config_dir()" in inspect.getsource(cli.write_trial_config) or "default_config_dir()" in inspect.getsource(cli)
+
+
+def test_an_empty_config_env_means_unset(monkeypatch):
+    monkeypatch.setenv("POLYBENCH_CONFIG_DIR", "")
+    assert pf.config_dir() == pf.default_config_dir()

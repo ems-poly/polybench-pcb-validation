@@ -93,16 +93,18 @@ def run_esptool(args: list[str], timeout: float, ctx=None) -> str | None:
             pass
         if (ctx is not None and ctx.cancelled()) or time.monotonic() - t0 > timeout:
             cancelled = ctx is not None and ctx.cancelled()
-            out = _stop(p)
+            res = _stop(p)
+            if res.survivors:        # never report a clean cancel or timeout while something of esptool may still run (WIN-S1)
+                raise EspError(_platform.survivor_message("esptool", res, "was asked to stop" if cancelled else f"did not finish in {timeout:.0f} s"))
             if cancelled:
                 return None  # cancelled: the caller returns and the child ends with done/cancelled
-            raise EspError(classify(out) or f"esptool did not finish in {timeout:.0f} s")
+            raise EspError(classify(res.output) or f"esptool did not finish in {timeout:.0f} s")
     if p.returncode != 0:
         raise EspError(classify(out) or "esptool failed:\n" + "\n".join(out.strip().splitlines()[-5:]))
     return out
 
 
-def _stop(p) -> str:
+def _stop(p) -> "_platform.StopResult":
     return _platform.stop_tree(p)
 
 

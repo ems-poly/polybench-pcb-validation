@@ -425,7 +425,7 @@ class _OcdBase:
         try:
             return self._wait(p, timeout, ctx)
         finally:
-            if pidfile and p.poll() is not None:
+            if pidfile and p.poll() is not None and not getattr(p, "pb_survivors", None):      # keep the pid file when something survived
                 pidfile.unlink(missing_ok=True)
 
     @staticmethod
@@ -451,10 +451,17 @@ class _OcdBase:
             except subprocess.TimeoutExpired:
                 pass
             if ctx is not None and ctx.cancelled():
-                out = self._stop(p)
+                res = self._stop(p)
+                p.pb_survivors = res.survivors
+                if res.survivors:        # never report a clean cancel while something of OpenOCD may still run (WIN-S1)
+                    raise PluginError(_platform.survivor_message("OpenOCD", res))
                 raise PluginError("cancelled")
             if time.monotonic() - t0 > timeout:
-                out = self._stop(p)
+                res = self._stop(p)
+                p.pb_survivors = res.survivors
+                out = res.output
+                if res.survivors:
+                    raise PluginError(_platform.survivor_message("OpenOCD", res, f"did not finish in {timeout:.0f} s"))
                 msg = classify_openocd_output(out or "", *self._cls) or "OpenOCD did not finish"
                 raise PluginError(f"{msg} (timed out after {timeout:.0f} s)")
 
@@ -477,7 +484,7 @@ class _OcdBase:
         return "\n" + note
 
     @staticmethod
-    def _stop(p) -> str:
+    def _stop(p):
         """Stop OpenOCD, which this action started (its own process group, so a wrapper's children go too)."""
         return _platform.stop_tree(p)
 

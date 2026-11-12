@@ -39,7 +39,7 @@ _CHOICES = {"stt_backend": ("whisper", "sidecar"), "tts_backend": ("say", "log")
 
 def path() -> Path:
     env = os.environ.get("POLYBENCH_VOICE_CONFIG")
-    return Path(env).expanduser() if env else _platform.config_dir() / "voice.json"
+    return Path(env).expanduser() if env else _platform.default_config_dir() / "voice.json"
 
 
 def loopback_only(url: str) -> str:

@@ -14,6 +14,7 @@ import signal
 import subprocess
 import sys
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 
 IS_WINDOWS = sys.platform == "win32"
@@ -32,15 +33,19 @@ def have_psutil() -> bool:
 
 # ---------------------------------------------------------------------------------------------------- folders
 
-def config_dir() -> Path:
-    """Settings folder. macOS and Linux: ~/.config/polybench (unchanged). Windows: %APPDATA%\\polybench.
-    POLYBENCH_CONFIG_DIR overrides it everywhere."""
-    env = os.environ.get("POLYBENCH_CONFIG_DIR")
-    if env:
-        return Path(env).expanduser()
+def default_config_dir() -> Path:
+    """The per-user settings folder, ignoring POLYBENCH_CONFIG_DIR. macOS and Linux: ~/.config/polybench (unchanged).
+    Windows: %APPDATA%\\polybench. voice.json and claude-mcp-trial.json live here, where they always did."""
     if IS_WINDOWS:
         return Path(os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming") / "polybench"
     return Path.home() / ".config" / "polybench"
+
+
+def config_dir() -> Path:
+    """The project-list folder (workspace.py): POLYBENCH_CONFIG_DIR when it is set and not empty, else `default_config_dir()`.
+    (An empty value used to mean the current folder; it now means unset.)"""
+    env = os.environ.get("POLYBENCH_CONFIG_DIR")
+    return Path(env).expanduser() if env else default_config_dir()
 
 
 def user_config_file(*parts: str, vendor: str = "polybench") -> Path:
@@ -101,10 +106,16 @@ def shell_quote(text: str) -> str:
 
 def restore_file_command(master: str, good: str) -> str:
     """A one-line command that keeps a broken `master` as `master.broken` (when it exists) and copies `good` over it.
-    macOS and Linux: sh, unchanged. Windows: cmd.exe (HOST-ONLY text: the wording is checked, it is not run on a bench)."""
+    macOS and Linux: sh, unchanged. Windows: cmd.exe, HOST-ONLY text (checked as text, never run on a bench). The backup and the
+    copy are joined with `&&` inside `if exist ... (...) else (...)`, so a failed backup stops the command and the broken master is
+    not overwritten. A path with `%` cannot be quoted safely at a cmd prompt (`%NAME%` expands even inside quotes, and `%%` is
+    only for batch files), so on Windows this returns "" and the caller tells the person to copy the file by hand."""
     q = shell_quote
     if IS_WINDOWS:
-        return f'(if exist {q(master)} copy /Y {q(master)} {q(master + ".broken")}) & copy /Y {q(good)} {q(master)}'
+        if "%" in master or "%" in good:
+            return ""
+        return (f'if exist {q(master)} (copy /Y {q(master)} {q(master + ".broken")} && copy /Y {q(good)} {q(master)}) '
+                f'else (copy /Y {q(good)} {q(master)})')
     return f"{{ [ ! -e {q(master)} ] || cp -p {q(master)} {q(master + '.broken')}; }} && cp -p {q(good)} {q(master)}"
 
 
@@ -308,6 +319,29 @@ def library_holders(lib_globs: list[str]) -> list[tuple[str, str]]:
     return sorted(found.items())
 
 
+@dataclass
+class StopResult:
+    """What `stop_tree` found. `survivors` is [(pid, command)] of processes still alive after every step: the caller must tell the
+    operator (never report a clean stop). `output` is what the tool printed."""
+    output: str = ""
+    survivors: list = field(default_factory=list)
+
+    @property
+    def stopped(self) -> bool:
+        return not self.survivors
+
+    def __str__(self) -> str:                    # old callers used the text
+        return self.output
+
+
+def survivor_message(tool: str, res: StopResult, why: str = "was asked to stop") -> str:
+    """The operator-facing text when `stop_tree` left something running. Names every pid, like the OpenOCD survivor report."""
+    who = "; ".join(f"pid {pid} ('{(cmd or '?')[:80]}')" for pid, cmd in res.survivors)
+    hints = " ".join(stop_hint(pid) for pid, _ in res.survivors[:3])
+    return (f"{tool} {why}, but it may still be running: {who}. It can hold the probe or the serial port. Polybench could not stop it "
+            f"and will not claim a clean stop. If you are sure nothing is programming, stop it yourself: {hints}")
+
+
 def _descendants(pid: int) -> list:
     if _psutil is None:
         return []
@@ -317,6 +351,35 @@ def _descendants(pid: int) -> list:
         return []
 
 
+def _tree_pids(pid: int) -> set[int]:
+    """Pids of everything below `pid` (not `pid` itself). psutil when installed; on Windows without it, a PowerShell
+    snapshot of the process table; on macOS and Linux without psutil the process group is the list (see _group_members)."""
+    if _psutil is not None:
+        return {k.pid for k in _descendants(pid)}
+    if not IS_WINDOWS:
+        return set()
+    try:
+        out = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                              "Get-CimInstance Win32_Process | ForEach-Object { \"$($_.ProcessId) $($_.ParentProcessId)\" }"],
+                             capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace").stdout
+    except Exception:  # noqa: BLE001
+        return set()
+    parent: dict[int, int] = {}
+    for ln in out.splitlines():
+        parts = ln.split()
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            parent[int(parts[0])] = int(parts[1])
+    found: set[int] = set()
+    todo = [pid]
+    while todo:
+        cur = todo.pop()
+        for c, par in parent.items():
+            if par == cur and c not in found and c != pid:
+                found.add(c)
+                todo.append(c)
+    return found
+
+
 def _group_signal(pid: int, sig) -> None:
     try:
         os.killpg(pid, sig)
@@ -324,54 +387,136 @@ def _group_signal(pid: int, sig) -> None:
         pass
 
 
-def stop_tree(proc: subprocess.Popen, grace: float = 3.0) -> str:
-    """Stop `proc` and every process it started, then return what it printed (empty when its output is not piped or was read).
+def _group_members(pgid: int) -> list[tuple[int, str]]:
+    """Live (not zombie) members of a Unix process group: [(pid, command)]. Empty when the group is gone."""
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return []
+    except PermissionError:
+        pass
+    found: list[tuple[int, str]] = []
+    if _psutil is not None:
+        for pr in _psutil.process_iter(["pid", "status", "cmdline"]):
+            try:
+                if pr.info["status"] != _psutil.STATUS_ZOMBIE and os.getpgid(pr.info["pid"]) == pgid:
+                    found.append((pr.info["pid"], " ".join(pr.info["cmdline"] or [])))
+            except (_psutil.Error, OSError):
+                continue
+        return found
+    try:
+        out = subprocess.run(["ps", "-A", "-ww", "-o", "pid=,pgid=,stat=,command="], capture_output=True, text=True, timeout=5,
+                             encoding="utf-8", errors="replace").stdout
+    except Exception:  # noqa: BLE001
+        return [(pgid, "process group")]                 # killpg says something is there and ps cannot say what
+    for ln in out.splitlines():
+        parts = ln.split(None, 3)
+        if len(parts) >= 3 and parts[0].isdigit() and parts[1].isdigit() and int(parts[1]) == pgid and not parts[2].startswith("Z"):
+            found.append((int(parts[0]), parts[3] if len(parts) > 3 else ""))
+    return found
 
-    The child must have been started with `group_kwargs()`. macOS and Linux: SIGTERM to the group, wait `grace` seconds, then
-    SIGKILL to the group. Windows: the tree is listed first (psutil), then `taskkill /T /F` is run on the root, then any listed
-    process still alive is killed one by one, because Windows does not keep a process's children once their parent has gone.
-    The tree is gone when this returns, unless the OS refused (then the survivors are named in the exception text of nothing:
-    callers check `pid_alive`)."""
-    out = ""
+
+def _wait_gone(proc: subprocess.Popen, alive, seconds: float) -> list:
+    """Poll `alive()` (a list of survivors) every 50 ms for up to `seconds`; reaps `proc` meanwhile so it is not a zombie."""
+    end = time.monotonic() + seconds
+    while True:
+        proc.poll()
+        now = alive()
+        if not now or time.monotonic() >= end:
+            return now
+        time.sleep(0.05)
+
+
+def _drain(proc: subprocess.Popen, seconds: float) -> str:
+    try:
+        out, _ = proc.communicate(timeout=seconds)
+        return out or ""
+    except subprocess.TimeoutExpired:                    # a survivor still holds the pipe: take what we can and move on
+        return ""
+    except (ValueError, OSError):
+        return ""
+
+
+def stop_tree(proc: subprocess.Popen, grace: float = 3.0) -> StopResult:
+    """Stop `proc` and everything it started, and say whether anything is still alive.
+
+    The child must have been started with `group_kwargs()`.
+    macOS and Linux: SIGTERM to the process group; wait up to `grace` seconds for the WHOLE group (not just the root) to be gone;
+      SIGKILL to the group and to every psutil-listed descendant; wait again (up to 3 s); report what is left.
+    Windows: list the tree first; CTRL_BREAK_EVENT to the process group (graceful); wait up to `grace` seconds for every listed
+      process; then `taskkill /T /F` on the root and `taskkill /F` on each survivor; wait again; report what is left.
+    Returns a StopResult. `stopped` is True only when nothing of the tree is alive: callers must not report a clean cancel or
+    timeout otherwise (see `survivor_message`)."""
     if IS_WINDOWS:
-        kids = _descendants(proc.pid)
+        return _stop_tree_windows(proc, grace)
+    pgid = proc.pid
+    kids = _descendants(proc.pid)                       # psutil only: a descendant that left the group (setsid) is still ours
+
+    def alive() -> list:
+        out = _group_members(pgid)
+        seen = {pid for pid, _ in out}
+        for k in kids:
+            try:
+                if k.pid not in seen and k.is_running() and k.status() != _psutil.STATUS_ZOMBIE:
+                    out.append((k.pid, " ".join(k.cmdline())))
+            except Exception:  # noqa: BLE001
+                continue
+        return out
+
+    _group_signal(pgid, signal.SIGTERM)
+    for k in kids:
         try:
-            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, timeout=10)
+            k.terminate()
         except Exception:  # noqa: BLE001
             pass
+    left = _wait_gone(proc, alive, grace)
+    if left:
+        _group_signal(pgid, signal.SIGKILL)
         for k in kids:
             try:
                 k.kill()
             except Exception:  # noqa: BLE001
                 pass
+        left = _wait_gone(proc, alive, 3.0)
+    return StopResult(_drain(proc, 1.0 if left else 3.0), left)
+
+
+def _stop_tree_windows(proc: subprocess.Popen, grace: float) -> StopResult:
+    def alive_of(pids) -> list:
+        return [(x, process_command(x) or "") for x in sorted(pids) if pid_alive(x)]
+
+    tree = {proc.pid} | _tree_pids(proc.pid)
+    try:
+        proc.send_signal(signal.CTRL_BREAK_EVENT)            # graceful: reaches a process group made with CREATE_NEW_PROCESS_GROUP
+    except (OSError, ValueError, AttributeError):
+        pass
+    left = _wait_gone(proc, lambda: [(x, "") for x in sorted(tree) if pid_alive(x)], grace)
+    if left:
+        tree |= _tree_pids(proc.pid)                           # anything started since the first look
         try:
-            proc.kill()
-        except OSError:
-            pass
-        try:
-            out, _ = proc.communicate(timeout=max(grace, 3.0))
-        except subprocess.TimeoutExpired:
-            pass
-        return out or ""
-    kids = _descendants(proc.pid)
-    for sig in (signal.SIGTERM, signal.SIGKILL):
-        _group_signal(proc.pid, sig)
-        try:
-            out, _ = proc.communicate(timeout=grace)
-            break
-        except subprocess.TimeoutExpired:
-            continue
-    for k in kids:                       # a grandchild that left the group (setsid) is still ours to stop
-        try:
-            if k.is_running():
-                k.kill()
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, timeout=15)
         except Exception:  # noqa: BLE001
             pass
-    return out or ""
+        for x in sorted(tree):
+            if pid_alive(x):
+                try:
+                    subprocess.run(["taskkill", "/PID", str(x), "/F"], capture_output=True, timeout=15)
+                except Exception:  # noqa: BLE001
+                    pass
+                if _psutil is not None and pid_alive(x):
+                    try:
+                        _psutil.Process(x).kill()
+                    except Exception:  # noqa: BLE001
+                        pass
+        left = _wait_gone(proc, lambda: [(x, "") for x in sorted(tree) if pid_alive(x)], 3.0)
+        left = alive_of({x for x, _ in left})
+    else:
+        left = []
+    return StopResult(_drain(proc, 1.0 if left else 3.0), left)
 
 
 def kill_pid_tree(pid: int) -> None:
-    """Hard-stop a process and its descendants by pid (used by tests and by cleanup of processes this program started).
+    """Hard-stop a process and its descendants by pid (used by tests to clean up, and for processes this program started).
     Never call it with a pid that Polybench did not start."""
     kids = _descendants(pid)
     if IS_WINDOWS:
@@ -381,15 +526,14 @@ def kill_pid_tree(pid: int) -> None:
             pass
     else:
         _group_signal(pid, signal.SIGKILL)
-    for k in kids + ([_psutil.Process(pid)] if _psutil is not None and pid_alive(pid) else []):
-        try:
-            k.kill()
-        except Exception:  # noqa: BLE001
-            pass
-    if not IS_WINDOWS and _psutil is None:
         try:
             os.kill(pid, signal.SIGKILL)
         except OSError:
+            pass
+    for k in kids:
+        try:
+            k.kill()
+        except Exception:  # noqa: BLE001
             pass
 
 

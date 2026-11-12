@@ -354,25 +354,86 @@ def test_bom_browser_filters_to_bom_files(tmp_path):
 
 
 # ------------------------------------------------------------------------------------------------- reviewer's API attacks
-@pytest.mark.skipif(os.name == "nt", reason="the attack paths are POSIX system folders; on Windows /System/qa is a writable folder on the current drive (needs a Windows list)")
+# Hostile paths per OS. Windows: another drive, \\?\ paths, UNC paths, device names, alternate data streams, .. traversal, a trailing
+# dot or space, a NUL byte. Nothing here may create a folder on the runner (a drive that does not exist, a share that does not exist).
+WIN_LIST_PATHS = ["C:\\", "Z:\\", "\\\\?\\C:\\", "\\\\?\\Z:\\pb", "\\\\127.0.0.1\\pbnoshare\\x", "C:\\Windows", "~\\.ssh", "C:\\nonexistent\\x\\y",
+                  "C:\\Windows\\System32\\drivers\\etc\\hosts", "C:\\..\\..\\Windows", "CON", "NUL", "C:\\x\\y:stream", "C:\\x\\y.", "C:\\x\\y ", "a\x00b", ""]
+WIN_NEW_DIRS = ["Z:\\pb\\qa", "\\\\?\\Z:\\pb", "\\\\127.0.0.1\\pbnoshare\\qa", "CON\\x", "C:\\", "C:\\Windows\\win.ini", "a\x00b", ""]
+POSIX_LIST_PATHS = ["a\x00b", "/", "/Users", "/var/root", "/private/var", "/private/var/root", "~/.ssh", "/etc/hosts", "/nonexistent/x/y", ""]
+POSIX_NEW_DIRS = ["a\x00b", "/System/qa", "/", "/etc/hosts", "", "/private/var"]
+LIST_PATHS, NEW_DIRS = (WIN_LIST_PATHS, WIN_NEW_DIRS) if os.name == "nt" else (POSIX_LIST_PATHS, POSIX_NEW_DIRS)
+
+
 def test_reviewer_api_attacks_never_500(tmp_path):
     """The paths the reviewer's attack scripts threw at the folder routes (api_attack3.log): none may answer 5xx; reveal stays inside."""
     sess = new_project_session(tmp_path / "proj")
     with client(sess) as c:
-        for p in ("/", "/Users", "/var/root", "/private/var", "/private/var/root", "~/.ssh", "/etc/hosts", "/nonexistent/x/y", ""):
+        for p in LIST_PATHS:
             for mode in ("dir", "file"):
                 r = c.get("/api/fs/list", params={"path": p, "mode": mode, "exts": "csv,yaml"})
                 assert r.status_code == 200, (p, mode, r.status_code, r.text[:200])
             r = c.get("/api/project/inspect", params={"path": p})
             assert r.status_code == 200, (p, r.text[:200])
-        for d in ("/System/qa", "/", "/etc/hosts", "", "/private/var"):
+        for d in NEW_DIRS:
             r = c.post("/api/project/new", json={"dir": d, "name": "x"})
             assert r.status_code in (409, 422), (d, r.status_code, r.text[:200])
-        for name in ("../../etc/hosts", "", "x.csv", "/etc/hosts"):
+        for name in ("../../etc/hosts", "..\\..\\Windows\\win.ini", "", "x.csv", "/etc/hosts", "C:\\Windows\\win.ini"):
             assert c.get("/api/bom/locate", params={"name": name, "size": 1}).status_code == 200
         for path in ("/etc/hosts", "~/.ssh", "", str(tmp_path / "proj" / ".." / ".." / "etc"), "~/polybench-data"):
             assert c.post("/api/reveal", json={"path": path}).status_code == 403, path
+        assert c.post("/api/project/open", json={"dir": "a\x00b"}).status_code in (409, 422)
+        assert c.post("/api/reveal", json={"path": "a\x00b"}).status_code == 422          # D8: a NUL byte is a 4xx, not a 500
         for bad in ("/etc/hosts", "tests/data/demo_purchasing_bom_dup.csv", str(tmp_path / "nothing.xlsx")):
             assert c.post("/api/bom/load", json={"path": bad}).status_code == 422, bad
         assert c.post("/api/ecad/platform", json={"program": "altium"}).status_code == 422
         assert c.get("/api/state").status_code == 200
+
+
+# ---------------------------------------------------------------- /api/reveal confinement on the OS where it matters (QA D5, D8)
+def _reveal_attacks(proj, tmp):
+    """(path, why) that must be refused. Mixed POSIX and Windows spellings: on the other OS they are just odd names, still refused."""
+    p = str(proj)
+    sep = os.sep
+    return [
+        (p + "-sibling", "sibling folder with the project's name as a prefix"),
+        (p + sep + ".." + sep + "other", ".. out of the project"),
+        (p + sep + ".." + sep + ".." + sep + "Windows", ".. far out"),
+        (str(tmp), "the parent folder"),
+        ("Z:\\pb", "another drive"),
+        ("\\\\?\\Z:\\pb", "extended path on another drive"),
+        ("\\\\127.0.0.1\\pbnoshare\\proj", "UNC path"),
+        ("\\\\127.0.0.1\\pbnoshare\\proj-sibling", "UNC sibling"),
+        (p + sep + "polybench-project.json:evil", "alternate data stream (Windows)" if os.name == "nt" else "odd file name"),
+        ("C:\\Windows", "system folder"),
+        ("/etc/passwd", "system file"),
+        ("", "empty"),
+    ]
+
+
+def test_reveal_refuses_every_hostile_path_and_never_500s(tmp_path):
+    sess = new_project_session(tmp_path / "proj")
+    proj = (tmp_path / "proj").resolve()
+    with client(sess) as c:
+        for bad, why in _reveal_attacks(proj, tmp_path):
+            r = c.post("/api/reveal", json={"path": bad})
+            if bad == p_ads(proj) and os.name != "nt":
+                continue                                              # on POSIX that is a file name inside the project: not an attack
+            assert r.status_code in (403, 422), (why, bad, r.status_code, r.text[:200])
+        r = c.post("/api/reveal", json={"path": "a\x00b"})
+        assert r.status_code in (403, 422), r.status_code                  # D8: never a 500
+        r = c.post("/api/reveal", json={"path": str(proj / "B1" / "x\x00y")})
+        assert r.status_code in (403, 422)
+
+
+def p_ads(proj):
+    return str(proj) + os.sep + "polybench-project.json:evil"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows paths ignore case, and only there")
+def test_reveal_on_windows_ignores_case_but_not_the_folder_name(tmp_path):
+    sess = new_project_session(tmp_path / "proj")
+    proj = str((tmp_path / "proj").resolve())
+    with client(sess) as c:
+        assert c.post("/api/reveal", json={"path": proj.upper()}).status_code == 200          # same folder, other case: inside
+        assert c.post("/api/reveal", json={"path": proj.lower() + "\\B1"}).status_code == 200
+        assert c.post("/api/reveal", json={"path": proj.upper() + "X"}).status_code == 403      # a different folder

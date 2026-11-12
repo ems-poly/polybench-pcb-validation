@@ -66,16 +66,16 @@ def main(shots, browser_name):
     tmp = Path(tempfile.mkdtemp(prefix="pb-plan-e2e-"))
     proj = tmp / "proj"
     shutil.copytree(ROOT / "src" / "polybench" / "examples" / "demo", proj)
-    plan_text = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text().replace("C3, U1.4", "C3, U1.9")        # U1.9 is not on the board
+    plan_text = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text(encoding="utf-8").replace("C3, U1.4", "C3, U1.9")        # U1.9 is not on the board
     plan_file = proj / "PLAN.md"
-    plan_file.write_text(plan_text)
+    plan_file.write_text(plan_text, encoding="utf-8")
     top = proj / "demo.pcbv.yaml"
-    top.write_text(top.read_text() + "\ntest_plan: {file: PLAN.md, generate: true}\n")
+    top.write_text(top.read_text(encoding="utf-8") + "\ntest_plan: {file: PLAN.md, generate: true}\n", encoding="utf-8")
     netlist = tmp / "netlist.json"
-    netlist.write_text(json.dumps({"5V": ["U1.3", "C1.1"], "GND": ["C2.2", "U1.2"]}))          # no 3V3 net: U02 shows it as not found
+    netlist.write_text(json.dumps({"5V": ["U1.3", "C1.1"], "GND": ["C2.2", "U1.2"]}), encoding="utf-8")          # no 3V3 net: U02 shows it as not found
     log = tmp / "hl.log"
     env = {**os.environ, "POLYBENCH_SIM_NETLIST": str(netlist), "POLYBENCH_SIM_HIGHLIGHT_LOG": str(log)}
-    nsel = lambda: len(log.read_text().splitlines()) if log.exists() else 0
+    nsel = lambda: len(log.read_text(encoding="utf-8").splitlines()) if log.exists() else 0
     errors: list[str] = []
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(top), "--simulate", "--data-dir", str(tmp / "data"),
                             "--batch", "PLAN-E2E", "--boards", "4", "--no-browser", "--port", str(PORT)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
@@ -110,7 +110,7 @@ def main(shots, browser_name):
 
             # ---- test load selects the targets in Fusion (simulated), once
             check("U01 loaded: its targets were selected", until(lambda: nsel() == 1), str(nsel()))
-            line = json.loads(log.read_text().splitlines()[0])
+            line = json.loads(log.read_text(encoding="utf-8").splitlines()[0])
             check("parts, pin and nets of U01 sent", line["parts"] == ["C2", "U1"] and line["pins"] == ["U1.3"] and line["nets"] == ["5V", "GND"] and line["selected"] == ["C2", "U1"], str(line))
             card = until(lambda: page.locator(".probecard .pc-status.ok").count() == 1 and page.inner_text(".probecard .pc-status"))
             check("probe card says what was selected", card and "selected C2 U1" in card and "pins U1.3" in card and "nets 5V GND" in card, str(card))
@@ -211,7 +211,7 @@ def main(shots, browser_name):
 
             # ---- the plan loses a test; Regenerate keeps its results as retired
             post("entry", {"board": "S03", "test_id": "U06", "value": "10.0", "replace": True, "confirm": True})
-            plan_file.write_text(re.sub(r"\| U06 \|.*\n", "", plan_text).replace("U1.9", "U1.4"))
+            plan_file.write_text(re.sub(r"\| U06 \|.*\n", "", plan_text).replace("U1.9", "U1.4"), encoding="utf-8")
             page.click('[data-tp=regen]')
             check("Regenerate: 14 tests", until(lambda: get("api/state")["plan"]["tests"] == 14 and page.inner_text("#tpcov-n") == "14"), page.inner_text("#tpcov-n"))
             s = get("api/state")

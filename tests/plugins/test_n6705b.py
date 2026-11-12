@@ -146,7 +146,7 @@ def test_safe_state_sim_and_selftest(make_ctx, tmp_path):
 def _range_profile(tmp_path, max_volts=12.6, range_v=20):
     f = tmp_path / "range20.toml"
     f.write_text(f'name = "range20"\n[channel.1]\nmax_volts = {max_volts}\nmax_current_a = 0.10\novp_max_v = 13.5\n'
-                 f'output_range_v = {range_v}\nallow_sink = false\nmode = "PS1Q"\nwatchdog_s = 60\n')
+                 f'output_range_v = {range_v}\nallow_sink = false\nmode = "PS1Q"\nwatchdog_s = 60\n', encoding="utf-8")
     return f
 
 

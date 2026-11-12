@@ -77,7 +77,7 @@ def test_child_process_emits_json_lines(name, tmp_path):
 def test_child_flash_and_first_power(tmp_path):
     from pb_plugin_helpers import EXAMPLE_PROFILE
     img = tmp_path / "i.hex"
-    img.write_text(":00000001FF\n")
+    img.write_text(":00000001FF\n", encoding="utf-8")
     msgs, err, rc = run_child("openocd.flash", {"image": str(img), "map": {"flashed": "F1"}}, tmp_path)
     assert rc == 0 and [m for m in msgs if m["t"] == "proposal"][0]["value"] == "Y"
     if EXAMPLE_PROFILE.exists():

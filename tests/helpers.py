@@ -56,3 +56,30 @@ def make_tool(directory, name: str, source: str) -> str:
 
 
 SLEEPER = "import time\ntime.sleep(30)\n"      # a tool that runs until it is stopped
+
+
+def refuse_outside_connections(monkeypatch, message: str):
+    """Make any socket connect to a non-loopback address raise AssertionError(message). Loopback stays open: the Windows event loop
+    builds its own wake-up socket pair by connecting to 127.0.0.1, and the TestClient needs that."""
+    import socket
+    real_connect, real_ex = socket.socket.connect, socket.socket.connect_ex
+
+    def loopback(addr) -> bool:
+        host = addr[0] if isinstance(addr, tuple) and addr else addr
+        return isinstance(host, str) and (host.startswith("127.") or host in ("::1", "localhost"))
+
+    def connect(self, addr):
+        if not loopback(addr):
+            raise AssertionError(f"{message}: {addr}")
+        return real_connect(self, addr)
+
+    def connect_ex(self, addr):
+        if not loopback(addr):
+            raise AssertionError(f"{message}: {addr}")
+        return real_ex(self, addr)
+
+    def create_connection(address, *a, **k):
+        raise AssertionError(f"{message}: {address}")
+    monkeypatch.setattr(socket.socket, "connect", connect)
+    monkeypatch.setattr(socket.socket, "connect_ex", connect_ex)
+    monkeypatch.setattr(socket, "create_connection", create_connection)

@@ -3,7 +3,7 @@ from pathlib import Path
 
 import polybench
 
-JS = (Path(polybench.__file__).parent / "static" / "ai_card.js").read_text()
+JS = (Path(polybench.__file__).parent / "static" / "ai_card.js").read_text(encoding="utf-8")
 CARD = JS[JS.index("function renderAiCard"):JS.index("/* ---- question panel */")]
 
 

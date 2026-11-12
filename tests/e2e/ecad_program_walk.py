@@ -54,7 +54,7 @@ def until(fn, timeout=20.0, step=0.15):
 def start(kicad: bool, tmp: Path, down: Path):
     frames = tmp / "frames"
     frames.mkdir(exist_ok=True)
-    (frames / "CURRENT").write_text("")
+    (frames / "CURRENT").write_text("", encoding="utf-8")
     env = {**os.environ, "POLYBENCH_SCANNER_FAKE_FRAMES": str(frames), "ASCAN_CONFIG_DIR": str(tmp / "cfg"),
            "POLYBENCH_SIM_ECAD_DOWN": str(down)}
     args = [sys.executable, "-c", "from polybench.cli import main; main()", *(["--ecad", "kicad"] if kicad else []), "--protocol", str(PROTOCOL), "--simulate", "--data-dir",
@@ -76,7 +76,7 @@ def walk(program: str, shots: Path) -> list[str]:
     """Visit the pages and return their rendered texts."""
     tmp = Path(tempfile.mkdtemp(prefix="pb-ecadtxt-"))
     down = tmp / "down"
-    down.write_text("down")
+    down.write_text("down", encoding="utf-8")
     srv = start(program == "KiCad", tmp, down)
     texts: dict[str, str] = {}
     errors: list[str] = []

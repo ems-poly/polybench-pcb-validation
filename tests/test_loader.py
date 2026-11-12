@@ -18,7 +18,7 @@ def test_demo_lints_clean():
 
 def patch(demo_copy, fname, old, new):
     f = demo_copy / fname
-    f.write_text(f.read_text().replace(old, new))
+    f.write_text(f.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
     return load(demo_copy / "demo.pcbv.yaml")
 
 
@@ -55,11 +55,11 @@ def test_proposes_unknown_test(demo_copy):
 
 def test_bad_schema_missing_include_and_syntax(demo_copy):
     top = demo_copy / "demo.pcbv.yaml"
-    top.write_text(top.read_text().replace("pcbv.protocol/2", "pcbv.protocol/1").replace("visual.yaml", "nothere.yaml"))
+    top.write_text(top.read_text(encoding="utf-8").replace("pcbv.protocol/2", "pcbv.protocol/1").replace("visual.yaml", "nothere.yaml"), encoding="utf-8")
     p = load(top)
     assert any("schema must be" in e for e in errs(p)) and any("nothere.yaml" in e for e in errs(p))
-    (demo_copy / "visual.yaml").write_text("steps: [\n  - id: visual\n  bad: : :\n")
-    top.write_text(top.read_text().replace("nothere.yaml", "visual.yaml").replace("protocol/1", "protocol/2"))
+    (demo_copy / "visual.yaml").write_text("steps: [\n  - id: visual\n  bad: : :\n", encoding="utf-8")
+    top.write_text(top.read_text(encoding="utf-8").replace("nothere.yaml", "visual.yaml").replace("protocol/1", "protocol/2"), encoding="utf-8")
     p = load(top)
     assert any("YAML syntax" in e for e in errs(p))
 

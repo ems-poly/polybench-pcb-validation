@@ -119,7 +119,7 @@ def _proto(tmp_path, image, sha):
                     title: Hash
                     kind: text
                     limit: {{class: hard, equals: "{sha}", source: {{type: design_calc, doc: x}}}}
-        '''))
+        '''), encoding="utf-8")
     return load(tmp_path / "p.pcbv.yaml")
 
 
@@ -127,7 +127,7 @@ def test_images_match_manifest_and_protocol(tmp_path):
     img = tmp_path / "a.hex"
     img.write_bytes(b"firmware")
     h = hashlib.sha256(b"firmware").hexdigest()
-    (tmp_path / "MANIFEST.txt").write_text(f"{h}  build/a.hex\n")
+    (tmp_path / "MANIFEST.txt").write_text(f"{h}  build/a.hex\n", encoding="utf-8")
     res = doctor.check_images(_proto(tmp_path, img, h))
     assert [c.status for c in res] == [OK]
 
@@ -136,7 +136,7 @@ def test_images_mismatch_and_missing(tmp_path):
     img = tmp_path / "a.hex"
     img.write_bytes(b"firmware")
     h = hashlib.sha256(b"firmware").hexdigest()
-    (tmp_path / "MANIFEST.txt").write_text(f"{'0' * 64}  build/a.hex\n")
+    (tmp_path / "MANIFEST.txt").write_text(f"{'0' * 64}  build/a.hex\n", encoding="utf-8")
     res = doctor.check_images(_proto(tmp_path, img, h))
     assert res[0].status == FAIL and "MANIFEST.txt" in res[0].detail
     res = doctor.check_images(_proto(tmp_path, tmp_path / "gone.hex", h))
@@ -164,7 +164,7 @@ def test_run_checks_never_raises_when_a_check_crashes(monkeypatch, tmp_path):
 def test_param_files_checked(tmp_path):
     from polybench.protocol import load
     good = tmp_path / "p.toml"
-    good.write_text("x=1\n")
+    good.write_text("x=1\n", encoding="utf-8")
 
     def proto(profile):
         (tmp_path / "q.pcbv.yaml").write_text(textwrap.dedent(f'''\
@@ -182,7 +182,7 @@ def test_param_files_checked(tmp_path):
                       - {{id: fp, title: FP, plugin: n6705b.first_power, params: {{profile: "{profile}"}}, proposes: [P1]}}
                     tests:
                       - {{id: P1, title: V, kind: number, limit: {{class: record}}}}
-            '''))
+            '''), encoding="utf-8")
         return load(tmp_path / "q.pcbv.yaml")
     assert doctor.check_param_files(proto(good)).status == OK
     assert doctor.check_param_files(proto(tmp_path / "gone.toml")).status == FAIL
@@ -207,7 +207,7 @@ def _caps_proto(tmp_path, plugins, caps=(), params=None, name="c.pcbv.yaml"):
               - id: s
                 title: S
                 actions:
-        """) + acts + "\n" + capy + "\n")
+        """) + acts + "\n" + capy + "\n", encoding="utf-8")
     return tmp_path / name
 
 
@@ -465,7 +465,7 @@ def test_any_action_with_an_image_param_gets_the_image_checks(tmp_path):
     img = tmp_path / "board.factory.bin"
     img.write_bytes(b"esp-image")
     good = hashlib.sha256(b"esp-image").hexdigest()
-    (tmp_path / "MANIFEST.txt").write_text(f"{good}  build/board.factory.bin\n")
+    (tmp_path / "MANIFEST.txt").write_text(f"{good}  build/board.factory.bin\n", encoding="utf-8")
 
     def proto(image, sha):
         return _caps_proto(tmp_path, ["esptool.flash"], params={"image": str(image), "offset": "0x0", "sha256": sha,
@@ -479,7 +479,7 @@ def test_any_action_with_an_image_param_gets_the_image_checks(tmp_path):
     assert bad[0].status == FAIL and "expected hash" in bad[0].detail
     gone = doctor.check_images(load(proto(tmp_path / "gone.bin", good)))
     assert gone[0].status == FAIL and "gone.bin" in gone[0].detail
-    (tmp_path / "MANIFEST.txt").write_text(f"{'1' * 64}  build/board.factory.bin\n")
+    (tmp_path / "MANIFEST.txt").write_text(f"{'1' * 64}  build/board.factory.bin\n", encoding="utf-8")
     assert "MANIFEST.txt" in doctor.check_images(load(proto(img, good)))[0].detail
 
 

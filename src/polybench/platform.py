@@ -78,6 +78,18 @@ def kicad_prefs_dir() -> Path:
     return Path.home() / ".config" / "kicad"
 
 
+def is_within(path, root) -> bool:
+    """True when `path` is `root` or inside it. Both should already be resolved. Compares whole path parts with this OS's rules
+    (the case does not matter on Windows), so `/a/proj-sibling` is not inside `/a/proj` and `C:\\x\\p` is inside `c:\\X`."""
+    p, r = os.path.normcase(os.path.abspath(str(path))), os.path.normcase(os.path.abspath(str(root)))
+    if p == r:
+        return True
+    try:
+        return os.path.commonpath([p, r]) == r
+    except ValueError:                  # different drives
+        return False
+
+
 def temp_dir() -> Path:
     import tempfile
     return Path(tempfile.gettempdir())

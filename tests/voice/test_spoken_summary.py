@@ -79,7 +79,7 @@ def test_old_mute_value_keeps_its_meaning(tmp_path, monkeypatch):
     """A voice.json written before UIR-13 has tts_enabled (false = replies muted) and no tts_ack: it loads with the same meaning."""
     from polybench.voice import config as vc
     p = tmp_path / "old.json"
-    p.write_text('{"tts_enabled": false}')
+    p.write_text('{"tts_enabled": false}', encoding="utf-8")
     monkeypatch.setenv("POLYBENCH_VOICE_CONFIG", str(p))
     c = vc.load()
     assert c["tts_enabled"] is False and c["tts_ack"] is True

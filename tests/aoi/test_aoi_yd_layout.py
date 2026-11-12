@@ -95,18 +95,18 @@ def test_locate_recovers_a_shifted_part_view():
 # ---------------------------------------------------------------- committed layout inputs
 def test_layout_inputs_are_committed_and_consistent():
     from polybench.aoi import layout_guard
-    layout = json.loads((LAYOUT / "layout.json").read_text())
+    layout = json.loads((LAYOUT / "layout.json").read_text(encoding="utf-8"))
     names = {p["name"] for p in layout["parts"]}
     assert set(GROUND_TRUTH) <= names and len(names) == 39
     assert layout_guard.verify_layout(layout, LAYOUT / "yd-esp32-s3_cam.zip", "YD-ESP32-S3")["result"] == "match"
     xs = {w[k] for w in layout["outline"] for k in ("x1", "x2")}
     assert (min(xs), max(xs)) == (110.0, 167.15) and len(layout["outline"]) == 4
-    proto = json.loads((LAYOUT / "aoi_protocol.json").read_text())
+    proto = json.loads((LAYOUT / "aoi_protocol.json").read_text(encoding="utf-8"))
     assert proto["registration"]["board_colour"] == "dark" and proto["reference_board"] == "D01"
-    spec = json.loads((LAYOUT / "polarity.json").read_text())
+    spec = json.loads((LAYOUT / "polarity.json").read_text(encoding="utf-8"))
     assert set(spec["parts"]) == {"D1", "D2", "D3", "U2"} and spec["min_decided"] == 2
     assert spec["parts"]["D1"]["expected"]["side"] == "right"          # cathode away from the USB ports (redraw, from the photo of D01)
-    assert "/Users/" not in "".join((LAYOUT / f).read_text(errors="ignore") for f in ("aoi_protocol.json", "GAPS.txt", "aoi.yaml", "polarity.json"))   # no absolute paths
+    assert "/Users/" not in "".join((LAYOUT / f).read_text(errors="ignore", encoding="utf-8") for f in ("aoi_protocol.json", "GAPS.txt", "aoi.yaml", "polarity.json"))   # no absolute paths
 
 
 def test_example_visual_step_is_layout_mode_and_names_the_photos():
@@ -180,7 +180,7 @@ def acceptance(tmp_path_factory):
     eng.create_batch("YD", ["D01", "D02"], "D", True, "YD-ESP32-S3")
     seed.seed_photos(eng, batch)
     out = runner.run(batch, batch / "runs" / "0001", eng.aoi_cfg(), log=lambda *a, **k: None)
-    doc = json.loads(Path(out["result"]).read_text())
+    doc = json.loads(Path(out["result"]).read_text(encoding="utf-8"))
     return out, doc
 
 

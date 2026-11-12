@@ -16,11 +16,11 @@ def _run(tmp_path, body):
         "class Raiser:\n    name = 'test.raise_cancelled'\n    capabilities = []\n"
         f"    def run(self, ctx):\n{body}\n"
         "    def safe_state(self): return 'ok'\n"
-        "demo_actions.ACTIONS['test.raise_cancelled'] = Raiser\n")
+        "demo_actions.ACTIONS['test.raise_cancelled'] = Raiser\n", encoding="utf-8")
     env = {**os.environ, "PYTHONPATH": str(tmp_path) + os.pathsep + str(REPO / "src")}
     args = {"board": "S01", "params": {}, "workdir": str(tmp_path / "w"), "simulate": True}
     p = subprocess.Popen([sys.executable, "-m", "polybench.run_action", "test.raise_cancelled", json.dumps(args)],
-                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env)
+                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=env, encoding="utf-8", errors="replace")
     out, err = p.communicate(timeout=30)
     return [json.loads(x) for x in out.splitlines() if x.strip()], err, p.returncode
 

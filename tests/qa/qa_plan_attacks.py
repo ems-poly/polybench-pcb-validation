@@ -41,7 +41,7 @@ def journal(types):
 
 
 print("### A1. draft that already carries its own revision row -> approve")
-m0 = MASTER.read_text()
+m0 = MASTER.read_text(encoding="utf-8")
 text = m0.replace("| U06 | R4 across its pads |", "| U06 | R4 across its two pads |")
 text = text.rstrip("\n") + "\n| r2 | 2026-10-17 | U06 wording (row added by the assistant) | assistant |\n"
 code, r = draft(text, "U06 wording")
@@ -49,7 +49,7 @@ print(" draft:", code, r.get("lint", {}).get("errors"), r.get("hash"))
 st = status()
 code, r = approve(st["hash"])
 print(" approve:", code, r)
-out = MASTER.read_text()
+out = MASTER.read_text(encoding="utf-8")
 rows = re.findall(r"^\| r\d+ \|.*$", out, re.M)
 print(" revision rows now:", *rows, sep="\n   ")
 
@@ -69,11 +69,11 @@ ts = [threading.Thread(target=go) for _ in range(3)]
 print(" results:", [(c, (b.get("error") or b.get("revision"))) for c, b in res])
 ev = req("GET", "/api/ai/journal?limit=200&types=plan_approved", ai=True)[1]["events"]
 print(" plan_approved events:", len(ev), [e["payload"]["revision"] for e in ev])
-print(" revision rows now:", re.findall(r"^\| r\d+ \|.*$", MASTER.read_text(), re.M))
+print(" revision rows now:", re.findall(r"^\| r\d+ \|.*$", MASTER.read_text(encoding="utf-8"), re.M))
 
 print("### A4. record a value on U06 then approve a plan that drops U06")
 print(" entry:", req("POST", "/api/cmd/entry", {"board": "S01", "test_id": "U06", "value": "10.0", "confirm": True})[0])
-cur = MASTER.read_text()
+cur = MASTER.read_text(encoding="utf-8")
 dropped = "\n".join(l for l in cur.splitlines() if not l.startswith("| U06 |")) + "\n"
 code, r = draft(dropped, "drop U06")
 print(" draft:", code, r.get("lint", {}).get("errors"), [i["msg"] for i in r.get("lint", {}).get("issues", [])][:3])
@@ -87,21 +87,21 @@ tp = req("GET", "/api/ai/plan", ai=True)[1]
 print(" plan report retired:", tp["report"].get("retired"))
 
 print("### A5. plan that drops P01..P04 which action read_rails `proposes` -> approve")
-cur = MASTER.read_text()
+cur = MASTER.read_text(encoding="utf-8")
 dropped = "\n".join(l for l in cur.splitlines() if not re.match(r"\| P0[1-4] \|", l)) + "\n"
 code, r = draft(dropped, "drop P01-P04")
 print(" draft lint:", code, r.get("lint", {}).get("errors"), [i["msg"] for i in r.get("lint", {}).get("issues", [])][:4])
 st = status()
 code, r = approve(st["hash"])
 print(" approve:", code, {k: r.get(k) for k in ("ok", "revision", "reload", "error")})
-print(" master now has P01?", "| P01 |" in MASTER.read_text(), " backup files:", sorted(p.name for p in Path(os.environ["QA_DATA"]).rglob("plan_history/*"))[:6])
+print(" master now has P01?", "| P01 |" in MASTER.read_text(encoding="utf-8"), " backup files:", sorted(p.name for p in Path(os.environ["QA_DATA"]).rglob("plan_history/*"))[:6])
 
 print("### A6. stale: draft, then master edited by hand")
-cur = MASTER.read_text()
+cur = MASTER.read_text(encoding="utf-8")
 code, r = draft(cur.replace("First issue", "First issue!"), "stale test")
-MASTER.write_text(cur + "\n")
+MASTER.write_text(cur + "\n", encoding="utf-8")
 st = status(); print(" stale:", st["stale"], "can_approve:", st["can_approve"], "approve ->", approve(st["hash"])[0])
-MASTER.write_text(cur)
+MASTER.write_text(cur, encoding="utf-8")
 st = status(); print(" after restoring master: stale:", st["stale"], "can_approve:", st["can_approve"])
 print(" reject:", req("POST", "/api/ai/plan_reject", {"reason": "qa cleanup", "operator": "Pat"})[0])
 

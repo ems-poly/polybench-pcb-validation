@@ -72,10 +72,10 @@ def test_voice_and_ai_sources_stay_proposals(engine):
 
 def test_linter_accepts_record_and_rejects_nonsense(demo_copy):
     f = demo_copy / "function.yaml"
-    txt = f.read_text()
+    txt = f.read_text(encoding="utf-8")
     assert "record: propose" in txt
     assert not load(demo_copy / "demo.pcbv.yaml").errors
-    f.write_text(txt.replace("record: propose", "record: maybe"))
+    f.write_text(txt.replace("record: propose", "record: maybe"), encoding="utf-8")
     errs = [str(e) for e in load(demo_copy / "demo.pcbv.yaml").errors]
     assert any("record must be one of" in e for e in errs)
 
@@ -262,7 +262,7 @@ def test_table_recorded_by_action_survives_reopen_and_is_in_the_report(engine, t
 
 def test_table_stop_if_on_a_column(tmp_path, demo_copy):
     f = demo_copy / "powered.yaml"
-    f.write_text(f.read_text().replace("            plot: {x: load_ma, y: rail_v}", "            plot: {x: load_ma, y: rail_v}\n            stop_if: {column: rail_v, below: 4.0, text: \"rail collapsed\"}"))
+    f.write_text(f.read_text(encoding="utf-8").replace("            plot: {x: load_ma, y: rail_v}", "            plot: {x: load_ma, y: rail_v}\n            stop_if: {column: rail_v, below: 4.0, text: \"rail collapsed\"}"), encoding="utf-8")
     p = load(demo_copy / "demo.pcbv.yaml")
     assert not p.errors, [str(e) for e in p.errors]
     from polybench.engine import Engine
@@ -276,11 +276,11 @@ def test_table_stop_if_on_a_column(tmp_path, demo_copy):
 
 def test_table_lint(demo_copy):
     f = demo_copy / "powered.yaml"
-    base = f.read_text()
+    base = f.read_text(encoding="utf-8")
     for bad, msg in [("limits:\n              rail_v:", "limits:\n              nope:"), ("plot: {x: load_ma, y: rail_v}", "plot: {x: load_ma, y: zzz}")]:
-        f.write_text(base.replace(bad, msg))
+        f.write_text(base.replace(bad, msg), encoding="utf-8")
         assert load(demo_copy / "demo.pcbv.yaml").errors, msg
-    f.write_text(base)
+    f.write_text(base, encoding="utf-8")
     assert not load(demo_copy / "demo.pcbv.yaml").errors
 
 
@@ -289,7 +289,7 @@ def test_propose_table_helper_builds_the_wire_value(tmp_path):
     ctx = RecordingContext(workdir=tmp_path)
     ctx.propose_table("P05", [[0, 5.0], [10, 4.9]], ["load_ma", "rail_v"])
     ctx.propose_table("P05", [{"load_ma": 1, "rail_v": 5.0}])
-    (tmp_path / "s.csv").write_text("load_ma,rail_v\n0,5.0\n10,4.9\n")
+    (tmp_path / "s.csv").write_text("load_ma,rail_v\n0,5.0\n10,4.9\n", encoding="utf-8")
     ctx.propose_table("P05", csv="s.csv")
     v = [p["value"] for p in ctx.proposals]
     assert v[0] == {"rows": [[0, 5.0], [10, 4.9]], "columns": ["load_ma", "rail_v"]}

@@ -78,9 +78,9 @@ def test_height_ladder_keeps_qfn_apart_from_chip():
 
 def _patched(demo_copy, extra):
     f = demo_copy / "assembly.yaml"
-    orig = getattr(_patched, "orig", None) or f.read_text()
+    orig = getattr(_patched, "orig", None) or f.read_text(encoding="utf-8")
     _patched.orig = orig
-    f.write_text(orig.replace("{line: 1,", "{line: 1, " + extra + ",", 1))
+    f.write_text(orig.replace("{line: 1,", "{line: 1, " + extra + ",", 1), encoding="utf-8")
     return protocol.load(demo_copy / "demo.pcbv.yaml")
 
 

@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.hex text eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.heic binary
+*.zip binary
+*.pdf binary
+*.bin binary
+*.woff2 binary

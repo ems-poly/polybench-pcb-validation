@@ -32,7 +32,7 @@ def run_child(plugin: str, params: dict, workdir, simulate=True, timeout=60, saf
     env = {**os.environ, "PYTHONPATH": str(REPO / "src") + os.pathsep + os.environ.get("PYTHONPATH", "")}
     import tempfile
     with tempfile.TemporaryFile("w+") as errf:
-        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errf, text=True, env=env)
+        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=errf, text=True, env=env, encoding="utf-8", errors="replace")
         try:
             out = p.stdout.read()          # stdin stays open until the child is done: EOF on stdin means 'cancel'
             p.wait(timeout=timeout)

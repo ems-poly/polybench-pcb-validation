@@ -95,7 +95,7 @@ def main(shots: Path):
             pg.screenshot(path=str(shots / "04_voice_missing.png"))
             check("no page errors, no HTTP 5xx during the walk", not errors, "; ".join(errors)[:300])
             br.close()
-        logtxt = logf.read_text(errors="replace")
+        logtxt = logf.read_text(errors="replace", encoding="utf-8")
         check("server log: no Traceback, no 500", "Traceback" not in logtxt and " 500 " not in logtxt and "Internal Server Error" not in logtxt, logtxt[-400:])
     finally:
         srv.terminate()

@@ -44,7 +44,7 @@ class Server:
         self.base = f"http://127.0.0.1:{port}/"
         env = {**os.environ, "POLYBENCH_NO_REVEAL": "1", "POLYBENCH_CONFIG_DIR": str(scratch / "cfg")}
         env.pop("POLYBENCH_ECAD", None)
-        self.log = open(scratch / f"server_{port}.log", "w")
+        self.log = open(scratch / f"server_{port}.log", "w", encoding="utf-8")
         self.p = subprocess.Popen([str(ROOT / ".venv" / "bin" / "polybench"), "--protocol", str(protocol), "--simulate", "--data-dir",
                                    str(data_dir), "--batch", batch, "--no-browser", "--port", str(port)],
                                   stdout=self.log, stderr=subprocess.STDOUT, env=env)
@@ -59,7 +59,7 @@ class Server:
                 pass
             time.sleep(0.25)
         self.stop()
-        raise RuntimeError("server did not start: " + (scratch / f"server_{port}.log").read_text()[-800:])
+        raise RuntimeError("server did not start: " + (scratch / f"server_{port}.log").read_text(encoding="utf-8")[-800:])
 
     def get(self, path):
         return json.load(urllib.request.urlopen(self.base + path, timeout=20))
@@ -82,13 +82,13 @@ def make_scratch() -> Path:
     (s / "cfg").mkdir()
     shutil.copytree(DEMO, s / "demo")
     shutil.copytree(DEMO, s / "nobom")
-    a = (s / "nobom" / "assembly.yaml").read_text()           # strip the bom: list (DEMO-derived, made at runtime, never committed)
+    a = (s / "nobom" / "assembly.yaml").read_text(encoding="utf-8")           # strip the bom: list (DEMO-derived, made at runtime, never committed)
     head, _, rest = a.partition("\nbom:\n")
     tail = [ln for ln in rest.split("\n") if ln and not ln.startswith("  ")]
-    (s / "nobom" / "assembly.yaml").write_text(head + "\nbom: []\n" + "\n".join(tail) + ("\n" if tail else ""))
+    (s / "nobom" / "assembly.yaml").write_text(head + "\nbom: []\n" + "\n".join(tail) + ("\n" if tail else ""), encoding="utf-8")
     boms = s / "boms"
     boms.mkdir()
-    (boms / "alt_bom.yaml").write_text("bom:\n" + rest.split("\n\n")[0].rstrip() + "\n")    # the DEMO bom list as a BOM file
+    (boms / "alt_bom.yaml").write_text("bom:\n" + rest.split("\n\n")[0].rstrip() + "\n", encoding="utf-8")    # the DEMO bom list as a BOM file
     return s
 
 
@@ -197,7 +197,7 @@ def part1(br, shots, scratch, port):
         t = pg.inner_text("#pjc-plat")
         req_file = scratch / "cfg" / "ecad_requests.jsonl"
         check("(h) request saved to the local file, the page says nothing is sent", "nothing is sent" in t and str(req_file) in t
-              and "Altium Designer" in req_file.read_text(), t)
+              and "Altium Designer" in req_file.read_text(encoding="utf-8"), t)
         check("(h) earlier requests are listed", "Requested before" in t and "Altium Designer" in t)
         P.snap("h_request_another", "#pjc-plat")
 
@@ -373,8 +373,8 @@ def part2(br, shots, scratch, port):
               and "chosen for this project" in t and pg.locator(".dlg").count() == 0, t[:300])
         P.snap("k2_bom_loaded", "#pjc-bom")
         # drop: a browser drop gives a name and a size; the page asks the server where the file is (one match: loaded)
-        body = (scratch / "boms" / "alt_bom.yaml").read_text()
-        (newdir / "drop_bom.yaml").write_text(body)
+        body = (scratch / "boms" / "alt_bom.yaml").read_text(encoding="utf-8")
+        (newdir / "drop_bom.yaml").write_text(body, encoding="utf-8")
         dt = pg.evaluate_handle("""t => { const d = new DataTransfer(); d.items.add(new File([t], 'drop_bom.yaml', {type: 'application/x-yaml'})); return d; }""", body)
         pg.dispatch_event("#bomdrop", "drop", {"dataTransfer": dt})
         P.wait_js("S && S.project_bom && S.project_bom.name === 'drop_bom.yaml'")

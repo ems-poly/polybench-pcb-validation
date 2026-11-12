@@ -39,7 +39,7 @@ def test_one_found_creates_linked_project(tmp_path):
     out = []
     a = args(tmp_path)
     assert open_ecad.run(a, {"fusion": fusion(), "kicad": Down(), "altium": Down()}, out=out.append) is None
-    st = json.loads((tmp_path / "proj" / "polybench-project.json").read_text())
+    st = json.loads((tmp_path / "proj" / "polybench-project.json").read_text(encoding="utf-8"))
     assert st["ecad"]["program"] == "fusion"
     doc = st["ecad"]["documents"]["fusion"]
     assert doc["name"] == "DEMO-1" and doc["elements"] == 3 and doc["fingerprint"] and doc["linked_from"] == "open-ecad"
@@ -97,7 +97,7 @@ def test_simulate_without_ecad_says_several(tmp_path):
     assert open_ecad.run(a, out=out.append) == 2 and "open ECAD documents were found" in "\n".join(out)
     a = args(tmp_path, simulate=True, ecad="kicad")
     assert open_ecad.run(a, out=lambda s: None) is None
-    assert json.loads((tmp_path / "proj" / "polybench-project.json").read_text())["ecad"]["program"] == "kicad"
+    assert json.loads((tmp_path / "proj" / "polybench-project.json").read_text(encoding="utf-8"))["ecad"]["program"] == "kicad"
 
 
 def test_kicad_schematic_and_bom_from_project_folder(tmp_path):
@@ -112,9 +112,9 @@ def test_kicad_schematic_and_bom_from_project_folder(tmp_path):
     snap = demo_board(["C1", "C2", "R1"])
     snap.document.project_path = str(proj)
     snap.document.board_filename = "demo.kicad_pcb"
-    (proj / "demo.kicad_sch").write_text("(kicad_sch)")
+    (proj / "demo.kicad_sch").write_text("(kicad_sch)", encoding="utf-8")
     (proj / "demo_bom.csv").write_text("Mouser Part Number,Quantity,Customer Part Number,Designators\n"
-                                       "595-DEMO100,2,R,\"R1,R2\"\n")
+                                       "595-DEMO100,2,R,\"R1,R2\"\n", encoding="utf-8")
     fake = FakeKiCadClient(snap)
     fake.with_schematic = True
     br = KicadBridge(link=KiCadLink(client_factory=lambda addr: fake, fake=True))
@@ -125,8 +125,8 @@ def test_kicad_schematic_and_bom_from_project_folder(tmp_path):
     res = open_ecad.create_project(f, tmp_path / "p2", str(PROTO), None)
     assert res["schematic"] == f.schematic
     assert res["bom"] == str((proj / "demo_bom.csv").resolve())          # one readable BOM file: linked
-    assert json.loads((tmp_path / "p2" / "polybench-project.json").read_text())["bom_path"] == res["bom"]
-    (proj / "other_bom.csv").write_text((proj / "demo_bom.csv").read_text())
+    assert json.loads((tmp_path / "p2" / "polybench-project.json").read_text(encoding="utf-8"))["bom_path"] == res["bom"]
+    (proj / "other_bom.csv").write_text((proj / "demo_bom.csv").read_text(encoding="utf-8"), encoding="utf-8")
     f.bom_candidates = open_ecad.bom_candidates(str(proj))
     assert len(f.bom_candidates) == 2                                    # two: none is chosen
     res2 = open_ecad.create_project(f, tmp_path / "p3", str(PROTO), None)
@@ -137,7 +137,7 @@ def test_cli_flag_and_no_bridge_call_in_other_modes(tmp_path):
     """The flag exists; with nothing open (real bridges, no program running, isolated dirs) it exits 2 and writes nothing."""
     env_dir = tmp_path / "proj"
     r = subprocess.run([sys.executable, "-m", "polybench.cli", "--from-open-ecad", "--ecad", "altium", "--protocol", str(PROTO),
-                        "--data-dir", str(env_dir), "--no-browser"], capture_output=True, text=True, timeout=25)
+                        "--data-dir", str(env_dir), "--no-browser"], capture_output=True, text=True, timeout=25, encoding="utf-8", errors="replace")
     assert r.returncode == 2 and "No ECAD program reports an open document" in r.stdout
     assert not env_dir.exists()
 
@@ -176,7 +176,7 @@ def kicad_two_schematics(tmp_path):
     snap = demo_board(["C1", "R1"])
     snap.document.project_path, snap.document.board_filename = str(proj), "b.kicad_pcb"
     for n in ("zzz_other.kicad_sch", "b.kicad_sch"):
-        (proj / n).write_text("(kicad_sch)")
+        (proj / n).write_text("(kicad_sch)", encoding="utf-8")
     fake = FakeKiCadClient(snap)
     fake.with_schematic = True
     br = KicadBridge(link=KiCadLink(client_factory=lambda addr: fake, fake=True))
@@ -196,7 +196,7 @@ def test_E_b_two_schematics_refuse_or_named(tmp_path):
     assert open_ecad.run(args(tmp_path), {"kicad": br}, out=out.append) == 2
     assert "2 schematics are open" in "\n".join(out) and "--document" in "\n".join(out) and not (tmp_path / "proj").exists()
     assert open_ecad.run(args(tmp_path, document="b.kicad_sch"), {"kicad": br}, out=lambda s: None) is None
-    st = json.loads((tmp_path / "proj" / "polybench-project.json").read_text())
+    st = json.loads((tmp_path / "proj" / "polybench-project.json").read_text(encoding="utf-8"))
     assert st["ecad"]["documents"]["kicad"]["schematic_path"].endswith("b.kicad_sch")
 
 
@@ -217,7 +217,7 @@ def test_E_c_link_is_in_the_journal_and_state(tmp_path):
 
 def test_E_d_bad_protocol_refused_before_anything_is_written(tmp_path):
     for bad in (str(tmp_path / "missing.pcbv.yaml"), str(tmp_path / "broken.pcbv.yaml")):
-        (tmp_path / "broken.pcbv.yaml").write_text("not: a protocol\n")
+        (tmp_path / "broken.pcbv.yaml").write_text("not: a protocol\n", encoding="utf-8")
         out = []
         assert open_ecad.run(args(tmp_path, protocol=bad), {"fusion": fusion()}, out=out.append) == 2
         assert out and "nothing was created" in out[-1]

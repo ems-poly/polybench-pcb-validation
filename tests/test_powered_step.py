@@ -75,12 +75,12 @@ def test_derive_values_maps_booleans_and_leaves_missing_data_to_the_operator():
 
 def _with_derive(demo_copy, extra_action="", extra_test=""):
     f = demo_copy / "powered.yaml"
-    s = f.read_text()
+    s = f.read_text(encoding="utf-8")
     s = s.replace("values: {P01: [22, 0.15, mA], P02: [5.0, 0.01, V], P03: [3.3, 0.01, V], P04: [14, 0.2, mA]}",
                   "values: {P01: [22, 0.15, mA], P02: [5.0, 0.01, V], P03: [3.3, 0.01, V], P04: [14, 0.2, mA]}\n              analyse: {trip_above: {P01: 40}}")
     s = s.replace("            proposes: [P01, P02, P03, P04]\n", "            proposes: [P01, P02, P03, P04]\n" + extra_action, 1)
     s = s.rstrip("\n") + "\n" + extra_test
-    f.write_text(s)
+    f.write_text(s, encoding="utf-8")
     return load(demo_copy / "demo.pcbv.yaml")
 
 
@@ -105,7 +105,7 @@ def test_lint_warns_on_a_measured_question_that_nothing_derives(demo_copy):
     q = "          - {id: P07, title: \"Supply current stayed under the limit, no protection trip\", kind: yn, limit: {class: record}}\n" \
         "          - {id: P08, title: \"Nothing smells hot\", kind: yn, limit: {class: record}}\n"
     f = demo_copy / "powered.yaml"
-    f.write_text(f.read_text().rstrip("\n") + "\n" + q)
+    f.write_text(f.read_text(encoding="utf-8").rstrip("\n") + "\n" + q, encoding="utf-8")
     p = load(demo_copy / "demo.pcbv.yaml")
     w = [x.msg for x in p.warnings]
     # the demo's actions are demo.*: the heuristic watches instrument plugins (n6705b., pcan., meter.), so no warning here
@@ -140,7 +140,7 @@ def test_action_analysis_derives_a_test_and_feeds_the_explorer(tmp_path, demo_co
     c = e.state.cell("S01", "P06")
     assert c["status"] == "accepted" and c["value"] == "yes" and c["source"]["kind"] == "action" and "within_limit" in c["raw"]
     run_dir = next((tmp_path / "pw" / "runs").glob("0001_S01_*"))
-    m = json.loads((run_dir / "measurements.json").read_text())
+    m = json.loads((run_dir / "measurements.json").read_text(encoding="utf-8"))
     assert m["analysis"]["within_limit"] is True and any(s["test"] == "P01" for s in m["samples"]) and m["derived"][0]["test"] == "P06"
     asyncio.run(go("S02"))             # S02's P04 is forced to 31 mA here, but the trip rule watches P01 (22 +- 15 %, below 40): still no trip
     out = measurements.collect(e, tmp_path / "pw", "S01", "powered")

@@ -21,7 +21,7 @@ def test_capture_sim(make_ctx):
     assert float(got["C1"]["value"]) == pytest.approx(1000.0, abs=1.0) and got["C1"]["unit"] == "uV"
     assert float(got["C2"]["value"]) == pytest.approx(100.0, rel=0.01) and got["C2"]["unit"] == "Hz"
     assert 190 <= int(got["C3"]["value"]) <= 210
-    rows = list(csv.reader(open(got["C1"]["evidence"])))
+    rows = list(csv.reader(open(got["C1"]["evidence"], encoding="utf-8")))
     assert rows[0][:5] == ["t_s", "can_id", "extended", "dlc", "data_hex"] and rows[0][5] == "bridge_uV"
     assert rows[1][1] == "0x3F0" and float(rows[-1][5]) > 900
 
@@ -70,7 +70,7 @@ def test_stats_sim(make_ctx):
     assert float(got["N2"]["value"]) == pytest.approx(2.0, rel=0.1)
     assert float(got["N4"]["value"]) < float(got["N5"]["value"])
     assert got["N4"]["unit"] == "bit" and got["N7"]["unit"] == "Hz" and got["N6"]["unit"] is None
-    js = json.load(open(got["N1"]["evidence"]))
+    js = json.load(open(got["N1"]["evidence"], encoding="utf-8"))
     assert js["n"] == int(got["N6"]["value"]) and js["signal"] == "bridge_uV"
 
 

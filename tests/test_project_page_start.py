@@ -162,7 +162,7 @@ def test_subprocess_smoke_start(tmp_path):
     cmd = [sys.executable, "-c", "import sys; from polybench.cli import main; sys.exit(main())",
            "--protocol", str(DEMO_PROTO), "--batch", "SMOKE", "--data-dir", str(tmp_path / "D"), "--ecad", "kicad", "--simulate",
            "--port", str(port), "--no-browser", "--boards", "2"]
-    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    p = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
     try:
         st, deadline = None, time.time() + 20
         while time.time() < deadline and p.poll() is None:
@@ -183,5 +183,5 @@ def test_subprocess_smoke_start(tmp_path):
             p.kill()
             p.wait(5)
     assert (tmp_path / "D" / "polybench-project.json").is_file()
-    assert json.loads((tmp_path / "D" / "polybench-project.json").read_text())["current_batch"] == "SMOKE"
+    assert json.loads((tmp_path / "D" / "polybench-project.json").read_text(encoding="utf-8"))["current_batch"] == "SMOKE"
     assert wslib.recent_list()[0]["dir"] == str((tmp_path / "D").resolve())

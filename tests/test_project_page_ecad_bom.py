@@ -18,10 +18,8 @@ DEMO_NAMES = ["U1", "U2", "U3", "C1", "C2", "C3", "C4", "C5", "C6", "R3", "R4", 
 @pytest.fixture
 def no_network(monkeypatch):
     """No socket may connect anywhere during these tests (the simulated bridges and the TestClient need none)."""
-    def refuse(*a, **k):
-        raise AssertionError(f"network use in a Project page test: {a}")
-    monkeypatch.setattr(socket.socket, "connect", refuse)
-    monkeypatch.setattr(socket, "create_connection", refuse)
+    from helpers import refuse_outside_connections
+    refuse_outside_connections(monkeypatch, "network use in a Project page test")
 
 
 @pytest.fixture
@@ -156,11 +154,11 @@ def test_unknown_platform_and_ecad_request(tmp_path, no_network):
         r = c.post("/api/ecad/request", json={"text": "  Altium   Designer "})
         assert r.status_code == 200 and r.json()["request"]["text"] == "Altium Designer"
         c.post("/api/ecad/request", json={"text": "EasyEDA"})
-        lines = [json.loads(x) for x in f.read_text().splitlines()]
+        lines = [json.loads(x) for x in f.read_text(encoding="utf-8").splitlines()]
         assert [x["text"] for x in lines] == ["Altium Designer", "EasyEDA"] and lines[0]["project"] == str((tmp_path / "proj").resolve())
         for bad in ("", "   ", None):
             assert c.post("/api/ecad/request", json={"text": bad}).status_code == 422
-        assert len(f.read_text().splitlines()) == 2
+        assert len(f.read_text(encoding="utf-8").splitlines()) == 2
         assert [x["text"] for x in c.get("/api/workspace").json()["ecad"]["requests"]] == ["Altium Designer", "EasyEDA"]
 
 
@@ -171,9 +169,9 @@ def test_load_yaml_bom_fragment_and_modified_copy(tmp_path):
     asm = DEMO_PROTO.parent / "assembly.yaml"
     mod = tmp_path / "bomsrc" / "assembly_v2.yaml"
     mod.parent.mkdir()
-    text = asm.read_text().replace('mpn: "DEMOADC-16"', 'mpn: "DEMOADC-16B"')
+    text = asm.read_text(encoding="utf-8").replace('mpn: "DEMOADC-16"', 'mpn: "DEMOADC-16B"')
     text = "\n".join(x for x in text.splitlines() if "designators: [J1, J2]" not in x) + "\n"
-    mod.write_text(text)
+    mod.write_text(text, encoding="utf-8")
     with client(sess) as c:
         r = c.post("/api/bom/load", json={"path": str(asm)})
         assert r.status_code == 200, r.text
@@ -222,7 +220,7 @@ def test_unsupported_extension_is_422(tmp_path, name, body):
     """PP-09: a file that is not .yaml/.yml/.csv/.xlsx is refused (422) and nothing changes."""
     sess = new_project_session(tmp_path / "proj")
     f = tmp_path / name
-    f.write_text(body)
+    f.write_text(body, encoding="utf-8")
     with client(sess) as c:
         r = c.post("/api/bom/load", json={"path": str(f)})
         assert r.status_code == 422 and "not a BOM format" in r.json()["error"]
@@ -235,9 +233,9 @@ def test_duplicate_designators_and_bad_yaml_are_422(tmp_path):
     """PP-09: a BOM with a designator on two lines is refused (CSV and YAML); a YAML without `bom:` too."""
     sess = new_project_session(tmp_path / "proj")
     dup_yaml = tmp_path / "dup.yaml"
-    dup_yaml.write_text("bom:\n  - {line: 1, designators: [U1], mpn: A}\n  - {line: 2, designators: [U1, R1], mpn: B}\n")
+    dup_yaml.write_text("bom:\n  - {line: 1, designators: [U1], mpn: A}\n  - {line: 2, designators: [U1, R1], mpn: B}\n", encoding="utf-8")
     nobom = tmp_path / "nobom.yaml"
-    nobom.write_text("steps: []\n")
+    nobom.write_text("steps: []\n", encoding="utf-8")
     with client(sess) as c:
         for f, word in ((CSV_BOM_DUP, "U1"), (dup_yaml, "U1"), (nobom, "bom")):
             r = c.post("/api/bom/load", json={"path": str(f)})
@@ -341,7 +339,9 @@ def test_reveal_without_stub_runs_open_r_only(tmp_path, monkeypatch, popen_spy):
         r = c.post("/api/reveal", json={"path": p})
         assert r.status_code == 200 and "stubbed" not in r.json()
         assert c.post("/api/reveal", json={"path": "/etc"}).status_code == 403
-    assert popen_spy == [["open", "-R", p]]
+    from polybench import platform as pf
+    want = [["open", "-R", p]] if pf.IS_MACOS else [["explorer", "/select," + p]] if pf.IS_WINDOWS else [["xdg-open", p]]
+    assert popen_spy == want
 
 
 # ------------------------------------------------------------------------------------------------------------ browser, locate
@@ -350,11 +350,11 @@ def test_fs_list_marks_folders_hides_dotfiles_filters_files(tmp_path):
     sess = new_project_session(tmp_path / "root" / "proj")
     root = tmp_path / "root"
     (root / ".hidden").mkdir()
-    (root / ".secret.yaml").write_text("x")
+    (root / ".secret.yaml").write_text("x", encoding="utf-8")
     (root / "plain").mkdir()
-    (root / "bom.csv").write_text("x")
-    (root / "notes.txt").write_text("x")
-    (root / "p.pcbv.YAML").write_text("x")
+    (root / "bom.csv").write_text("x", encoding="utf-8")
+    (root / "notes.txt").write_text("x", encoding="utf-8")
+    (root / "p.pcbv.YAML").write_text("x", encoding="utf-8")
     with client(sess) as c:
         d = c.get("/api/fs/list", params={"path": str(root)}).json()
         names = {e["name"]: e for e in d["entries"]}
@@ -467,7 +467,7 @@ def test_bom_change_rechecks_the_recorded_document(tmp_path):
     assert cur(c).engine.state.project["accepted"]
     fp_before = c.get("/api/project/probe").json()["fingerprint"]
     alt = tmp_path / "alt.yaml"
-    alt.write_text((DEMO_PROTO.parent / "assembly.yaml").read_text().replace("designators: [J1, J2]", "designators: [J1, J2, J3]"))
+    alt.write_text((DEMO_PROTO.parent / "assembly.yaml").read_text(encoding="utf-8").replace("designators: [J1, J2]", "designators: [J1, J2, J3]"), encoding="utf-8")
     r = c.post("/api/bom/load", json={"path": str(alt)})
     assert r.status_code == 200, r.text
     cc = r.json()["crosscheck"]

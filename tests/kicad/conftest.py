@@ -54,6 +54,8 @@ def client(link):
 @pytest.fixture
 def sockdir():
     """A short directory under /tmp (ipc paths are limited to ~104 characters on macOS)."""
+    if os.name == "nt":
+        pytest.skip("needs W3 (UIR-56): KiCad's API on Windows is a named pipe, not a socket file; the real pipe is not built yet")
     d = tempfile.mkdtemp(dir="/tmp", prefix="pbk")
     yield d
     for f in Path(d).glob("*"):

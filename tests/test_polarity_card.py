@@ -151,7 +151,7 @@ def test_nets_expectation_ties_pad_numbers_to_the_datasheet():
 # ---- the recorded demo board reads (a sanitised Fusion session): the part types of a typical BOM
 @pytest.fixture(scope="module")
 def demo_fp():
-    rec = json.loads(REC.read_text())
+    rec = json.loads(REC.read_text(encoding="utf-8"))
 
     def read(entity, obj=None):
         a = {"entity_type": entity}
@@ -197,10 +197,10 @@ def poly_client(tmp_path, monkeypatch):
     from helpers import DEMO
     proto = tmp_path / "proto"
     shutil.copytree(DEMO, proto)
-    a = (proto / "assembly.yaml").read_text()
+    a = (proto / "assembly.yaml").read_text(encoding="utf-8")
     a = a.replace('polarity: "cathode band toward J1", dnf: false,',
                   'polarity: "cathode band toward J1", polmark: {symbol: diode, family: sma, marking: band, terminal: cathode, pad: "1", ref: "demo"}, dnf: false,')
-    (proto / "assembly.yaml").write_text(a)
+    (proto / "assembly.yaml").write_text(a, encoding="utf-8")
     monkeypatch.setenv("ASCAN_CONFIG_DIR", str(tmp_path / "cfg"))
     monkeypatch.delenv("POLYBENCH_FUSION_URL", raising=False)
     sess = Session(load(proto / "demo.pcbv.yaml"), tmp_path / "data", "pol", True, 3, None)
@@ -222,9 +222,9 @@ def test_endpoint_confirmed_amber_and_none(poly_client):
 def test_part_the_simulated_ecad_does_not_know_is_amber(poly_client, tmp_path, monkeypatch):
     import polybench.assembly_scanner.sim as sim
     c, sess = poly_client
-    rec = json.loads(sim.RECORDING.read_text())
+    rec = json.loads(sim.RECORDING.read_text(encoding="utf-8"))
     short = tmp_path / "short.json"
-    short.write_text(json.dumps({k: v for k, v in rec.items() if '"value": "D1"' not in k}))
+    short.write_text(json.dumps({k: v for k, v in rec.items() if '"value": "D1"' not in k}), encoding="utf-8")
     monkeypatch.setattr(sim, "RECORDING", short)
     card = c.get("/api/polarity?line=6").json()
     assert card["status"] == "amber" and "not on the open board" in card["reason"] and card["board"] is None

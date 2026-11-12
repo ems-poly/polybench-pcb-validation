@@ -83,7 +83,7 @@ class Call:
 
 
 def load_tools() -> list[dict]:
-    return json.loads(TOOLS_FIXTURE.read_text())["tools"]
+    return json.loads(TOOLS_FIXTURE.read_text(encoding="utf-8"))["tools"]
 
 
 class FakeFusionMCP:

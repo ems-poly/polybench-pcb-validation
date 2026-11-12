@@ -49,5 +49,5 @@ DBC = textwrap.dedent('''\
 @pytest.fixture
 def dbc(tmp_path):
     p = tmp_path / "t.dbc"
-    p.write_text(DBC)
+    p.write_text(DBC, encoding="utf-8")
     return str(p)

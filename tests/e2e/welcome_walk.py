@@ -36,11 +36,11 @@ class Server:
         home.mkdir()
         if recent is not None:                 # a recent list written before the first start
             (home / "cfg").mkdir()
-            (home / "cfg" / "recent.json").write_text(json.dumps({"schema": 1, "projects": recent}))
+            (home / "cfg" / "recent.json").write_text(json.dumps({"schema": 1, "projects": recent}), encoding="utf-8")
         env = dict(os.environ, HOME=str(home), POLYBENCH_CONFIG_DIR=str(home / "cfg"), POLYBENCH_DATA=str(scratch / "data"),
                    POLYBENCH_DEMO_DIR=str(scratch / "demo-project"), POLYBENCH_NO_REVEAL="1", POLYBENCH_STATE_DIR=str(scratch / "state"))
         exe = str(Path(sys.executable).parent / "polybench")
-        self.log = open(scratch / f"server_{port}.log", "w")
+        self.log = open(scratch / f"server_{port}.log", "w", encoding="utf-8")
         self.p = subprocess.Popen([exe, "--simulate", "--port", str(port), "--no-browser"], env=env, stdout=self.log, stderr=subprocess.STDOUT)
         self.base = f"http://127.0.0.1:{port}/"
         import time
@@ -51,7 +51,7 @@ class Server:
             except OSError:
                 time.sleep(0.25)
         self.stop()
-        raise RuntimeError("server did not start: " + (scratch / f"server_{port}.log").read_text()[-600:])
+        raise RuntimeError("server did not start: " + (scratch / f"server_{port}.log").read_text(encoding="utf-8")[-600:])
 
     def get(self, path):
         return json.load(urllib.request.urlopen(self.base + path, timeout=20))

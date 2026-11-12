@@ -37,25 +37,25 @@ def make_extras(s: Path) -> dict:
     ws.append(["603-RC0402FR-07120RL", "RC0402FR-07120RL", "R1, R2", "120 Ohm", "0402", "DNF"])
     wb.save(x / "demo_purchasing.xlsx")
     (x / "broken.xlsx").write_bytes(b"\x89PNG\r\n\x1a\n\xff\xfe not a workbook")
-    (x / "fragment.yaml").write_text("steps:\n  - id: a\n")
-    (x / "plain.csv").write_text((ROOT / "tests" / "data" / "demo_purchasing_bom.csv").read_text())
+    (x / "fragment.yaml").write_text("steps:\n  - id: a\n", encoding="utf-8")
+    (x / "plain.csv").write_text((ROOT / "tests" / "data" / "demo_purchasing_bom.csv").read_text(encoding="utf-8"), encoding="utf-8")
     (x / "locked").mkdir()
     os.chmod(x / "locked", 0)
     other = s / "other"
     import shutil
     shutil.copytree(W.DEMO, other)
     f = other / "demo.pcbv.yaml"
-    f.write_text(f.read_text().replace("name: DEMO-1", "name: OTHER-DESIGN", 1))
+    f.write_text(f.read_text(encoding="utf-8").replace("name: DEMO-1", "name: OTHER-DESIGN", 1), encoding="utf-8")
     legacy = s / "legacy2"
     legacy.mkdir()
     sess = Session(load(W.DEMO / "demo.pcbv.yaml"), legacy, "LB2", True, 3, None)
     sess.journal.close()
     bad = s / "corrupt"
     bad.mkdir()
-    (bad / "polybench-project.json").write_text('{"name": "half-writ')
+    (bad / "polybench-project.json").write_text('{"name": "half-writ', encoding="utf-8")
     batchish = s / "somebatch"
     (batchish / "inner").mkdir(parents=True)
-    (batchish / "journal.jsonl").write_text("")
+    (batchish / "journal.jsonl").write_text("", encoding="utf-8")
     return {"files": x, "other": other / "demo.pcbv.yaml", "legacy": legacy, "corrupt": bad, "batchish": batchish}
 
 
@@ -222,7 +222,7 @@ def main():
             t = pg.inner_text("#pjo-insp")
             ck("D3 the Open form says: settings file unreadable: <path>, <error>", str(ex["corrupt"]) in t and "unreadable" in t, t)
             ck("D3 the Open button is disabled and the file is untouched", pg.is_disabled("[data-act=pjopengo]")
-               and (ex["corrupt"] / "polybench-project.json").read_text() == '{"name": "half-writ')
+               and (ex["corrupt"] / "polybench-project.json").read_text(encoding="utf-8") == '{"name": "half-writ')
             P.snap("d3_corrupt_settings", "#pjopenform")
             # Opening it by the recent list / API keeps a copy
             r = None
@@ -232,7 +232,7 @@ def main():
                 r = e
             ck("D3 opening it is refused and keeps a .corrupt-<ts> copy, original unchanged",
                r is not None and len(list(ex["corrupt"].glob("polybench-project.json.corrupt-*"))) == 1
-               and (ex["corrupt"] / "polybench-project.json").read_text() == '{"name": "half-writ')
+               and (ex["corrupt"] / "polybench-project.json").read_text(encoding="utf-8") == '{"name": "half-writ')
 
             # D8 + coordinator (1): New project
             pg.click("[data-act=pjnew]")

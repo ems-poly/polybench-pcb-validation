@@ -3,7 +3,7 @@ from pathlib import Path
 
 import polybench
 
-JS = (Path(polybench.__file__).parent / "static" / "app.js").read_text()
+JS = (Path(polybench.__file__).parent / "static" / "app.js").read_text(encoding="utf-8")
 
 
 def test_r1_standard_view_is_one_line_problems_and_accept():

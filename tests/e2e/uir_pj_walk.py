@@ -25,7 +25,7 @@ def main():
     port = int(os.environ.get("PB_E2E_PORT", "8907"))
     s = W.make_scratch()
     flag = s / "ecad_down"
-    flag.write_text("down")
+    flag.write_text("down", encoding="utf-8")
     os.environ["POLYBENCH_SIM_ECAD_DOWN"] = str(flag)
     srv = W.Server(port, s, s / "demo" / "demo.pcbv.yaml", s / "proj", "B1")
     errors = []
@@ -114,7 +114,7 @@ def main():
             pg.wait_for_selector("#pjc-link .vd.pass")
             ck("R14-1 KiCad connected (simulator)", "KiCad" in pg.inner_text("#pjc-link"))
             P.snap("i_kicad_connected_cleared", "#pjc-ecad")
-            flag.write_text("down")
+            flag.write_text("down", encoding="utf-8")
             pg.click("#pjc-link [data-act=pjcheck]")
             pg.wait_for_selector("#pjc-link .vd.fail")
             ck("R14-1 KiCad unreachable", "NOT REACHABLE" in pg.inner_text("#pjc-link") and pg.locator("#pjc-ecad .steps").count() == 0)

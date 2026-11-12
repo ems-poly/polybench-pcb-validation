@@ -65,10 +65,10 @@ def main(shots: Path, browser_name: str):
     tmp = Path(tempfile.mkdtemp(prefix="pb-guide-e2e-"))
     proto = tmp / "proto"
     shutil.copytree(ROOT / "src" / "polybench" / "examples" / "demo", proto)
-    txt = (ROOT / "tests" / "voice" / "fixtures" / "guided_powered.yaml").read_text() % {"read": "demo.measure"}
-    (proto / "powered.yaml").write_text(txt.replace("hold_s: 60", "hold_s: 20"))
+    txt = (ROOT / "tests" / "voice" / "fixtures" / "guided_powered.yaml").read_text(encoding="utf-8") % {"read": "demo.measure"}
+    (proto / "powered.yaml").write_text(txt.replace("hold_s: 60", "hold_s: 20"), encoding="utf-8")
     cfgp = tmp / "voice.json"
-    cfgp.write_text(json.dumps({"tts_backend": "log", "grace_s": 0, "llm_enabled": False, "stt_backend": "sidecar"}))
+    cfgp.write_text(json.dumps({"tts_backend": "log", "grace_s": 0, "llm_enabled": False, "stt_backend": "sidecar"}), encoding="utf-8")
     env = {**os.environ, "POLYBENCH_VOICE_TEST": "1", "POLYBENCH_VOICE_CONFIG": str(cfgp), "PYTHONPATH": os.environ.get("PYTHONPATH") or str(ROOT / "src")}
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(proto / "demo.pcbv.yaml"), "--simulate",
                             "--data-dir", str(tmp / "data"), "--batch", "GUIDE", "--boards", "3", "--no-browser", "--port", str(PORT)],

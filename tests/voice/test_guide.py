@@ -15,7 +15,7 @@ from polybench.voice import guide as gd
 from helpers import DEMO
 
 FIX = Path(__file__).parent / "fixtures" / "guided_powered.yaml"      # the demo's Powered step with a 3-step "Rails in band" section; %(read)s = plugin of step 2
-POWERED = FIX.read_text()
+POWERED = FIX.read_text(encoding="utf-8")
 
 
 def wait(cond, t=8.0):
@@ -36,7 +36,7 @@ def voice_env(tmp_path, monkeypatch):
 def make_session(tmp_path, read="demo.measure", boards=3, extra=""):
     d = tmp_path / "proto"
     shutil.copytree(DEMO, d)
-    (d / "powered.yaml").write_text(POWERED % {"read": read} + extra)
+    (d / "powered.yaml").write_text(POWERED % {"read": read} + extra, encoding="utf-8")
     proto = load(d / "demo.pcbv.yaml")
     assert not [i for i in proto.issues if i.severity == "error"], [i.msg for i in proto.issues]
     sess = Session(proto, tmp_path / "data", "v", True, boards, None, "tester")
@@ -119,9 +119,9 @@ def test_linter_accepts_a_valid_guide_and_names_a_bad_one(tmp_path):
     d = tmp_path / "p"
     shutil.copytree(DEMO, d)
     txt = POWERED % {"read": "demo.measure"}
-    (d / "powered.yaml").write_text(txt.replace("        tests:\n          - id: P02", "        guide: [{action: power_on}, {test: P02}, {action: read_5v_an}]\n        tests:\n          - id: P02", 1))
+    (d / "powered.yaml").write_text(txt.replace("        tests:\n          - id: P02", "        guide: [{action: power_on}, {test: P02}, {action: read_5v_an}]\n        tests:\n          - id: P02", 1), encoding="utf-8")
     assert not [i for i in load(d / "demo.pcbv.yaml").issues if i.severity == "error"]
-    (d / "powered.yaml").write_text(txt.replace("        tests:\n          - id: P02", "        guide: [{action: nope}, {test: P99}, {step: 3}]\n        tests:\n          - id: P02", 1))
+    (d / "powered.yaml").write_text(txt.replace("        tests:\n          - id: P02", "        guide: [{action: nope}, {test: P99}, {step: 3}]\n        tests:\n          - id: P02", 1), encoding="utf-8")
     msgs = [i.msg for i in load(d / "demo.pcbv.yaml").issues if i.severity == "error"]
     assert any("unknown action 'nope'" in m for m in msgs) and any("unknown test 'P99'" in m for m in msgs) and any("'step': 3" in m for m in msgs)
 

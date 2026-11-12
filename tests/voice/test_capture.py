@@ -246,7 +246,7 @@ def test_sidecar_backend_reads_the_text_file_and_needs_no_whisper(h, tmp_path):
     h.cap.whisper = None
     w = tmp_path / "a.wav"
     stt.write_wav(str(w), speech(1.0))
-    (tmp_path / "a.txt").write_text("hello\n")
+    (tmp_path / "a.txt").write_text("hello\n", encoding="utf-8")
     assert h.cap.feed_wav(str(w)) == {"text": "hello"} and h.texts[0][1] == "clip"
     assert h.cap.stt_status()["ok"]
 

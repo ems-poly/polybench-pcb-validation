@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from helpers import DEMO, ROOT
 
 AI = {"X-Polybench-Client": "assistant", "X-Polybench-Assistant": "qa", "X-Polybench-Session": "s1"}
-PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text()
+PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text(encoding="utf-8")
 OUT = Path(sys.argv[1])
 
 
@@ -22,8 +22,8 @@ def make(mode):
     shutil.rmtree(d, ignore_errors=True)
     shutil.copytree(DEMO, d)
     top = d / "demo.pcbv.yaml"
-    (d / "PLAN.md").write_text(PLAN)
-    top.write_text(top.read_text() + "\ntest_plan: {file: PLAN.md, generate: true}\n")
+    (d / "PLAN.md").write_text(PLAN, encoding="utf-8")
+    top.write_text(top.read_text(encoding="utf-8") + "\ntest_plan: {file: PLAN.md, generate: true}\n", encoding="utf-8")
     sess = Session(load(top), OUT / f"data_{mode}", "ai", True, 3, None, operator="Op")
     app = create_app(sess)
     return sess, TestClient(app), app
@@ -57,7 +57,7 @@ for mode in (None, "read", "propose", "off", "ADMIN", "Propose "):
                 code = f"EXC {type(e).__name__}"
             journaled = any(e["type"] == "ai_action" and e["payload"].get("outcome") == "refused" for e in sess.journal.events[n:])
             rows.append({"mode": str(mode), "method": m, "path": path, "status": code, "refusal_journaled": journaled})
-json.dump(rows, open(OUT / "sweep.json", "w"), indent=0)
+json.dump(rows, open(OUT / "sweep.json", "w", encoding="utf-8"), indent=0)
 # summary: anything that is not 403 with the assistant identity, per mode
 for mode in (None, "read", "propose", "off", "ADMIN", "Propose "):
     ok = [f"{r['method']} {r['path']} -> {r['status']}" for r in rows if r["mode"] == str(mode) and r["status"] != 403]

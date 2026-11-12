@@ -1186,7 +1186,7 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
         p = str(Path(raw).expanduser().resolve()) if raw else ""          # resolved: `..` or a symlink cannot climb out
         allowed = [str(Path(x).expanduser().resolve()) for x in
                    [cur.workspace.dir, cur.dir, cur.proto.path.parent] + [Path(y).parent for y in [cur.workspace.get("bom_path")] if y]]
-        if not p or not any(p == a or p.startswith(a.rstrip("/") + "/") for a in allowed):
+        if not p or not any(_platform.is_within(p, a) for a in allowed):
             raise CmdError("only the project, batch, protocol and BOM paths can be shown in Finder", 403)
         return reveal_path(p)
 

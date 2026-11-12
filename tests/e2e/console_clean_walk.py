@@ -26,7 +26,7 @@ PROTOCOL = ROOT / "tests" / "e2e" / "fixtures" / "voice_demo" / "voice_demo.pcbv
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="pb-console-"))
     cfgp = tmp / "voice.json"
-    cfgp.write_text('{"tts_backend": "log", "llm_enabled": false, "stt_backend": "sidecar"}')
+    cfgp.write_text('{"tts_backend": "log", "llm_enabled": false, "stt_backend": "sidecar"}', encoding="utf-8")
     env = {**os.environ, "POLYBENCH_VOICE_TEST": "1", "POLYBENCH_VOICE_CONFIG": str(cfgp), "PYTHONPATH": os.environ.get("PYTHONPATH") or str(ROOT / "src")}
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(PROTOCOL), "--simulate", "--data-dir", str(tmp / "data"),
                             "--batch", "DEMO-CON", "--boards", "4", "--no-browser", "--port", str(PORT)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)

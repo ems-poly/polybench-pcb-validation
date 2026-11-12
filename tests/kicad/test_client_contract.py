@@ -70,7 +70,7 @@ def test_interface_members_exist():
 @pytest.fixture
 def two(monkeypatch, sockdir):
     for n in ("api.sock", "api-4242.sock"):
-        open(os.path.join(sockdir, n), "w").close()
+        open(os.path.join(sockdir, n), "w", encoding="utf-8").close()
     monkeypatch.setattr(settings, "socket_dirs", lambda: [sockdir])
     monkeypatch.delenv("KICAD_API_SOCKET", raising=False)
     monkeypatch.delenv("POLYBENCH_KICAD_SOCKET", raising=False)

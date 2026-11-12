@@ -73,7 +73,7 @@ def test_app_import_strips_exif_and_gps(tmp_path):
     d = tmp_path / "p"
     d.mkdir()
     (d / "t.pcbv.yaml").write_text("schema: pcbv.protocol/2\ndesign: {name: T, revision: '1'}\nbatch: {default_boards: 2, label_prefix: D}\n"
-                                   "aoi: {mode: diff, reference: D01}\nsteps:\n  - id: visual\n    title: Visual\n")
+                                   "aoi: {mode: diff, reference: D01}\nsteps:\n  - id: visual\n    title: Visual\n", encoding="utf-8")
     sess = Session(load(d / "t.pcbv.yaml"), tmp_path / "data", "B", True, None, None, "pat")
     c = TestClient(create_app(sess))
     r = c.post("/api/aoi/photos?name=IMG_1-D01.jpg&board=D01", content=jpeg_with_gps()).json()

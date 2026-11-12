@@ -69,7 +69,7 @@ class _GuardedPopen(_REAL_POPEN):
 def silent_voice(tmp_path, monkeypatch):
     """Every test gets its own voice config with tts_backend 'log', never ~/.config/polybench/voice.json, and cannot call `say` / `open`."""
     cfg = tmp_path / "voice.json"
-    cfg.write_text(json.dumps({"tts_backend": "log"}))
+    cfg.write_text(json.dumps({"tts_backend": "log"}), encoding="utf-8")
     monkeypatch.setenv("POLYBENCH_VOICE_CONFIG", str(cfg))
     monkeypatch.setattr(subprocess, "Popen", _GuardedPopen)
 

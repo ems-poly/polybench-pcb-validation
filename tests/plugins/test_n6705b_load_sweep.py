@@ -36,7 +36,7 @@ MAP = {"rail_v_noload": "R0", "rail_v_fullload": "R1", "rail_v_min": "R2", "rail
 @pytest.fixture
 def profile(tmp_path):
     f = tmp_path / "rail_sweep.toml"
-    f.write_text(PROFILE.format(src_extra="", load_extra="voltmeter = true"))
+    f.write_text(PROFILE.format(src_extra="", load_extra="voltmeter = true"), encoding="utf-8")
     return f
 
 
@@ -209,7 +209,7 @@ def _force_6v(monkeypatch):
 def test_output_range_respected_with_frame_on_6v(make_ctx, tmp_path, monkeypatch):
     _force_6v(monkeypatch)
     f = tmp_path / "r20.toml"
-    f.write_text(PROFILE.format(src_extra="output_range_v = 20", load_extra="voltmeter = true"))
+    f.write_text(PROFILE.format(src_extra="output_range_v = 20", load_extra="voltmeter = true"), encoding="utf-8")
     fr0 = n67.open_frame({}, True, n67.load_profile({"profile": str(f)}, True, True))
     if fr0.channels[1].get("model") != "N6781A":
         pytest.skip("simulated ch1 is not an N6781A")
@@ -279,7 +279,7 @@ def test_measure_voltmeter_simulated_click_through(make_ctx, frames, profile):
 
 def test_measure_voltmeter_needs_the_profile_permission(make_ctx, frames, tmp_path):
     f = tmp_path / "nov.toml"
-    f.write_text(PROFILE.format(src_extra="", load_extra=""))
+    f.write_text(PROFILE.format(src_extra="", load_extra=""), encoding="utf-8")
     with pytest.raises(Exception, match="does not allow voltmeter mode"):
         N6705bMeasure().run(make_ctx({"profile": str(f), "channel": 2, "output": "voltmeter"}))
     assert not any("EMUL VMET" in c for c in frames[0].log)
@@ -313,7 +313,7 @@ def test_sweep_guard_is_effective_with_the_off_channel_reading_zero(make_ctx, fr
 
 def test_sweep_refused_without_voltmeter_permission_nothing_energised(make_ctx, frames, tmp_path):
     f = tmp_path / "nov.toml"
-    f.write_text(PROFILE.format(src_extra="", load_extra=""))
+    f.write_text(PROFILE.format(src_extra="", load_extra=""), encoding="utf-8")
     with pytest.raises(PluginError, match="voltmeter = true"):
         N6705bLoadSweep().run(make_ctx(base(f)))
     assert not frames[0].energised_ever
@@ -415,7 +415,7 @@ steps:
           - {{id: sw, title: Sweep, plugin: n6705b.load_sweep, params: {{profile: "{profile}", volts: 12, points_ma: [0, 100]}}, proposes: [R0]}}
         tests:
           - {{id: R0, title: Rail, kind: number, limit: {{class: record}}}}
-""")
+""", encoding="utf-8")
     proto = protocol.load(f)
     assert not [i for i in proto.issues if "plugin" in str(i).lower()]
     row = next(r for r in plugin_status.discover() if r["name"] == "n6705b.load_sweep")

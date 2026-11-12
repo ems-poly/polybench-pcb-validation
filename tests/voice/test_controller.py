@@ -233,7 +233,7 @@ def test_feed_wav_with_sidecar_both_paths(vc, nlu, tmp_path):
     nlu.script["s1 twenty kilo ohms"] = vals(("S01", "20", "kOhm"))
     w = tmp_path / "c.wav"
     stt_.write_wav(str(w), speech(1.2))
-    w.with_suffix(".txt").write_text("s1 twenty kilo ohms\n")
+    w.with_suffix(".txt").write_text("s1 twenty kilo ohms\n", encoding="utf-8")
     e = vc.feed_wav(str(w), "ptt")
     assert e["source"] == "clip" and e["transcript"] == "s1 twenty kilo ohms" and e["outcome"] == "proposed" and e["stt_ms"] is not None
     e2 = vc.feed_wav(str(w), "vad")
@@ -251,7 +251,7 @@ def test_config_round_trip_and_validation(vc, tmp_path):
     p = vcfg.path()
     assert p == tmp_path / "voice.json"
     vc.set_config({"grace_s": "2.5", "tts_rate": 220, "row_mode": False, "input_device": ""})
-    saved = json.loads(p.read_text())
+    saved = json.loads(p.read_text(encoding="utf-8"))
     assert saved["grace_s"] == 2.5 and saved["tts_rate"] == 220 and saved["row_mode"] is False and saved["llm_model"] == "qwen3:8b"
     assert vcfg.load()["grace_s"] == 2.5 and vc.status()["config"]["tts_rate"] == 220
     with pytest.raises(ValueError):
@@ -306,7 +306,7 @@ def test_routes(tmp_path, nlu):
         assert c.get("/api/state").json()["voice"][-1]["utt"] == 1
         w = tmp_path / "c.wav"
         stt.write_wav(str(w), speech(1.0))
-        w.with_suffix(".txt").write_text("s1 twenty")
+        w.with_suffix(".txt").write_text("s1 twenty", encoding="utf-8")
         assert c.post("/api/voice/clip", json={"path": str(w), "via": "ptt"}).json()["source"] == "clip"
 
 
@@ -388,6 +388,7 @@ def test_open_speech_settings_route(tmp_path, nlu, monkeypatch):
     def fake_run(cmd, **kw):
         calls.append(cmd)
         return types.SimpleNamespace(returncode=0)
+    monkeypatch.setattr(ttsmod._platform, "IS_MACOS", True)                   # the macOS settings pane: tested as macOS on every OS
     monkeypatch.setattr(ttsmod.subprocess, "run", fake_run)
     with TestClient(create_app(make_session(tmp_path))) as c:
         r = c.post("/api/voice/open-speech-settings", json={"url": "file:///etc/passwd"}, params={"url": "http://evil"})
@@ -403,10 +404,18 @@ def test_open_speech_settings_falls_back(monkeypatch):
     def fake_run(cmd, **kw):
         seen.append(cmd[1])
         return types.SimpleNamespace(returncode=1 if len(seen) < 3 else 0)
+    monkeypatch.setattr(ttsmod._platform, "IS_MACOS", True)
     monkeypatch.setattr(ttsmod.subprocess, "run", fake_run)
     out = ttsmod.open_speech_settings()
     assert out["ok"] and seen == list(ttsmod.SPOKEN_CONTENT_URLS) and out["url"].endswith("universalaccess")
     monkeypatch.setattr(ttsmod.subprocess, "run", lambda *a, **k: types.SimpleNamespace(returncode=1))
+    assert ttsmod.open_speech_settings() == {"ok": False, "url": None}
+
+
+def test_open_speech_settings_is_macos_only(monkeypatch):
+    from polybench.voice import tts as ttsmod
+    monkeypatch.setattr(ttsmod._platform, "IS_MACOS", False)
+    monkeypatch.setattr(ttsmod.subprocess, "run", lambda *a, **k: (_ for _ in ()).throw(AssertionError("must not run")))
     assert ttsmod.open_speech_settings() == {"ok": False, "url": None}
 
 

@@ -18,17 +18,17 @@ def rig(tmp_path, monkeypatch, demo_files):
     from asc_fake_fusion_mcp import FakeFusionMCP, SimulatedFusion
     proto = tmp_path / "proto"
     shutil.copytree(DEMO, proto)
-    a = (proto / "assembly.yaml").read_text()
+    a = (proto / "assembly.yaml").read_text(encoding="utf-8")
     a = a.replace('barcode: ["595-DEMOCAN8"]', 'barcode: ["903-DEMO-XCVR/MF", "DEMO-XCVR/MF"]')
     a = a.replace('designators: [R3, R4, R5], mpn: "RC0402FR-0710KL"', 'designators: [R4, R5], mpn: "DEMO-R2K2"')
     a = a.replace('barcode: ["603-RC0402FR-0710KL"]', 'barcode: ["901-DEMO-R2K2", "DEMO-R2K2"]')
     a = a.replace("designators: [U3]", "designators: [IC2]")
-    (proto / "assembly.yaml").write_text(a)
+    (proto / "assembly.yaml").write_text(a, encoding="utf-8")
     frames = tmp_path / "frames"
     frames.mkdir()
     for n in ("label_a.heic", "label_b_tilted.jpg"):
         shutil.copy(demo_files[n], frames / n)
-    (frames / "CURRENT").write_text("")
+    (frames / "CURRENT").write_text("", encoding="utf-8")
     monkeypatch.setenv("POLYBENCH_SCANNER_FAKE_FRAMES", str(frames))
     monkeypatch.setenv("ASCAN_CONFIG_DIR", str(tmp_path / "cfg"))
     with FakeFusionMCP(fusion=SimulatedFusion(DEMO_DESIGNATORS, doc_name="Demo-board")) as fake:
@@ -59,7 +59,7 @@ def test_camera_scan_selects_line_highlights_in_fusion_and_places(rig):
         assert st["board"]["mode"] == "auto" and st["board"]["name"] == "Demo-board"
         assert st["camera"]["state"] == "running" and not st["idle"]
 
-        (rig["frames"] / "CURRENT").write_text("label_a.heic")
+        (rig["frames"] / "CURRENT").write_text("label_a.heic", encoding="utf-8")
         st = wait(lambda: (lambda s: s if s["fired"]["seq"] >= 1 else None)(c.get("/api/scanner/state?hb=1").json()), what="a fired scan")
         assert st["fired"]["ok"] and st["fired"]["line"] == 5 and st["fired"]["code"] == "901-DEMO-R2K2"
         st = wait(lambda: (lambda s: s if s["result"] and s["result"]["highlighted"] else None)(c.get("/api/scanner/state?hb=1").json()), what="Fusion selection")
@@ -79,7 +79,7 @@ def test_camera_scan_selects_line_highlights_in_fusion_and_places(rig):
         # same bag held in view: no second scan (PoC debouncer); a different bag: next line
         time.sleep(1.0)
         assert c.get("/api/scanner/state?hb=1").json()["fired"]["seq"] == 1
-        (rig["frames"] / "CURRENT").write_text("label_b_tilted.jpg")
+        (rig["frames"] / "CURRENT").write_text("label_b_tilted.jpg", encoding="utf-8")
         st = wait(lambda: (lambda s: s if s["fired"]["seq"] >= 2 else None)(c.get("/api/scanner/state?hb=1").json()), what="second scan")
         assert st["fired"]["line"] == 3
         wait(lambda: rig["fake"].fusion.selected == ("IC2",), what="IC2 selected")
@@ -132,7 +132,7 @@ def test_stream_serves_jpeg_frames(rig):
     from polybench.protocol import load
     from polybench.server import Session, create_app
     sess = Session(load(rig["proto"]), rig["tmp"] / "data", "emb4", True, 2, None)
-    (rig["frames"] / "CURRENT").write_text("label_b_tilted.jpg")
+    (rig["frames"] / "CURRENT").write_text("label_b_tilted.jpg", encoding="utf-8")
     with TestClient(create_app(sess)) as c:
         c.get("/api/scanner/state?hb=1")
         wait(lambda: sess.scanner.jpeg()[1], what="a frame")
@@ -145,12 +145,12 @@ def test_label_not_in_the_bom_is_logged_as_a_miss_and_the_selection_stays(rig):
     from polybench.protocol import load
     from polybench.server import Session, create_app
     a = rig["proto"].parent / "assembly.yaml"
-    a.write_text(a.read_text().replace('"903-DEMO-XCVR/MF", "DEMO-XCVR/MF"', '"595-DEMOCAN8"'))     # the photo's P/N is no longer a BOM key
+    a.write_text(a.read_text(encoding="utf-8").replace('"903-DEMO-XCVR/MF", "DEMO-XCVR/MF"', '"595-DEMOCAN8"'), encoding="utf-8")     # the photo's P/N is no longer a BOM key
     sess = Session(load(rig["proto"]), rig["tmp"] / "data", "emb5", True, 2, None)
     with TestClient(create_app(sess)) as c:
         wait(lambda: c.get("/api/scanner/state?hb=1").json()["board"]["ok"], what="board")
         c.post("/api/cmd/scan", json={"code": "595-DEMOADC16"})                       # U2 selected first
-        (rig["frames"] / "CURRENT").write_text("label_b_tilted.jpg")
+        (rig["frames"] / "CURRENT").write_text("label_b_tilted.jpg", encoding="utf-8")
         st = wait(lambda: (lambda s: s if s["fired"]["seq"] >= 1 else None)(c.get("/api/scanner/state?hb=1").json()), what="fired")
         assert st["fired"]["ok"] is False and st["result"]["status"] == "NOT_IN_BOM"
         assert any("NOT IN CURRENT BOM" in t for t, _l, _s in st["hud"]["bottom"])
@@ -241,7 +241,7 @@ def test_continue_without_ecad_sends_nothing_to_fusion(rig):
         r = c.post("/api/cmd/scan", json={"code": "595-DEMOADC16"}).json()           # typed scan: line found, not selected
         assert r["ok"] and r["line"] == 2 and r["ecad"]["disabled"] and r["ecad"]["highlighted"] == []
         assert c.post("/api/cmd/select_line", json={"line": 4}).json()["ecad"]["disabled"]
-        (rig["frames"] / "CURRENT").write_text("label_a.heic")                      # camera scan: journalled, not selected
+        (rig["frames"] / "CURRENT").write_text("label_a.heic", encoding="utf-8")                      # camera scan: journalled, not selected
         st = wait(lambda: (lambda s: s if s["fired"]["seq"] >= 1 else None)(c.get("/api/scanner/state?hb=1").json()), what="a fired scan")
         assert st["fired"]["ok"] and st["result"]["blocked"] == "ECAD disabled in step 1"
         assert c.post("/api/scanner/clear").json()["sent"] is False

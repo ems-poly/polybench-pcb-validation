@@ -83,7 +83,7 @@ def test_csv_in_latin1_counts_lines(tmp_path):
     """D1: a purchasing CSV in another encoding still gives its line count (bytes, not decoded text)."""
     sess = new_project_session(tmp_path / "proj")
     f = tmp_path / "latin.csv"
-    f.write_bytes(CSV_BOM.read_text().replace("DEMO microcontroller", "DEMO microµcontroller").encode("latin-1"))
+    f.write_bytes(CSV_BOM.read_text(encoding="utf-8").replace("DEMO microcontroller", "DEMO microµcontroller").encode("latin-1"))
     with client(sess) as c:
         r = c.post("/api/bom/load", json={"path": str(f)})
         if r.status_code == 200:
@@ -97,7 +97,7 @@ def test_adopt_requires_protocol_and_matching_design(tmp_path):
     """D2: adopting a legacy folder needs a protocol, and refuses one whose design is not the one the journal recorded."""
     legacy = legacy_folder(tmp_path / "old", batches=("L1",))
     other = protocol_copy(tmp_path / "x")
-    other.write_text(other.read_text().replace("name: DEMO-1", "name: OTHER-DESIGN", 1))
+    other.write_text(other.read_text(encoding="utf-8").replace("name: DEMO-1", "name: OTHER-DESIGN", 1), encoding="utf-8")
     from polybench.protocol import load
     assert load(other).data["design"]["name"] == "OTHER-DESIGN"
     sess = new_project_session(tmp_path / "proj")
@@ -117,7 +117,7 @@ def test_cli_adopt_refuses_other_design(tmp_path, monkeypatch):
     """D2: `--protocol X --data-dir legacy` refuses a protocol of another design for the batch being started."""
     legacy = legacy_folder(tmp_path / "old", batches=("L1",))
     other = protocol_copy(tmp_path / "x")
-    other.write_text(other.read_text().replace("name: DEMO-1", "name: OTHER-DESIGN", 1))
+    other.write_text(other.read_text(encoding="utf-8").replace("name: DEMO-1", "name: OTHER-DESIGN", 1), encoding="utf-8")
     from polybench.cli import resolve_start
     with pytest.raises(SystemExit) as e:
         resolve_start(args(other, legacy, "L1"))
@@ -154,10 +154,10 @@ def test_valid_but_short_settings_get_every_field_on_write(tmp_path):
     sess = new_project_session(tmp_path / "proj")
     sess.journal.close()
     f = tmp_path / "proj" / wslib.SETTINGS_NAME
-    f.write_text(json.dumps({"schema": 1, "protocol_path": str(DEMO_PROTO.resolve())}))
+    f.write_text(json.dumps({"schema": 1, "protocol_path": str(DEMO_PROTO.resolve())}), encoding="utf-8")
     ws = wslib.Workspace(tmp_path / "proj")
     ws.save(bom_path=None)
-    s = json.loads(f.read_text())
+    s = json.loads(f.read_text(encoding="utf-8"))
     for k in ("schema", "name", "created", "updated", "protocol_path", "bom_path", "ecad", "current_batch"):
         assert k in s, k
     assert set(s["ecad"]) >= {"program", "document", "documents"}
@@ -171,7 +171,7 @@ def test_unreadable_folders_are_marked_not_500(tmp_path):
     base = tmp_path / "base"
     (base / "locked").mkdir(parents=True)
     (base / "open").mkdir()
-    (base / "locked" / "x.csv").write_text("a")
+    (base / "locked" / "x.csv").write_text("a", encoding="utf-8")
     os.chmod(base / "locked", 0)
     try:
         with client(sess) as c:
@@ -202,8 +202,8 @@ def test_stale_tmp_files_are_removed_at_start(tmp_path):
     d = tmp_path / "proj"
     old = d / f".{wslib.SETTINGS_NAME}.abc123.tmp"
     fresh = d / f".{wslib.SETTINGS_NAME}.new999.tmp"
-    old.write_text("{")
-    fresh.write_text("{")
+    old.write_text("{", encoding="utf-8")
+    fresh.write_text("{", encoding="utf-8")
     t = time.time() - 3600
     os.utime(old, (t, t))
     s2 = start(args())
@@ -340,11 +340,11 @@ def test_bom_browser_filters_to_bom_files(tmp_path):
     """F5: in BOM mode the browser lists .csv, .xlsx and .yaml with a bom: key, and counts what it hides."""
     d = tmp_path / "files"
     d.mkdir()
-    (d / "frag.yaml").write_text("steps:\n  - id: a\n")
-    (d / "withbom.yaml").write_text("design: {}\nbom:\n  - line: 1\n")
-    (d / "p.csv").write_text("a")
+    (d / "frag.yaml").write_text("steps:\n  - id: a\n", encoding="utf-8")
+    (d / "withbom.yaml").write_text("design: {}\nbom:\n  - line: 1\n", encoding="utf-8")
+    (d / "p.csv").write_text("a", encoding="utf-8")
     _xlsx(d / "q.xlsx")
-    (d / "notes.txt").write_text("x")
+    (d / "notes.txt").write_text("x", encoding="utf-8")
     r = wslib.browse(str(d), "file", ["yaml", "yml", "csv", "xlsx"], None, bom_only=True)
     assert sorted(e["name"] for e in r["entries"]) == ["p.csv", "q.xlsx", "withbom.yaml"] and r["hidden_files"] == 1
     r = wslib.browse(str(d), "file", ["yaml", "yml", "csv", "xlsx"], None)

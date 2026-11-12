@@ -12,7 +12,7 @@ from polybench import workspace as wslib
 
 def _other(tmp_path):
     other = protocol_copy(tmp_path / "x")
-    other.write_text(other.read_text().replace("name: DEMO-1", "name: OTHER-DESIGN", 1))
+    other.write_text(other.read_text(encoding="utf-8").replace("name: DEMO-1", "name: OTHER-DESIGN", 1), encoding="utf-8")
     return other
 
 
@@ -56,7 +56,7 @@ def test_missing_path_is_judged_by_nearest_existing_ancestor(tmp_path):
     proj.journal.close()
     fresh = tmp_path / "parent"
     (fresh / "kid").mkdir(parents=True)
-    (fresh / "kid" / wslib.SETTINGS_NAME).write_text(json.dumps({"schema": 1}))
+    (fresh / "kid" / wslib.SETTINGS_NAME).write_text(json.dumps({"schema": 1}), encoding="utf-8")
     codes = lambda p: [w["code"] for w in wslib.inspect(p)["warnings"]]
     assert "batch_folder" in codes(batch / "new" / "deeper")                           # inside a batch, path not there yet
     assert "inside_batch" in codes(batch / "runs" / "x") or "batch_folder" in codes(batch / "runs" / "x")

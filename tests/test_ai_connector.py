@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from helpers import DEMO, ROOT
 
 AI = {"X-Polybench-Client": "assistant", "X-Polybench-Assistant": "pytest", "X-Polybench-Session": "t1"}
-PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text()
+PLAN = (ROOT / "tests" / "data" / "DEMO_TEST_PLAN.md").read_text(encoding="utf-8")
 
 
 def make(tmp_path, monkeypatch, mode=None, plan=True, generate=True):
@@ -28,8 +28,8 @@ def make(tmp_path, monkeypatch, mode=None, plan=True, generate=True):
     shutil.copytree(DEMO, d)
     top = d / "demo.pcbv.yaml"
     if plan:
-        (d / "PLAN.md").write_text(PLAN)
-        top.write_text(top.read_text() + ("\ntest_plan: {file: PLAN.md, generate: true}\n" if generate else "\ntest_plan: PLAN.md\n"))
+        (d / "PLAN.md").write_text(PLAN, encoding="utf-8")
+        top.write_text(top.read_text(encoding="utf-8") + ("\ntest_plan: {file: PLAN.md, generate: true}\n" if generate else "\ntest_plan: PLAN.md\n"), encoding="utf-8")
     sess = Session(load(top), tmp_path / "data", "ai", True, 3, None, operator="Op")
     for b in ("S01", "S02", "S03"):                  # the demo gates unpowered on visual; the tests start at unpowered
         sess.engine.override_gate(b, "unpowered", "test starts at unpowered")
@@ -189,18 +189,18 @@ def test_card_state_setup_and_privacy_inputs(tmp_path, monkeypatch):
 # ---------------------------------------------------------------- plan co-authoring
 def test_plan_draft_approve(tmp_path, monkeypatch):
     sess, c, d = make(tmp_path, monkeypatch)
-    old = (d / "PLAN.md").read_text()
+    old = (d / "PLAN.md").read_text(encoding="utf-8")
     new = old.replace("| U06 | R4 across its pads |", "| U06 | R4 across its two pads |")
     r = c.post("/api/ai/plan_draft", json={"text": new, "summary": "U06 wording"}, headers=AI).json()
     assert r["ok"] and r["lint"]["errors"] == 0 and "+| U06 | R4 across its two pads" in r["diff"]
-    assert (d / "PLAN.draft.md").read_text() == new and (d / "PLAN.md").read_text() == old           # master untouched
+    assert (d / "PLAN.draft.md").read_text(encoding="utf-8") == new and (d / "PLAN.md").read_text(encoding="utf-8") == old           # master untouched
     st = c.get("/api/ai/plan_draft").json()
     assert st["can_approve"] and not st["stale"]
     assert c.post("/api/ai/plan_approve", json={"hash": st["hash"]}, headers=AI).status_code == 403
     assert c.post("/api/ai/plan_approve", json={"hash": "0" * 16, "operator": "Op"}).status_code == 409
     r = c.post("/api/ai/plan_approve", json={"hash": st["hash"], "operator": "Pat"})
     assert r.status_code == 200, r.text
-    out = (d / "PLAN.md").read_text()
+    out = (d / "PLAN.md").read_text(encoding="utf-8")
     assert "R4 across its two pads" in out and "| r2 | " in out and "| U06 wording | AI draft approved by Pat |" in out
     assert not (d / "PLAN.draft.md").exists()
     ap = events(sess, "plan_approved")[-1]["payload"]
@@ -219,17 +219,17 @@ def test_plan_draft_with_lint_error_cannot_be_approved(tmp_path, monkeypatch):
     st = c.get("/api/ai/plan_draft").json()
     assert not st["can_approve"] and "lint error" in st["why_not"]
     assert c.post("/api/ai/plan_approve", json={"hash": st["hash"], "operator": "Op"}).status_code == 409
-    assert (d / "PLAN.md").read_text() == PLAN
+    assert (d / "PLAN.md").read_text(encoding="utf-8") == PLAN
 
 
 def test_plan_draft_stale_and_edited_outside(tmp_path, monkeypatch):
     sess, c, d = make(tmp_path, monkeypatch)
     c.post("/api/ai/plan_draft", json={"text": PLAN.replace("First issue", "First issue."), "summary": "dot"}, headers=AI)
-    (d / "PLAN.md").write_text(PLAN + "\n")                                                    # master changed under the draft
+    (d / "PLAN.md").write_text(PLAN + "\n", encoding="utf-8")                                                    # master changed under the draft
     st = c.get("/api/ai/plan_draft").json()
     assert st["stale"] and not st["can_approve"]
-    (d / "PLAN.md").write_text(PLAN)
-    (d / "PLAN.draft.md").write_text(PLAN + "\nedited by hand\n")
+    (d / "PLAN.md").write_text(PLAN, encoding="utf-8")
+    (d / "PLAN.draft.md").write_text(PLAN + "\nedited by hand\n", encoding="utf-8")
     st = c.get("/api/ai/plan_draft").json()
     assert not st["journaled"] and not st["can_approve"]
 
@@ -337,7 +337,7 @@ def test_skills_are_demo_only():
     import re
     files = list((ROOT / "ai" / "skills").rglob("*.md")) + [ROOT / "AGENTS.md"] + list((ROOT / "docs").glob("AI_CONNECTOR_*.md"))
     for f in files:
-        t = f.read_text()
+        t = f.read_text(encoding="utf-8")
         assert not re.search("|".join(["\\bstra" + "in", "mcmu" + "rtry", "EV" + "T1", "/Us" + "ers/"]), t, re.I), f
         if f.name == "SKILL.md":
             assert t.startswith("---\nname: ") and "\ndescription: " in t.split("---")[1], f

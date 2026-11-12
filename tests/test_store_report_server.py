@@ -15,9 +15,9 @@ def test_store_survives_kill(tmp_path):
     code = (
         "import os,sys\nfrom polybench.store import Journal\nj=Journal(sys.argv[1])\n"
         "for i in range(50): j.append('note',{'text':str(i)})\nprint('ready',flush=True)\nimport time; time.sleep(60)\n")
-    p = subprocess.Popen([sys.executable, "-c", code, str(path)], stdout=subprocess.PIPE, text=True)
+    p = subprocess.Popen([sys.executable, "-c", code, str(path)], stdout=subprocess.PIPE, text=True, encoding="utf-8", errors="replace")
     assert p.stdout.readline().strip() == "ready"
-    os.kill(p.pid, signal.SIGKILL)
+    p.kill()                                    # SIGKILL on Unix, TerminateProcess on Windows
     p.wait()
     j = Journal(path)
     assert len(j.events) == 50 and not j.problems
@@ -45,7 +45,7 @@ def test_edited_line_is_detected(tmp_path):
     j.append("note", {"text": "a"})
     j.append("note", {"text": "b"})
     j.close()
-    path.write_text(path.read_text().replace('"a"', '"X"'))
+    path.write_text(path.read_text(encoding="utf-8").replace('"a"', '"X"'), encoding="utf-8")
     assert Journal(path).problems
 
 

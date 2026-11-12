@@ -104,7 +104,7 @@ def test_identify_timeout_is_ours(make_ctx, tmp_path, one_probe, monkeypatch):
 
 def test_flash_sim(make_ctx, tmp_path):
     img = tmp_path / "a.hex"
-    img.write_text(":00000001FF\n")
+    img.write_text(":00000001FF\n", encoding="utf-8")
     ctx = make_ctx({"image": str(img), "map": {"flashed": "F4", "image_sha256": "F5"}})
     OpenocdFlash().run(ctx)
     got = {p["test_id"]: p["value"] for p in ctx.proposals}
@@ -144,7 +144,7 @@ def test_flash_verify_failure_proposes_nothing(make_ctx, tmp_path, one_probe):
 
 def test_flash_no_target_power(make_ctx, tmp_path, one_probe):
     img = tmp_path / "a.hex"
-    img.write_text(":00000001FF\n")
+    img.write_text(":00000001FF\n", encoding="utf-8")
     ctx = make_ctx({"image": str(img), "openocd": fake_openocd(tmp_path, "Error: Error connecting DP: cannot read IDR", 1)}, simulate=False)
     with pytest.raises(ProbeError, match="target power"):
         OpenocdFlash().run(ctx)
@@ -178,7 +178,7 @@ def test_args_vid_pid_override_and_config(tmp_path):
     a = OpenocdIdentify()._args({"openocd": sys.executable, "vid_pid": [0x03EB, 0x2142]}, [])
     assert "cmsis_dap_vid_pid 0x03eb 0x2142" in a
     cfg = tmp_path / "srst.cfg"
-    cfg.write_text("# x\n")
+    cfg.write_text("# x\n", encoding="utf-8")
     b = OpenocdFlash()._args({"openocd": sys.executable, "config": str(cfg), "speed_khz": 400}, ["init"])
     assert b[1:3] == ["-f", str(cfg)] and "interface/cmsis-dap.cfg" not in b and "adapter speed 400" in b
     with pytest.raises(ParamError, match="not found"):
@@ -329,11 +329,11 @@ def test_no_client_wording_in_the_branch_docs_code_and_tests():
     for f in files:
         if not f.exists():          # internal records are not in the public tree
             continue
-        low = f.read_text().lower()
+        low = f.read_text(encoding="utf-8").lower()
         for w in words:
             assert w.lower() not in low, (f.name, w)
     fixture_names = ("stra" + "in_like", "stra" + "in-amp-ev" + "t1", "stra" + "in-like")
-    integ = (repo / "tests/kicad/test_integration.py").read_text().lower()
+    integ = (repo / "tests/kicad/test_integration.py").read_text(encoding="utf-8").lower()
     for n in fixture_names:
         integ = integ.replace(n, "")
     for w in words:
@@ -350,7 +350,7 @@ def test_the_core_stops_only_the_child_it_started(tmp_path, monkeypatch):
     exe = make_tool(tmp_path, "openocd", SLEEPER)
     monkeypatch.setattr(ocd, "usb_probes", lambda *a: [])
     img = tmp_path / "a.hex"
-    img.write_text(":00000001FF\n")
+    img.write_text(":00000001FF\n", encoding="utf-8")
     from polybench.testing import RecordingContext
     ctx = RecordingContext(params={"openocd": str(exe), "image": str(img), "timeout_s": 1}, workdir=tmp_path / "run", simulate=False)
     try:
@@ -381,7 +381,7 @@ def argv_dump(tmp_path, monkeypatch):
 def _flash_ctx(tmp_path, exe, **params):
     from polybench.testing import RecordingContext
     img = tmp_path / "plain.hex"
-    img.write_text(":00000001FF\n")
+    img.write_text(":00000001FF\n", encoding="utf-8")
     return RecordingContext(params={"openocd": str(exe), "image": str(params.pop("image", img)), **params},
                             workdir=tmp_path / "run", simulate=False)
 
@@ -414,7 +414,7 @@ def test_image_path_with_tcl_syntax_is_refused(tmp_path, argv_dump, monkeypatch,
     d.mkdir()
     img = d / name
     try:
-        img.write_text("x")
+        img.write_text("x", encoding="utf-8")
     except OSError:
         pytest.skip("file name not creatable here")
     with pytest.raises(ParamError, match="image path"):
@@ -450,9 +450,9 @@ def test_a_plain_serial_and_a_path_with_a_space_still_pass(tmp_path, argv_dump, 
     d = tmp_path / "img dir"
     d.mkdir()
     img = d / "app-1.0_rc.hex"
-    img.write_text(":00000001FF\n")
+    img.write_text(":00000001FF\n", encoding="utf-8")
     OpenocdFlash().run(_flash_ctx(tmp_path, exe, image=img, probe_serial="J41800012345"))
-    args = dump.read_text().splitlines()
+    args = dump.read_text(encoding="utf-8").splitlines()
     assert "adapter serial J41800012345" in args and any(a.startswith('program "') and "img dir" in a for a in args)
 
 
@@ -460,7 +460,7 @@ def test_interface_with_spaces_stays_one_argument(tmp_path, argv_dump, monkeypat
     exe, dump = argv_dump
     monkeypatch.setattr(ocd, "usb_probes", lambda *a: [])
     OpenocdFlash().run(_flash_ctx(tmp_path, exe, probe="cmsis-dap", interface="interface/x.cfg -c shutdown"))
-    assert "interface/x.cfg -c shutdown" in dump.read_text().splitlines()
+    assert "interface/x.cfg -c shutdown" in dump.read_text(encoding="utf-8").splitlines()
 
 
 # ---------------------------------------------------------------- D5 surviving OpenOCD
@@ -476,7 +476,7 @@ def _fake_survivor(tmp_path):
     proc = subprocess.Popen([sys.executable, str(script), "-f", "interface/cmsis-dap.cfg"], **pf.group_kwargs())
     old = tmp_path / "pb-data" / "batch1" / "runs" / "0001_V1_flash"
     old.mkdir(parents=True)
-    (old / ocd.PID_FILE).write_text(json.dumps({"pid": proc.pid, "name": "openocd", "started": "x"}))
+    (old / ocd.PID_FILE).write_text(json.dumps({"pid": proc.pid, "name": "openocd", "started": "x"}), encoding="utf-8")
     return proc, old
 
 
@@ -485,7 +485,7 @@ def test_pid_file_exists_while_openocd_runs_and_is_removed_after(tmp_path, monke
     monkeypatch.setattr(ocd, "usb_probes", lambda *a: [])
     OpenocdFlash().run(_flash_ctx(tmp_path, exe))
     import json
-    seen = json.loads((tmp_path / "seen.json").read_text())
+    seen = json.loads((tmp_path / "seen.json").read_text(encoding="utf-8"))
     assert seen["pid"] > 1 and seen["name"] == "openocd"
     assert not (tmp_path / "run" / ocd.PID_FILE).exists()
 
@@ -518,7 +518,7 @@ def test_a_stale_pid_file_or_a_reused_pid_is_not_reported(tmp_path):
         for pid in (other.pid, 999999):
             d = tmp_path / "pb-data" / f"b{pid}" / "runs" / "0001_x"
             d.mkdir(parents=True)
-            (d / ocd.PID_FILE).write_text(json.dumps({"pid": pid}))
+            (d / ocd.PID_FILE).write_text(json.dumps({"pid": pid}), encoding="utf-8")
         assert ocd.surviving_openocd() == []
         assert "no OpenOCD process from an earlier run" in OpenocdFlash().safe_state()
     finally:
@@ -534,7 +534,7 @@ def test_a_killed_core_leaves_a_pid_file_that_the_next_run_reports(tmp_path):
     from polybench import platform as pf
     exe = make_tool(tmp_path, "openocd", SLEEPER)
     img = tmp_path / "a.hex"
-    img.write_text(":00000001FF\n")
+    img.write_text(":00000001FF\n", encoding="utf-8")
     code = ("import polybench.plugins.openocd as o; from polybench.testing import RecordingContext as C; "
             "o.usb_probes=lambda *a: []; "
             f"o.OpenocdFlash().run(C(params={{'openocd': {str(exe)!r}, 'image': {str(img)!r}, 'timeout_s': 60}}, "
@@ -547,7 +547,7 @@ def test_a_killed_core_leaves_a_pid_file_that_the_next_run_reports(tmp_path):
         time.sleep(0.25)
     assert pidfile.exists()
     import json
-    child = json.loads(pidfile.read_text())["pid"]
+    child = json.loads(pidfile.read_text(encoding="utf-8"))["pid"]
     try:
         core.kill()                                                # SIGKILL on Unix, TerminateProcess on Windows
         core.wait()
@@ -572,7 +572,7 @@ def test_target_cfg_overrides_an_unknown_target_name(tmp_path, argv_dump, monkey
     exe, dump = argv_dump
     monkeypatch.setattr(ocd, "usb_probes", lambda *a: [])
     OpenocdFlash().run(_flash_ctx(tmp_path, exe, target="stm32f4", target_cfg="target/stm32f4x.cfg"))
-    args = dump.read_text().splitlines()
+    args = dump.read_text(encoding="utf-8").splitlines()
     assert "target/stm32f4x.cfg" in args and "target/at91samdXX.cfg" not in args
     with pytest.raises(ParamError, match="not supported yet"):                       # the id read stays unsupported
         OpenocdIdentify().run(_flash_ctx(tmp_path, exe, target="stm32f4", target_cfg="target/stm32f4x.cfg"))
@@ -592,7 +592,7 @@ MAP_TXT = """\
 def test_read_ram_symbol_lookup(tmp_path):
     from polybench.plugins.openocd import OpenocdReadRam
     m = tmp_path / "x.map"
-    m.write_text(MAP_TXT)
+    m.write_text(MAP_TXT, encoding="utf-8")
     assert OpenocdReadRam._symbol(str(m), "g_selftest") == 0x20000117  # exact name only, not g_selftest_extra
     with pytest.raises(ParamError):
         OpenocdReadRam._symbol(str(m), "g_missing")
@@ -602,7 +602,7 @@ def test_read_ram_simulate_proposes_bits_and_bytes(tmp_path):
     from polybench.plugins.openocd import OpenocdReadRam
     from polybench.testing import RecordingContext
     m = tmp_path / "x.map"
-    m.write_text(MAP_TXT)
+    m.write_text(MAP_TXT, encoding="utf-8")
     ctx = RecordingContext(simulate=True, params={
         "map_file": str(m), "symbol": "g_selftest", "length": 40, "ready": {"byte": 34, "not": 0},
         "fields": [{"test": "F82", "byte": 36, "bit": 0}, {"test": "F89", "byte": 36, "bit": 7}, {"test": "F90", "byte": 34}]})

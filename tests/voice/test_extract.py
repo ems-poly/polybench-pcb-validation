@@ -264,7 +264,7 @@ def test_llm_down_falls_back_to_the_grammar_answer(smoke, eng, monkeypatch):
 def test_audit_log_keeps_the_extraction(smoke, eng, monkeypatch):
     monkeypatch.setattr(llm, "extract", lambda *a, **k: {"command": "none", "updates": [U("C06", [1, 2], "ol")]})
     eng.handle_text("C06 B1 and B2 open load, and also whatever", source="voice")
-    recs = [json.loads(l) for l in open(smoke.audit_path)]
+    recs = [json.loads(l) for l in open(smoke.audit_path, encoding="utf-8")]
     u = [r for r in recs if r["event"] == "utterance"][-1]
     assert u["route"] == "llm-extract" and len(u["extraction"]["cells"]) == 2 and u["llm_raw"]["updates"][0]["id"] == "C06"
 
@@ -282,14 +282,14 @@ def test_eval_harness_scores_cells(monkeypatch):
 
 def test_eval_case_files_are_wellformed():
     for f in ("extract_cases.json", "extract_cases_heldout.json"):
-        cases = json.load(open(os.path.join(os.path.dirname(__file__), "eval", f)))
+        cases = json.load(open(os.path.join(os.path.dirname(__file__), "eval", f), encoding="utf-8"))
         ids = [c["id"] for c in cases]
         assert len(ids) == len(set(ids)) and all(c["said"] and "expect" in c for c in cases)
 
 
 @pytest.mark.skipif(not os.environ.get("PRG_LLM"), reason="needs Ollama with gemma4:26b; set PRG_LLM=1")
 def test_sentences_with_gemma4():
-    cases = [c for c in json.load(open(os.path.join(os.path.dirname(__file__), "eval", "extract_cases.json")))]
+    cases = [c for c in json.load(open(os.path.join(os.path.dirname(__file__), "eval", "extract_cases.json"), encoding="utf-8"))]
     for c in cases:
         r = ev.run_case(c, llm.DEFAULT_MODEL)
         assert r["exact"], (c["id"], r["got"], r["expected"])

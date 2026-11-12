@@ -28,11 +28,11 @@ def run_folder(tmp_path, boards=("S01", "S02", "S03")):
         cv2.imwrite(str(d / BV.DIR / f"{b}.jpg"), rng.integers(60, 255, (200, 300, 3), dtype=np.uint8))
     bv = {"schema": BV.SCHEMA, "box_mm": [0, 0, 30, 20], "ppmm": 10, "size_px": [300, 200], "boards": {b: f"{BV.DIR}/{b}.jpg" for b in boards},
           "parts": {"IC1": PART(8, 8, 14, 14), "C1": PART(2, 2, 3.5, 3), "C2": PART(20, 2, 21.5, 3)}}
-    (d / BV.DIR / BV.JSON_NAME).write_text(json.dumps(bv))
+    (d / BV.DIR / BV.JSON_NAME).write_text(json.dumps(bv), encoding="utf-8")
     doc = {"schema": "polystage.aoi_result/0", "report_ref": "", "generated": "2026-10-16T10:00:00+01:00", "tool": "t",
            "boards": [{"board": b, "photo": "p", "results": [{"id": "AOI-BRIDGE-IC1-1-2", "status": "review", "value": "v", "confidence": .6, "note": "n", "evidence": []}]}
                       for b in boards]}
-    (d / "aoi_result.json").write_text(json.dumps(doc))
+    (d / "aoi_result.json").write_text(json.dumps(doc), encoding="utf-8")
     return d
 
 
@@ -100,7 +100,7 @@ def test_labels_hold_every_decision_and_the_miss_and_feed_ls_export(eng, tmp_pat
     eng.aoi_manual_issue("S03", [20, 2, 21.5, 3], "damage", ["C2"], "scratched pad")
     path = tmp_path / "aoi" / "labels.jsonl"
     assert path.is_file()
-    tasks = [json.loads(line) for line in path.read_text().splitlines()]
+    tasks = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     assert [t["data"]["board"] for t in tasks] == ["S01", "S02", "S03"]
     dec = {x["key"]: x for t in tasks for x in t["decisions"]}
     assert {k: v["decision"] for k, v in dec.items() if not v["aoi_missed"]} == {"S01|AOI-BRIDGE-IC1-1-2": "confirmed", "S02|AOI-BRIDGE-IC1-1-2": "rejected", "S03|AOI-BRIDGE-IC1-1-2": "unsure"}

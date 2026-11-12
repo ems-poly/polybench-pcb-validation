@@ -32,8 +32,8 @@ time.sleep(60)
 def _wait_pids(d: Path, names=("tool.pid", "grandchild.pid"), seconds=20.0) -> list[int]:
     end = time.monotonic() + seconds
     while time.monotonic() < end:
-        if all((d / n).exists() and (d / n).read_text().strip() for n in names):
-            return [int((d / n).read_text()) for n in names]
+        if all((d / n).exists() and (d / n).read_text(encoding="utf-8").strip() for n in names):
+            return [int((d / n).read_text(encoding="utf-8")) for n in names]
         time.sleep(0.1)
     raise AssertionError(f"the tool did not write {names} in {seconds} s")
 
@@ -66,7 +66,7 @@ def tree(tmp_path):
         pf.kill_pid_tree(p.pid)
     for n in ("tool.pid", "grandchild.pid"):
         try:
-            pid = int((tmp_path / n).read_text())
+            pid = int((tmp_path / n).read_text(encoding="utf-8"))
             pf.kill_pid_tree(pid)
         except (OSError, ValueError):
             pass
@@ -239,6 +239,6 @@ def test_the_action_child_stops_the_programmer_tree_on_cancel_and_when_the_app_g
             pf.kill_pid_tree(child.pid)
         for n in ("tool.pid", "grandchild.pid"):
             try:
-                pf.kill_pid_tree(int((fake_esptool / n).read_text()))
+                pf.kill_pid_tree(int((fake_esptool / n).read_text(encoding="utf-8")))
             except (OSError, ValueError):
                 pass

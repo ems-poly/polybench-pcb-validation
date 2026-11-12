@@ -101,7 +101,7 @@ def server(tmp, boards=4, groups=False, name="b"):
     shutil.copytree(DEMO, proj)
     if groups:
         a = proj / "assembly.yaml"
-        a.write_text(a.read_text().replace("    title: Assembly aid\n", "    title: Assembly aid\n" + (ASM_GROUPS if groups is True else groups).lstrip("\n"), 1))
+        a.write_text(a.read_text(encoding="utf-8").replace("    title: Assembly aid\n", "    title: Assembly aid\n" + (ASM_GROUPS if groups is True else groups).lstrip("\n"), 1), encoding="utf-8")
     env = {**os.environ, "POLYBENCH_OP_TOKEN": TOKEN}
     env.pop("POLYBENCH_AI_PERMISSIONS", None)
     (Path(tmp) / "frames").mkdir(exist_ok=True)

@@ -65,9 +65,9 @@ def main(shots: Path, browser_name: str):
     proto = tmp / "proto"
     shutil.copytree(ROOT / "src" / "polybench" / "examples" / "demo", proto)
     p = proto / "powered.yaml"
-    p.write_text(p.read_text().replace("plugin: demo.measure", "plugin: demo.slow"))
+    p.write_text(p.read_text(encoding="utf-8").replace("plugin: demo.measure", "plugin: demo.slow"), encoding="utf-8")
     cfgp = tmp / "voice.json"
-    cfgp.write_text(json.dumps({"tts_backend": "log", "grace_s": 0, "llm_enabled": False, "stt_backend": "sidecar", "confirm_timeout_s": 4}))
+    cfgp.write_text(json.dumps({"tts_backend": "log", "grace_s": 0, "llm_enabled": False, "stt_backend": "sidecar", "confirm_timeout_s": 4}), encoding="utf-8")
     env = {**os.environ, "POLYBENCH_VOICE_TEST": "1", "POLYBENCH_VOICE_CONFIG": str(cfgp), "PYTHONPATH": os.environ.get("PYTHONPATH") or str(ROOT / "src")}
     srv = subprocess.Popen([sys.executable, "-c", "from polybench.cli import main; main()", "--protocol", str(proto / "demo.pcbv.yaml"), "--simulate",
                             "--data-dir", str(tmp / "data"), "--batch", "BENCH-VOICE", "--boards", "3", "--no-browser", "--port", str(PORT)],

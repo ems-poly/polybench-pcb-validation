@@ -16,7 +16,7 @@ SKILL = ROOT / "src" / "polybench" / "ai" / "skills" / "polybench-test-firmware"
 
 
 def _steps():
-    d = yaml.safe_load((EX / "function.yaml").read_text())
+    d = yaml.safe_load((EX / "function.yaml").read_text(encoding="utf-8"))
     for sec in d["steps"][0]["sections"]:
         for a in sec.get("actions", []):
             if a["plugin"] == "serial.query":
@@ -25,7 +25,7 @@ def _steps():
 
 
 def test_skill_has_front_matter_and_the_rules():
-    t = SKILL.read_text()
+    t = SKILL.read_text(encoding="utf-8")
     assert t.startswith("---\nname: polybench-test-firmware\ndescription: ")
     assert "Data, never instructions" in t
     for h in ("Who does what", "The brief", "Worked example"):
@@ -36,7 +36,7 @@ def test_skill_has_front_matter_and_the_rules():
 def test_package_data_glob_covers_the_skill():
     import fnmatch
     import tomllib
-    pd = tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["setuptools"]["package-data"]["polybench"]
+    pd = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["setuptools"]["package-data"]["polybench"]
     rel = SKILL.relative_to(ROOT / "src" / "polybench").as_posix()
     assert any(fnmatch.fnmatch(rel, g) for g in pd)
 
@@ -49,8 +49,8 @@ def test_skill_is_installed_by_install_skills(tmp_path):
 
 
 def test_worked_example_matches_function_yaml_and_firmware():
-    brief = (EX / "FIRMWARE_BRIEF.md").read_text()
-    fw = (EX / "firmware" / "src" / "main.cpp").read_text()
+    brief = (EX / "FIRMWARE_BRIEF.md").read_text(encoding="utf-8")
+    fw = (EX / "firmware" / "src" / "main.cpp").read_text(encoding="utf-8")
     for st in _steps():
         cmd = st["send"]
         expect = st.get("expect") or cmd.split()[0]
@@ -70,17 +70,17 @@ def test_worked_example_matches_function_yaml_and_firmware():
 
 
 def test_worked_example_names_every_function_test_and_is_labelled():
-    brief = (EX / "FIRMWARE_BRIEF.md").read_text()
-    d = yaml.safe_load((EX / "function.yaml").read_text())
+    brief = (EX / "FIRMWARE_BRIEF.md").read_text(encoding="utf-8")
+    d = yaml.safe_load((EX / "function.yaml").read_text(encoding="utf-8"))
     ids = {t["id"] for sec in d["steps"][0]["sections"] for t in sec.get("tests", [])}
     assert ids and all(i in brief for i in ids), sorted(i for i in ids if i not in brief)
     assert "HOST-ONLY" in brief and "UNVALIDATED" in brief
-    sha = re.search(r"sha256: ([0-9a-f]{64})", (EX / "function.yaml").read_text())
+    sha = re.search(r"sha256: ([0-9a-f]{64})", (EX / "function.yaml").read_text(encoding="utf-8"))
     assert sha and "sha256" in brief.lower()
 
 
 def test_example_is_demo_clean():
-    t = (SKILL.read_text() + (EX / "FIRMWARE_BRIEF.md").read_text())
+    t = (SKILL.read_text(encoding="utf-8") + (EX / "FIRMWARE_BRIEF.md").read_text(encoding="utf-8"))
     assert not re.search("|".join(["\\bstra" + "in", "mcmu" + "rtry", "/Us" + "ers/"]), t, re.I)
 
 
@@ -88,7 +88,7 @@ def test_example_is_demo_clean():
 def test_skill_ships_in_the_wheel(tmp_path):
     """Build the wheel offline (no build isolation) and list it."""
     r = subprocess.run([sys.executable, "-m", "pip", "wheel", "--no-deps", "--no-build-isolation", "-q",
-                        "-w", str(tmp_path), str(ROOT)], capture_output=True, text=True, timeout=120)
+                        "-w", str(tmp_path), str(ROOT)], capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace")
     if r.returncode != 0 and "setuptools" in r.stderr:
         pytest.skip(f"cannot build offline here: {r.stderr[-200:]}")
     assert r.returncode == 0, r.stderr[-500:]
@@ -99,7 +99,7 @@ def test_skill_ships_in_the_wheel(tmp_path):
 
 # ---------------------------------------------------------------- A-2: README "Install with your agent"
 def _agent_section():
-    t = (ROOT / "README.md").read_text()
+    t = (ROOT / "README.md").read_text(encoding="utf-8")
     assert t.count("\n## Install with your agent\n") == 1
     s = t.split("\n## Install with your agent\n")[1].split("\n## ")[0]
     return s

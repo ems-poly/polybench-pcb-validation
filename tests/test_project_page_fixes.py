@@ -438,3 +438,12 @@ def test_reveal_on_windows_ignores_case_but_not_the_folder_name(tmp_path):
         assert c.post("/api/reveal", json={"path": proj.upper()}).status_code == 200          # same folder, other case: inside
         assert c.post("/api/reveal", json={"path": proj.lower() + "\\B1"}).status_code == 200
         assert c.post("/api/reveal", json={"path": proj.upper() + "X"}).status_code == 403      # a different folder
+
+
+def test_new_project_refuses_the_top_of_a_drive(tmp_path):
+    """Found by the Windows attack list: on Windows an administrator can write to C:\\, and a project was created there."""
+    sess = new_project_session(tmp_path / "proj")
+    root = os.path.abspath(os.sep)
+    with client(sess) as c:
+        r = c.post("/api/project/new", json={"dir": root, "name": "x"})
+        assert r.status_code == 422 and "top of a drive" in r.json()["error"], r.text

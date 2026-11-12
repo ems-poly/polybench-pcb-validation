@@ -1093,6 +1093,12 @@ def create_app(sess: "Session | None", simulate: bool | None = None, meter=None)
             raise CmdError("give the project a name", 422)
         if any("\x00" in str(b.get(k) or "") for k in ("dir", "protocol", "bom")):
             raise CmdError("that is not a usable path", 422)                      # a NUL byte
+        try:
+            _d = Path(str(b.get("dir") or "")).expanduser().resolve() if str(b.get("dir") or "").strip() else None
+        except (OSError, RuntimeError, ValueError):
+            _d = None
+        if _d is not None and _d == Path(_d.anchor):                              # a drive root (C:\) or /: never a project folder
+            raise CmdError(f"{_d} is the top of a drive; choose a folder inside it", 422)
         info = wslib.inspect(b.get("dir") or "")
         if info["kind"] == "corrupt":
             raise CmdError(f"{info['path']} holds a project whose {info['problem']}", 409)

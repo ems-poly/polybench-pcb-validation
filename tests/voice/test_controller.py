@@ -103,9 +103,9 @@ def test_grace_accepts_clean_pass_not_fail_and_cancel_stops_it(vc, nlu):
     nlu.script["cancel"] = {"intent": "cancel"}
     vc.handle_text("ok")
     assert vc.status()["pending"]["utt"] and cell(vc, "S01")["status"] == "empty"
-    assert wait(lambda: cell(vc, "S01")["status"] == "accepted")
+    # the timer thread accepts the cell, then appends its journal entry (source "grace"): wait for the entry, not just the accept
+    assert wait(lambda: cell(vc, "S01")["status"] == "accepted" and vc.eng.state.voice[-1]["source"] == "grace")
     assert cell(vc, "S01")["source"]["kind"] == "voice" and vc.pending is None
-    assert vc.eng.state.voice[-1]["source"] == "grace"
     vc.handle_text("bad")
     assert vc.pending is None
     time.sleep(0.5)

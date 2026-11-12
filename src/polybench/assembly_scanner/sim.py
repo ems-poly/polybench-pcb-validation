@@ -75,7 +75,7 @@ class ImageCamera:
         if self.state != "running":
             return self._seq, None
         try:
-            name = (self.source / "CURRENT").read_text().strip()
+            name = (self.source / "CURRENT").read_text(encoding="utf-8").strip()
         except OSError:
             name = ""
         time.sleep(0.03)
@@ -94,7 +94,7 @@ class SimulatedFusionClient:
         import os as _os
         self.name = name
         if netlist is None and _os.environ.get("POLYBENCH_SIM_NETLIST"):
-            netlist = _json.loads(Path(_os.environ["POLYBENCH_SIM_NETLIST"]).read_text())
+            netlist = _json.loads(Path(_os.environ["POLYBENCH_SIM_NETLIST"]).read_text(encoding="utf-8"))
         self.netlist = netlist
         self.net_support = net_support and _os.environ.get("POLYBENCH_SIM_NET_SUPPORT", "1") != "0"
         self.pinref_support = pinref_support and _os.environ.get("POLYBENCH_SIM_PINREF_SUPPORT", "1") != "0"
@@ -179,7 +179,7 @@ class SimulatedFusionClient:
         self.history.append(("targets", {"parts": tuple(parts), "pins": tuple(pins), "nets": tuple(nets), "mode": mode}))
         log = _os_environ_get("POLYBENCH_SIM_HIGHLIGHT_LOG")          # test aid: one JSON line per selection that reaches the (simulated) Fusion
         if log:
-            with open(log, "a") as fh:
+            with open(log, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps({"parts": parts, "pins": pins, "nets": nets, "mode": mode, "selected": list(have)}) + "\n")
         note = "simulated: nothing is drawn" + ("" if nl is not None else "; no netlist, nets and pins are not checked")
         if nets_ok and mode == "parts":
@@ -197,7 +197,7 @@ class SimulatedFusionClient:
         reader the real client uses. Designators the recording does not hold come back as errors, so their card shows amber."""
         import json
         from polybench import footprints as fpm
-        rec = json.loads(RECORDING.read_text())
+        rec = json.loads(RECORDING.read_text(encoding="utf-8"))
 
         def read(entity, obj=None):
             args = {"entity_type": entity}

@@ -1,8 +1,8 @@
-import stat
 import sys
 import textwrap
 
 import pytest
+from helpers import SLEEPER, make_tool
 
 import polybench.plugins.openocd as ocd
 from polybench.plugins._util import ParamError, PluginError
@@ -20,10 +20,7 @@ IDENT_OK = textwrap.dedent('''\
 
 
 def fake_openocd(tmp_path, stdout, rc=0):
-    p = tmp_path / "openocd"
-    p.write_text(f"#!/bin/sh\ncat <<'EOF'\n{stdout}\nEOF\nexit {rc}\n")
-    p.chmod(p.stat().st_mode | stat.S_IEXEC)
-    return str(p)
+    return make_tool(tmp_path, "openocd", f"import sys\nsys.stdout.write({stdout + chr(10)!r})\nsys.exit({rc})\n")
 
 
 @pytest.fixture
@@ -99,12 +96,10 @@ def test_identify_openocd_missing(make_ctx, monkeypatch, one_probe):
 
 
 def test_identify_timeout_is_ours(make_ctx, tmp_path, one_probe, monkeypatch):
-    p = tmp_path / "openocd"
-    p.write_text("#!/bin/sh\nsleep 30\n")
-    p.chmod(0o755)
+    p = make_tool(tmp_path, "openocd", SLEEPER)
     monkeypatch.setattr(ocd, "IDENTIFY_TIMEOUT_S", 1.0)
     with pytest.raises(PluginError, match="timed out"):
-        OpenocdIdentify().run(make_ctx({"openocd": str(p)}, simulate=False))
+        OpenocdIdentify().run(make_ctx({"openocd": p}, simulate=False))
 
 
 def test_flash_sim(make_ctx, tmp_path):
@@ -350,10 +345,9 @@ def test_the_core_stops_only_the_child_it_started(tmp_path, monkeypatch):
     import os
     import subprocess
     import time
-    by = subprocess.Popen(["sleep", "30"], start_new_session=True)
-    exe = tmp_path / "openocd"
-    exe.write_text("#!/bin/sh\nsleep 30\n")
-    exe.chmod(0o755)
+    from polybench import platform as pf
+    by = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"], **pf.group_kwargs())
+    exe = make_tool(tmp_path, "openocd", SLEEPER)
     monkeypatch.setattr(ocd, "usb_probes", lambda *a: [])
     img = tmp_path / "a.hex"
     img.write_text(":00000001FF\n")
@@ -364,8 +358,9 @@ def test_the_core_stops_only_the_child_it_started(tmp_path, monkeypatch):
             OpenocdFlash().run(ctx)
         assert by.poll() is None                                  # the bystander lives
         assert not (tmp_path / "run" / ocd.PID_FILE).exists()      # the child is gone, so its pid file is gone
-        out = subprocess.run(["pgrep", "-f", str(exe)], capture_output=True, text=True).stdout.split()
-        assert out == []
+        import psutil
+        left = [p.pid for p in psutil.process_iter(["cmdline"]) if any(str(tmp_path / "openocd.py") in a for a in (p.info["cmdline"] or []))]
+        assert left == []                                          # neither the wrapper nor the interpreter is left
     finally:
         by.kill()
         by.wait()
@@ -379,9 +374,7 @@ PAYLOADS = ["J1; shutdown; exec touch /tmp/from-usb-serial", "J1 [exec echo PWNE
 
 @pytest.fixture
 def argv_dump(tmp_path, monkeypatch):
-    exe = tmp_path / "openocd_dump"
-    exe.write_text(f'#!/bin/sh\nprintf "%s\\n" "$@" > {tmp_path}/argv.txt\necho "** Verified OK **"\n')
-    exe.chmod(0o755)
+    exe = make_tool(tmp_path, "openocd_dump", f'import sys\nopen({str(tmp_path / "argv.txt")!r}, "w", encoding="utf-8").write("\\n".join(sys.argv[1:]) + "\\n")\nprint("** Verified OK **")\n')
     return exe, tmp_path / "argv.txt"
 
 
@@ -476,11 +469,11 @@ def _fake_survivor(tmp_path):
     """A process that looks like an OpenOCD left by a killed core, with its pid file in another run folder."""
     import json
     import subprocess
+    from polybench import platform as pf
     (tmp_path / "surv").mkdir()
-    exe = tmp_path / "surv" / "openocd"
-    exe.write_text("#!/bin/sh\nsleep 30\n")
-    exe.chmod(0o755)
-    proc = subprocess.Popen([str(exe), "-f", "interface/cmsis-dap.cfg"], start_new_session=True)
+    script = tmp_path / "surv" / "openocd.py"                       # run by the interpreter: its command line names openocd on every OS
+    script.write_text(SLEEPER, encoding="utf-8")
+    proc = subprocess.Popen([sys.executable, str(script), "-f", "interface/cmsis-dap.cfg"], **pf.group_kwargs())
     old = tmp_path / "pb-data" / "batch1" / "runs" / "0001_V1_flash"
     old.mkdir(parents=True)
     (old / ocd.PID_FILE).write_text(json.dumps({"pid": proc.pid, "name": "openocd", "started": "x"}))
@@ -488,9 +481,7 @@ def _fake_survivor(tmp_path):
 
 
 def test_pid_file_exists_while_openocd_runs_and_is_removed_after(tmp_path, monkeypatch):
-    exe = tmp_path / "openocd"
-    exe.write_text(f'#!/bin/sh\ncp "{tmp_path}/run/{ocd.PID_FILE}" "{tmp_path}/seen.json"\necho "** Verified OK **"\n')
-    exe.chmod(0o755)
+    exe = make_tool(tmp_path, "openocd", f"import shutil\nshutil.copy({str(tmp_path / 'run' / ocd.PID_FILE)!r}, {str(tmp_path / 'seen.json')!r})\nprint('** Verified OK **')\n")
     monkeypatch.setattr(ocd, "usb_probes", lambda *a: [])
     OpenocdFlash().run(_flash_ctx(tmp_path, exe))
     import json
@@ -500,6 +491,7 @@ def test_pid_file_exists_while_openocd_runs_and_is_removed_after(tmp_path, monke
 
 
 def test_next_run_and_safe_state_report_a_survivor_and_never_kill_it(tmp_path, monkeypatch):
+    from polybench import platform as pf
     survivor, old = _fake_survivor(tmp_path)
     try:
         exe = fake_openocd(tmp_path, "Error: unable to find a matching CMSIS-DAP device", rc=1)
@@ -508,7 +500,7 @@ def test_next_run_and_safe_state_report_a_survivor_and_never_kill_it(tmp_path, m
         with pytest.raises(ProbeError) as e:
             OpenocdFlash().run(ctx)
         for text in (str(e.value), " ".join(t for lvl, t in ctx.logs if lvl == "warn")):
-            assert f"pid {survivor.pid}" in text and "0001_V1_flash" in text and f"kill {survivor.pid}" in text
+            assert f"pid {survivor.pid}" in text and "0001_V1_flash" in text and pf.stop_hint(survivor.pid) in text
             assert "will not stop it" in text
         st = OpenocdFlash().safe_state()
         assert f"pid {survivor.pid}" in st and "OpenOCD" in st
@@ -521,7 +513,7 @@ def test_next_run_and_safe_state_report_a_survivor_and_never_kill_it(tmp_path, m
 def test_a_stale_pid_file_or_a_reused_pid_is_not_reported(tmp_path):
     import json
     import subprocess
-    other = subprocess.Popen(["sleep", "30"])
+    other = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(30)"])
     try:
         for pid in (other.pid, 999999):
             d = tmp_path / "pb-data" / f"b{pid}" / "runs" / "0001_x"
@@ -537,13 +529,10 @@ def test_a_stale_pid_file_or_a_reused_pid_is_not_reported(tmp_path):
 def test_a_killed_core_leaves_a_pid_file_that_the_next_run_reports(tmp_path):
     """The review's scenario: SIGKILL the core while OpenOCD runs; the child survives, and the next run names it."""
     import os
-    import signal
     import subprocess
-    import sys
     import time
-    exe = tmp_path / "openocd"
-    exe.write_text("#!/bin/sh\nsleep 30\n")
-    exe.chmod(0o755)
+    from polybench import platform as pf
+    exe = make_tool(tmp_path, "openocd", SLEEPER)
     img = tmp_path / "a.hex"
     img.write_text(":00000001FF\n")
     code = ("import polybench.plugins.openocd as o; from polybench.testing import RecordingContext as C; "
@@ -560,15 +549,12 @@ def test_a_killed_core_leaves_a_pid_file_that_the_next_run_reports(tmp_path):
     import json
     child = json.loads(pidfile.read_text())["pid"]
     try:
-        core.send_signal(signal.SIGKILL)
+        core.kill()                                                # SIGKILL on Unix, TerminateProcess on Windows
         core.wait()
         found = ocd.surviving_openocd()
         assert [o["pid"] for o in found] == [child]
     finally:
-        try:
-            os.killpg(child, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
+        pf.kill_pid_tree(child)
 
 
 # ---------------------------------------------------------------- D6 / D8
@@ -670,3 +656,27 @@ def test_read_ram_big_endian_and_bounds():
         OpenocdReadRam().run(_ram_ctx([{"test": "X", "byte": 15, "width": 2}]))
     with pytest.raises(ParamError):
         OpenocdReadRam().run(_ram_ctx([{"test": "X", "byte": 0, "width": 3}]))
+
+
+# ---------------------------------------------------------------- W1-5 Windows absolute paths
+
+@pytest.mark.parametrize("given,written", [
+    ("C:\\Work\\run ner\\img dir\\a.hex", "C:/Work/run ner/img dir/a.hex"),
+    ("C:/Work/runner/a.hex", "C:/Work/runner/a.hex"),
+    ("d:\\fw\\a.elf", "d:/fw/a.elf"),
+    ("\\\\server\\share\\fw\\a.hex", "//server/share/fw/a.hex"),
+    ("/tmp/img dir/a.hex", "/tmp/img dir/a.hex"),
+])
+def test_tcl_path_accepts_windows_absolute_paths_and_writes_forward_slashes(given, written):
+    assert ocd.tcl_path(given, "image path") == written
+
+
+@pytest.mark.parametrize("bad", [
+    "C:\\fw\\a;shutdown.hex", "C:\\fw\\[exec x].hex", "C:\\fw\\$HOME.hex", 'C:\\fw\\a"b.hex', "C:\\fw\\{x}.hex",
+    "C:\\fw\\a\nb.hex", "C:\\fw\\a\tb.hex",
+    "fw\\a.hex",                    # a backslash in a path that is not a Windows absolute path stays refused
+    "/tmp/a\\b.hex", "\\x.hex",
+])
+def test_tcl_path_still_refuses_tcl_syntax_and_stray_backslashes(bad):
+    with pytest.raises(ParamError, match="image path"):
+        ocd.tcl_path(bad, "image path")

@@ -83,7 +83,7 @@ def write(entries, layout, assigned, folder, ppmm=PPMM, log=print):
             raise OSError(f'Cannot write {out / (name + ".jpg")}')
         boards[name] = f'{DIR}/{name}.jpg'
     data = {'schema': SCHEMA, 'box_mm': box, 'ppmm': ppmm, 'size_px': size, 'boards': boards, 'parts': geometry(layout, assigned)}
-    (out / JSON_NAME).write_text(json.dumps(data))
+    (out / JSON_NAME).write_text(json.dumps(data), encoding="utf-8")
     log(f'board views: {len(boards)} images at {ppmm} px/mm in {out}')
     return data
 
@@ -172,7 +172,7 @@ def load(folder):
     path = Path(folder) / DIR / JSON_NAME
     if not path.is_file():
         return None
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def backfill(result_path, layout_path=None, protocol_path=None, cam_zip=None, log=print):
@@ -182,9 +182,9 @@ def backfill(result_path, layout_path=None, protocol_path=None, cam_zip=None, lo
     from polybench.aoi.defect_stage import DefectContext
     from polybench.aoi.protocol import load_protocol
     result_path = Path(result_path).resolve()
-    runlog = json.loads(result_path.with_suffix('.runlog.json').read_text())
+    runlog = json.loads(result_path.with_suffix('.runlog.json').read_text(encoding="utf-8"))
     protocol = load_protocol(protocol_path or proto_default())
-    layout = json.loads(Path(layout_path or next((pr.RECORDED).glob('*_layout_*.json'))).read_text())
+    layout = json.loads(Path(layout_path or next((pr.RECORDED).glob('*_layout_*.json'))).read_text(encoding="utf-8"))
     files = {b: Path(v['photos']['top']) for b, v in runlog['boards'].items() if v['photos'].get('top')}
     data, _ = pr.analyse_side('top', layout, protocol, files, protocol['reference_board'], runlog['sides']['top']['turns'], log)
     ctx = DefectContext(data, layout, protocol, cam_zip or runlog['layout_guard']['cam_zip'], log)

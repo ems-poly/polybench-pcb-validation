@@ -22,9 +22,10 @@ import math
 import os
 from pathlib import Path
 
+from .. import platform as _platform
 from ._util import ParamError, PluginError, fmt_num, need, safe_name, stamp, to_float, to_int
 
-STATE_FILE = Path(os.environ.get("POLYBENCH_STATE_DIR", Path.home() / ".cache" / "polybench")) / "n6705b_last.json"
+STATE_FILE = Path(os.environ.get("POLYBENCH_STATE_DIR", _platform.cache_dir())) / "n6705b_last.json"
 CURRENT_SCALE = {"A": 1.0, "mA": 1e3, "uA": 1e6}
 
 
@@ -108,7 +109,7 @@ def _remember(p: dict, simulate: bool = False) -> None:
         STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         keep = {k: p[k] for k in ("instrument", "host", "serial", "subnet", "port", "transport") if p.get(k)}
         keep["simulate"] = bool(simulate)
-        STATE_FILE.write_text(json.dumps(keep))
+        STATE_FILE.write_text(json.dumps(keep), encoding="utf-8")
     except OSError:
         pass
 
@@ -306,7 +307,7 @@ class _N67Base:
     def safe_state(self) -> str:
         """Open a fresh session, switch every output off and read it back. Never raises."""
         try:
-            last = json.loads(STATE_FILE.read_text()) if STATE_FILE.exists() else {}
+            last = json.loads(STATE_FILE.read_text(encoding="utf-8")) if STATE_FILE.exists() else {}
         except (OSError, ValueError):
             last = {}
         try:
@@ -829,13 +830,13 @@ class N6705bLoadSweep(_N67Base):
             cols = ["set_" + cu, "load_" + cu, "rail_V", "vin_V", "iin_" + cu, "pin_mW", "pout_mW", "efficiency_pct"]
             out = [[r["set_ma"] / 1e3 * sc, r["load_a"] * sc, r["rail_v"], r["vin_v"], r["iin_a"] * sc,
                     r["pin_w"] * 1e3, r["pout_w"] * 1e3, "" if r["eff_pct"] is None else r["eff_pct"]] for r in rows]
-            with open(f"{base}.csv", "w", newline="") as fh:
+            with open(f"{base}.csv", "w", newline="", encoding="utf-8") as fh:
                 w = csv.writer(fh)
                 w.writerow(cols)
                 w.writerows([[f"{x:.6g}" if isinstance(x, float) else x for x in row] for row in out])
             Path(f"{base}.json").write_text(json.dumps(
                 {"action": "n6705b.load_sweep", "complete": complete, "profile": profile.name, "simulated": bool(ctx.simulate),
-                 "columns": cols, "points": [dict(zip(cols, [None if x == "" else x for x in row])) for row in out]}, indent=1))
+                 "columns": cols, "points": [dict(zip(cols, [None if x == "" else x for x in row])) for row in out]}, indent=1), encoding="utf-8")
             ctx.log(f"points written: {base}.csv and {base}.json" + ("" if complete else " (sweep incomplete)"))
             ctx.artifact("n6705b_load_sweep", {"csv": f"{base}.csv", "json": f"{base}.json", "complete": complete})
             return f"{base}.csv"

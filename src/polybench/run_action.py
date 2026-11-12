@@ -28,7 +28,7 @@ def _table_value(workdir, rows, columns, csv_name):
     att = None
     if csv_name:
         att = str(csv_name)
-        with open(Path(workdir) / att, newline="") as f:
+        with open(Path(workdir) / att, newline="", encoding="utf-8") as f:
             rd = list(_csv.reader(f))
         columns = [c.strip() for c in rd[0]]
         rows = [[_num(x) for x in r] for r in rd[1:] if r]
@@ -124,6 +124,11 @@ def main(argv=None):
         safe = True
         argv.pop(0)
     plugin, args = argv[0], json.loads(argv[1] if len(argv) > 1 else "{}")
+    for stream in (sys.stdin, sys.stdout, sys.stderr):      # UTF-8 on every OS: Windows pipes default to the legacy code page
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError, OSError):
+            pass
     out = sys.stdout
     sys.stdout = sys.stderr  # stray prints from plugins must not corrupt the protocol
     from . import registry
@@ -151,7 +156,7 @@ def main(argv=None):
             try:
                 dbg = Path(args.get("workdir", ".")) / "action_debug.log"
                 dbg.parent.mkdir(parents=True, exist_ok=True)
-                with open(dbg, "a") as f:
+                with open(dbg, "a", encoding="utf-8") as f:
                     f.write(tb)
             except OSError:
                 pass

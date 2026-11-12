@@ -106,7 +106,7 @@ def write(state, batch_dir):
     path = Path(batch_dir) / 'aoi' / NAME
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix='.labels', suffix='.tmp')
-    with os.fdopen(fd, 'w') as handle:
+    with os.fdopen(fd, 'w', encoding="utf-8") as handle:
         handle.write(''.join(json.dumps(t, sort_keys=True) + '\n' for t in tasks))
     os.replace(tmp, path)
     return path

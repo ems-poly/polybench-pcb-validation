@@ -197,7 +197,7 @@ def build_context(photos, map_file, layout_path, protocol_path=None, cam_zip=Non
     from polybench.aoi import photo_map, protocol_run as pr
     from polybench.aoi.protocol import load_protocol
     protocol = load_protocol(protocol_path or proto_default())
-    layout = json.loads(Path(layout_path).read_text())
+    layout = json.loads(Path(layout_path).read_text(encoding="utf-8"))
     mapping = photo_map.build(photos, map_file)
     files = {b: m['top'] for b, m in mapping.items() if 'top' in m}
     data, _ = pr.analyse_side('top', layout, protocol, files, protocol['reference_board'], 'auto', log)
@@ -412,7 +412,7 @@ def score_labels(candidates, labels_doc, geometry, margin=0.25):
 
 
 def candidates_of_run(result_path):
-    doc = json.loads(Path(result_path).read_text())
+    doc = json.loads(Path(result_path).read_text(encoding="utf-8"))
     return [{'board': b['board'], 'id': r['id']} for b in doc['boards'] for r in b['results']
             if r['id'].startswith(('AOI-BRIDGE-', 'AOI-LIFT-', 'AOI-MISSING-', 'AOI-ANOM-', 'AOI-POL-')) and r['status'] in ('review', 'fail')]
 
@@ -467,22 +467,22 @@ def main(argv=None):
     if args.polarity_truth:
         if not args.result:
             ap.error('--polarity-truth needs --result')
-        out = score_polarity(json.loads(Path(args.result).read_text()), json.loads(Path(args.polarity_truth).read_text()))
+        out = score_polarity(json.loads(Path(args.result).read_text(encoding="utf-8")), json.loads(Path(args.polarity_truth).read_text(encoding="utf-8")))
         text = json.dumps(out, indent=1)
         print(text)
         if args.out:
-            Path(args.out).write_text(text)
+            Path(args.out).write_text(text, encoding="utf-8")
         return 0
     if args.labels:
         from polybench.aoi import board_view as BV
         if not args.result:
             ap.error('--labels needs --result')
         geometry = BV.load(Path(args.result).parent)
-        out = score_labels(candidates_of_run(args.result), json.loads(Path(args.labels).read_text()), geometry)
+        out = score_labels(candidates_of_run(args.result), json.loads(Path(args.labels).read_text(encoding="utf-8")), geometry)
         text = json.dumps(out, indent=1)
         print(text)
         if args.out:
-            Path(args.out).write_text(text)
+            Path(args.out).write_text(text, encoding="utf-8")
         return 0
     if not args.photos:
         ap.error('--photos is required (or --labels with --result)')
@@ -497,7 +497,7 @@ def main(argv=None):
     text = json.dumps(out, indent=1)
     print(text)
     if args.out:
-        Path(args.out).write_text(text)
+        Path(args.out).write_text(text, encoding="utf-8")
     return 0
 
 

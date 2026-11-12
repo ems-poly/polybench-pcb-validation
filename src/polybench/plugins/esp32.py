@@ -14,12 +14,12 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-import signal
 import subprocess
 import sys
 import time
 from pathlib import Path
 
+from .. import platform as _platform
 from ._util import ParamError, PluginError, need, sha256_file, timeout_param, to_int
 
 USB_IDS = {(0x303A, None): "Espressif native USB", (0x10C4, 0xEA60): "CP210x UART bridge",
@@ -45,7 +45,7 @@ def candidate_ports() -> list[dict]:
         for (vid, pid), name in USB_IDS.items():
             if p.vid == vid and (pid is None or p.pid == pid):
                 # macOS lists tty.* and cu.*; only the call-out device is used for opening
-                if p.device.startswith("/dev/tty."):
+                if not _platform.is_usb_serial_call_out(p.device):
                     break
                 out.append({"device": p.device, "desc": name, "serial": p.serial_number or ""})
                 break
@@ -60,7 +60,7 @@ def pick_port(params: dict) -> str:
     if not c:
         raise EspError("No ESP32 board found on USB. Plug the board in with a Micro-USB data cable (not charge-only), into "
                        "the port marked UART (the USB-bridge port: flashing and the serial self-test both use it), or give "
-                       "`port` in the action params (for example /dev/cu.usbserial-0001).")
+                       "`port` in the action params (for example " + _platform.serial_port_hint() + ").")
     if len(c) > 1:
         raise EspError("More than one candidate serial port; give `port` in the action params: "
                        + ", ".join(f"{x['device']} ({x['desc']})" for x in c))
@@ -82,7 +82,8 @@ def run_esptool(args: list[str], timeout: float, ctx=None) -> str | None:
     if not esptool_available():
         raise EspError("The esptool package is not installed: install `polybench-pcb-validation[esp32]` to use this")
     p = subprocess.Popen([sys.executable, "-m", "esptool", *args], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                         stdin=subprocess.DEVNULL, text=True, start_new_session=True)
+                         stdin=subprocess.DEVNULL, text=True, encoding="utf-8", errors="replace",
+                         **_platform.group_kwargs())
     t0 = time.monotonic()
     while True:
         try:
@@ -102,17 +103,7 @@ def run_esptool(args: list[str], timeout: float, ctx=None) -> str | None:
 
 
 def _stop(p) -> str:
-    for sig in (signal.SIGTERM, signal.SIGKILL):
-        try:
-            os.killpg(p.pid, sig)
-        except (ProcessLookupError, PermissionError):
-            pass
-        try:
-            out, _ = p.communicate(timeout=3)
-            return out or ""
-        except subprocess.TimeoutExpired:
-            continue
-    return ""
+    return _platform.stop_tree(p)
 
 
 def classify(text: str) -> str | None:
@@ -195,7 +186,7 @@ class EsptoolIdentify(_Base):
             info = parse_identify(out)
             ev = Path(ctx.workdir) / f"{ctx.board}_esptool_identify_{time.strftime('%Y%m%d_%H%M%S')}.txt"
             ev.parent.mkdir(parents=True, exist_ok=True)
-            ev.write_text(out)
+            ev.write_text(out, encoding="utf-8")
             if not info["chip"]:
                 raise EspError("esptool ran but no chip type was found in its output; see " + str(ev))
             ctx.log(f"evidence: {ev}")
@@ -272,7 +263,7 @@ class EsptoolFlash(_Base):
                 return
             ev = Path(ctx.workdir) / f"{ctx.board}_esptool_flash_{time.strftime('%Y%m%d_%H%M%S')}.txt"
             ev.parent.mkdir(parents=True, exist_ok=True)
-            ev.write_text(out)
+            ev.write_text(out, encoding="utf-8")
             if "hash of data verified" not in out.lower():
                 raise EspError("esptool finished without 'Hash of data verified'; not claiming the flash is good. See " + str(ev))
         ctx.progress(1.0, "verified")

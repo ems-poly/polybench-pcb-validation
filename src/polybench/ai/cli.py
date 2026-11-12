@@ -7,6 +7,8 @@ import shutil
 import sys
 from pathlib import Path
 
+from .. import platform as _platform
+
 SKILLS = Path(__file__).resolve().parent / "skills"     # package data (src/polybench/ai/skills): present after pip install too
 
 
@@ -16,7 +18,7 @@ def write_trial_config(url: str, path: Path | None = None) -> Path:
     import json
     import os
     from .routes import mcp_command
-    path = Path(path).expanduser() if path else Path("~/.config/polybench/claude-mcp-trial.json").expanduser()
+    path = Path(path).expanduser() if path else _platform.config_dir() / "claude-mcp-trial.json"
     path.parent.mkdir(parents=True, exist_ok=True)
     env = {} if url.rstrip("/") == "http://127.0.0.1:8750" else {"POLYBENCH_URL": url}
     cfg = {"mcpServers": {"polybench": {"command": mcp_command(), "args": ["--client", "claude-code"], **({"env": env} if env else {})}}}

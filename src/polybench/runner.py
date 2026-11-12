@@ -13,6 +13,7 @@ from collections import deque
 from pathlib import Path
 
 from . import derive as _derive
+from . import platform as _platform
 from .engine import CmdError, Engine
 
 
@@ -118,7 +119,7 @@ class ActionRunner:
             self._proc = await asyncio.create_subprocess_exec(
                 sys.executable, "-m", "polybench.run_action", a["plugin"], json.dumps(args),
                 stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
-                limit=16 * 1024 * 1024)
+                limit=16 * 1024 * 1024, env=_platform.child_env())
         except Exception as e:  # cannot even spawn
             await self._finish(run, "error", f"could not start child: {e}")
             return {"ok": False, "run": run}
@@ -129,7 +130,7 @@ class ActionRunner:
         proc = self._proc
         result = {"state": "ok", "text": ""}
         sim = self.simulate or a["plugin"].startswith("demo.")
-        logf = open(self.batch_dir / "runs" / f"{run:04d}_{board}_{a['id']}" / "console.log", "a", buffering=1)
+        logf = open(self.batch_dir / "runs" / f"{run:04d}_{board}_{a['id']}" / "console.log", "a", buffering=1, encoding="utf-8")
 
         async def err_reader():
             async for raw in proc.stderr:
@@ -206,7 +207,7 @@ class ActionRunner:
         derived, skipped = _derive.derive_values(a.get("derive") or [], analysis)
         try:
             (wd / "measurements.json").write_text(json.dumps({"action": a["id"], "plugin": a["plugin"], "board": board, "run": run,
-                                                              "analysis": analysis, "samples": samples, "derived": derived}, indent=1))
+                                                              "analysis": analysis, "samples": samples, "derived": derived}, indent=1), encoding="utf-8")
         except OSError as e:
             await self._line(f"could not store the measurements: {e}", "warn", run)
         for why in skipped:
@@ -283,7 +284,8 @@ class ActionRunner:
         text = ""
         try:
             p = await asyncio.create_subprocess_exec(sys.executable, "-m", "polybench.run_action", "--safe-state", plugin,
-                                                     json.dumps(args), stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+                                                     json.dumps(args), stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                                                     env=_platform.child_env())
             out, err = await p.communicate()
             for line in out.decode(errors="replace").splitlines():
                 try:

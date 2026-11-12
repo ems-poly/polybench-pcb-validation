@@ -1051,7 +1051,7 @@ class VoiceController(SequenceVoice, BenchCommands, GuideCommands):
         run = self.eng.state.aoi_current_run()
         if not run:
             return []
-        items = M.review_items(json.loads(Path(run["result"]).read_text()))
+        items = M.review_items(json.loads(Path(run["result"]).read_text(encoding="utf-8")))
         items += [dict(m) for m in self.eng.state.aoi_manual.values()]
         return items
 

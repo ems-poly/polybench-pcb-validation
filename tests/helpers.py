@@ -31,3 +31,28 @@ def free_port(env_name: str | None = None) -> int:
             p = s.getsockname()[1]
         if p != LIVE_PORT:
             return p
+
+
+def make_tool(directory, name: str, source: str) -> str:
+    """A fake command-line tool that runs the same way on macOS, Linux and Windows (UIR-56, W1-4). `source` is Python code.
+
+    macOS and Linux: an executable `directory/name` (a /bin/sh shim that runs this interpreter on `name.py`).
+    Windows: `directory/name.cmd`, which runs this interpreter on `name.py`. The process tree is then cmd.exe, python, and whatever
+    the script starts, which is also what a real tool wrapper looks like. Returns the path to hand to the plug-in."""
+    import stat
+    import sys
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    py = directory / f"{name}.py"
+    py.write_text(source, encoding="utf-8")
+    if sys.platform == "win32":
+        shim = directory / f"{name}.cmd"
+        shim.write_text(f'@echo off\r\n"{sys.executable}" "{py}" %*\r\n', encoding="utf-8")
+    else:
+        shim = directory / name
+        shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" "{py}" "$@"\n', encoding="utf-8")
+        shim.chmod(shim.stat().st_mode | stat.S_IEXEC)
+    return str(shim)
+
+
+SLEEPER = "import time\ntime.sleep(30)\n"      # a tool that runs until it is stopped

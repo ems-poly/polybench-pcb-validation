@@ -35,6 +35,8 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
+from . import platform as _platform
+
 OK, WARN, FAIL, INFO = "ok", "warn", "fail", "info"
 
 ATMEL_VID, ATMEL_PID = 0x03EB, 0x2141
@@ -82,7 +84,7 @@ def parse_usb_devices(text: str) -> list[dict]:
 
 def usb_devices() -> list[dict] | None:
     try:
-        out = subprocess.run(["ioreg", "-p", "IOUSB", "-l", "-w0"], capture_output=True, text=True, timeout=8).stdout
+        out = subprocess.run(["ioreg", "-p", "IOUSB", "-l", "-w0"], capture_output=True, text=True, timeout=8, encoding="utf-8", errors="replace").stdout
     except Exception:
         return None
     return parse_usb_devices(out)
@@ -222,7 +224,7 @@ def check_openocd(probes: list[str] | None = None, severity: str = FAIL) -> Chec
     except PluginError as e:
         return Check(severity, "OpenOCD", str(e), "brew install open-ocd")
     try:
-        p = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=8)
+        p = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=8, encoding="utf-8", errors="replace")
         first = ((p.stderr or "") + (p.stdout or "")).strip().splitlines()[0]
     except Exception as e:  # noqa: BLE001
         return Check(severity, "OpenOCD", f"{exe} did not run: {e}")
@@ -276,29 +278,8 @@ def check_atmel_ice(devs: list[dict] | None) -> Check:
 
 
 def pcan_holders() -> list[tuple[str, str]]:
-    """[(pid, description)] of processes with the PCBUSB driver loaded. Never kills anything."""
-    import glob
-    libs = sorted({os.path.realpath(x) for x in glob.glob("/usr/local/lib/libPCBUSB*.dylib")})
-    if not libs:
-        return []
-    try:
-        out = subprocess.run(["lsof", "-F", "pc", *libs], capture_output=True, text=True, timeout=4).stdout
-    except Exception:
-        return []
-    found: dict[str, str] = {}
-    pid = None
-    for ln in out.splitlines():
-        if ln.startswith("p"):
-            pid = ln[1:]
-        elif ln.startswith("c") and pid and pid != str(os.getpid()):
-            try:
-                cmd = subprocess.run(["ps", "-ww", "-o", "command=", "-p", pid], capture_output=True, text=True, timeout=2).stdout.strip()
-            except Exception:
-                cmd = ln[1:]
-            toks = cmd.split()
-            py = next((t for t in toks if t.endswith(".py")), None)
-            found[pid] = (os.path.basename(py) + " " + " ".join(toks[toks.index(py) + 1:][:3])).strip() if py else cmd[:80]
-    return sorted(found.items())
+    """[(pid, description)] of processes with the PCBUSB driver loaded. Never kills anything. Empty on Windows (no such list)."""
+    return _platform.library_holders(["/usr/local/lib/libPCBUSB*.dylib"])
 
 
 def check_pcan(devs: list[dict] | None, open_test: bool = True, channel: str = "PCAN_USBBUS1", severity: str = FAIL, bitrate: int = 1_000_000) -> Check:
@@ -443,8 +424,8 @@ def check_n6705b(host: str | None, timeout: float = 3.0) -> Check:
 def _configured_host() -> str | None:
     try:
         import tomllib
-        p = Path.home() / ".config" / "polystage-bench" / "instruments.toml"
-        d = tomllib.loads(p.read_text())
+        p = _platform.user_config_file("instruments.toml", vendor="polystage-bench")
+        d = tomllib.loads(p.read_text(encoding="utf-8"))
         for inst in d.get("instruments", {}).values():
             if inst.get("model") == "n6705b" and inst.get("host"):
                 return inst["host"]
@@ -464,7 +445,7 @@ def sha256(path: Path) -> str:
 def read_manifest(path: Path) -> dict[str, str]:
     """`<sha256>  <relative path>` lines (sha256sum format) -> {basename: sha256}."""
     out: dict[str, str] = {}
-    for ln in path.read_text().splitlines():
+    for ln in path.read_text(encoding="utf-8").splitlines():
         m = re.match(r"^([0-9a-fA-F]{64})\s+\*?(.+)$", ln.strip())
         if m:
             out[Path(m.group(2)).name] = m.group(1).lower()

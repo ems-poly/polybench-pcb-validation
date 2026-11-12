@@ -226,7 +226,7 @@ def pad_net(netlist, designator, index):
 
 def load_netlist(path):
     import json
-    return json.loads(Path(path).read_text())['pads']
+    return json.loads(Path(path).read_text(encoding="utf-8"))['pads']
 
 
 def nets_relation(na, nb):

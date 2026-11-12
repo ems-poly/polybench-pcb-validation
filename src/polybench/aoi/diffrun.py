@@ -66,5 +66,5 @@ def run(mapping: dict, cfg: dict, out_dir: Path, log=print):
         doc["boards"].append({"board": b, "photo": str(mapping[b]["top"]), "results": results})
     doc["registration"] = registration
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "aoi_result.json").write_text(json.dumps(doc, indent=2))
+    (out_dir / "aoi_result.json").write_text(json.dumps(doc, indent=2), encoding="utf-8")
     return doc, items_meta, registration

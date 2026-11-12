@@ -19,7 +19,7 @@ def photos_from_journal(batch_dir: Path):
     """Replay aoi_photo / aoi_photo_move / aoi_photo_drop / aoi_photo_removed from the journal (read only): {file: record}."""
     photos = {}
     jp = Path(batch_dir) / "journal.jsonl"
-    for line in jp.read_text().splitlines():
+    for line in jp.read_text(encoding="utf-8").splitlines():
         try:
             ev = json.loads(line)
         except ValueError:
@@ -121,7 +121,7 @@ def run(batch_dir: Path, out_dir: Path, cfg: dict, log=print, simulate=False):
     from polybench.aoi.protocol import load_protocol
     protocol_path, layout_path = resolve(cfg, "protocol"), resolve(cfg, "layout")
     protocol = load_protocol(protocol_path)
-    layout = json.loads(Path(layout_path).read_text())
+    layout = json.loads(Path(layout_path).read_text(encoding="utf-8"))
     if (protocol.get("defects") or {}).get("netlist"):
         protocol["defects"]["netlist"] = str(Path(protocol_path).parent / protocol["defects"]["netlist"])
     if (protocol.get("polarity") or {}).get("spec"):

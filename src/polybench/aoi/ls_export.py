@@ -78,7 +78,7 @@ def main(argv=None):
     doc = export(tasks, source={'label_studio': ls.url, 'project': project['id'], 'title': P.PROJECT_TITLE})
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(doc, indent=1))
+    out.write_text(json.dumps(doc, indent=1), encoding="utf-8")
     print(f'{out}: {len(doc["labels"])} labels, boards reviewed {[b for b, v in doc["boards"].items() if v["reviewed"]]}')
     return 0
 

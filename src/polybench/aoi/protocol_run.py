@@ -280,7 +280,7 @@ def _write(path, image):
 
 def load_layout(path=None, log=print):
     if path:
-        return json.loads(Path(path).read_text())
+        return json.loads(Path(path).read_text(encoding="utf-8"))
     raise RunError('no recorded layout given (Polybench runs AOI from a recorded layout only)')
 
 
@@ -393,8 +393,8 @@ def run(protocol, layout, mapping, out_path, cam_zip, photos_dir=None, reference
         runlog['boards'][board] = {'photos': photos, 'errors': errors, 'counts': counts,
                                    'alignment': {s: sides.get(s, {}).get(board, {}).get('alignment') for s in sides}}
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_text(json.dumps(document, indent=2))
-    out_path.with_suffix('.runlog.json').write_text(json.dumps(runlog, indent=2, default=str))
+    out_path.write_text(json.dumps(document, indent=2), encoding="utf-8")
+    out_path.with_suffix('.runlog.json').write_text(json.dumps(runlog, indent=2, default=str), encoding="utf-8")
     return document
 
 
@@ -406,7 +406,7 @@ def protocol_logic_statuses():
 def check_ids_against_sheet(protocol, sheet_path):
     """Compare protocol row ids with the ids in the results sheet's As-built and Stage V tables."""
     import re
-    text = Path(sheet_path).read_text()
+    text = Path(sheet_path).read_text(encoding="utf-8")
     ids, section = [], None
     for line in text.splitlines():
         if line.startswith('## '):

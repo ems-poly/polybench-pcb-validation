@@ -39,7 +39,7 @@ def _journal(entry: str) -> None:
     path = os.environ.get("POLYBENCH_KICAD_COMMAND_LOG")
     if path:
         try:
-            with open(path, "a") as fh:
+            with open(path, "a", encoding="utf-8") as fh:
                 fh.write(entry + "\n")
         except OSError:
             pass

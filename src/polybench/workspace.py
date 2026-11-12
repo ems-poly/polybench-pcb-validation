@@ -20,6 +20,8 @@ import tempfile
 import time
 from pathlib import Path
 
+from . import platform as _platform
+
 SETTINGS_NAME = "polybench-project.json"
 SCHEMA = 1
 PLATFORMS = [{"id": "fusion", "label": "Fusion"}, {"id": "kicad", "label": "KiCad"}]
@@ -61,7 +63,7 @@ def now() -> str:
 
 
 def config_dir() -> Path:
-    return Path(os.environ.get("POLYBENCH_CONFIG_DIR", "~/.config/polybench")).expanduser()
+    return _platform.config_dir()
 
 
 def demo_dir() -> Path:
@@ -70,11 +72,7 @@ def demo_dir() -> Path:
     env = os.environ.get("POLYBENCH_DEMO_DIR")
     if env:
         return Path(env).expanduser()
-    home = Path.home()
-    if sys.platform == "darwin":
-        return home / "Library" / "Application Support" / "polybench" / "demo-project"
-    base = os.environ.get("XDG_DATA_HOME")
-    return (Path(base).expanduser() if base else home / ".local" / "share") / "polybench" / "demo-project"
+    return _platform.user_data_dir() / "demo-project"
 
 
 def atomic_write_json(path: Path, data) -> None:
@@ -88,7 +86,7 @@ def atomic_write_json(path: Path, data) -> None:
             f.write("\n")
             f.flush()
             os.fsync(f.fileno())
-        os.replace(tmp, path)
+        _platform.replace_file(tmp, path)
     except BaseException:
         try:
             os.unlink(tmp)

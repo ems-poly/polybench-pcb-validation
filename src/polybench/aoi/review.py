@@ -13,7 +13,7 @@ PAGE = Path(__file__).with_name("review_page.html")
 
 
 def page_html(base: str) -> str:
-    return PAGE.read_text().replace("__TOKEN__", "pb").replace("__BASE__", base)
+    return PAGE.read_text(encoding="utf-8").replace("__TOKEN__", "pb").replace("__BASE__", base)
 
 
 def state(engine, batch_dir: Path, base: str) -> dict:
@@ -23,7 +23,7 @@ def state(engine, batch_dir: Path, base: str) -> dict:
                 "progress": {"total": 0, "decided": 0, "undecided": 0, "confirmed": 0, "rejected": 0, "unsure": 0, "stale_keys": []},
                 "decisions_file": "journal", "same_run": True, "boards": [], "boardview": False}
     result = Path(run["result"])
-    document = json.loads(result.read_text())
+    document = json.loads(result.read_text(encoding="utf-8"))
     items = M.review_items(document)
     meta = {i["key"]: i.get("diff") for i in run.get("items", []) if i.get("diff")}
     for it in items:

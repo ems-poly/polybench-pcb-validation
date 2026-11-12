@@ -349,8 +349,8 @@ class BusHandle:
     def reports_error_frames(self) -> bool:
         """python-can asks PCBUSB for error frames; the macOS PCBUSB library does not support that, so a count of 0 there
         proves nothing."""
-        import sys
-        return True if self._sim else sys.platform != "darwin"
+        from .. import platform as _platform
+        return True if self._sim else not _platform.IS_MACOS
 
     def now(self) -> float:
         return self._sim.t if self._sim else time.monotonic()
@@ -382,31 +382,10 @@ class BusHandle:
 
 
 def pcbusb_holders() -> list[str]:
-    """Best effort: processes that have libPCBUSB loaded (they usually hold the channel). Never raises, 3 s limit."""
-    import glob
-    import os
-    import subprocess
-    libs = sorted({os.path.realpath(x) for x in glob.glob("/usr/local/lib/libPCBUSB*.dylib")})
-    if not libs:
-        return []
-    try:
-        out = subprocess.run(["lsof", "-F", "pc", *libs], capture_output=True, text=True, timeout=3).stdout
-    except Exception:
-        return []
-    found, pid = [], None
-    for ln in out.splitlines():
-        if ln.startswith("p"):
-            pid = ln[1:]
-        elif ln.startswith("c") and pid and pid != str(os.getpid()):
-            try:
-                cmd = subprocess.run(["ps", "-ww", "-o", "command=", "-p", pid], capture_output=True, text=True, timeout=2).stdout.strip()
-            except Exception:
-                cmd = ln[1:]
-            toks = cmd.split()
-            py = next((t for t in toks if t.endswith(".py")), None)
-            label = (os.path.basename(py) + " " + " ".join(toks[toks.index(py) + 1:][:3])) if py else cmd[:80]
-            found.append(f"pid {pid} ({label.strip()})")
-    return list(dict.fromkeys(found))
+    """Best effort: processes that have libPCBUSB loaded (they usually hold the channel). Never raises, 4 s limit.
+    macOS and Linux only; on Windows there is no such list and the open attempt itself reports a busy channel."""
+    from .. import platform as _platform
+    return [f"pid {pid} ({label})" for pid, label in _platform.library_holders(["/usr/local/lib/libPCBUSB*.dylib"])]
 
 
 def explain_pcan_error(e: Exception, channel: str, bitrate: int) -> str:

@@ -33,14 +33,14 @@ import json
 import os
 import re
 import shutil
-import signal
 import subprocess
 import time
 from pathlib import Path
 
+from .. import platform as _platform
 from ._util import ParamError, PluginError, need, safe_name, sha256_file, stamp, to_float, to_int
 
-OPENOCD_CANDIDATES = ("/opt/homebrew/bin/openocd", "/usr/local/bin/openocd")
+OPENOCD_CANDIDATES = _platform.openocd_candidates()
 
 # Probe presets. `vid_pid` is the default USB restriction (None: no restriction command is issued); `vids` are the USB
 # vendor ids the doctor and the multi-probe check look for (None: not listed here, OpenOCD decides). `label` is the
@@ -114,6 +114,23 @@ def tcl_word(value, what: str, spaces: bool = False) -> str:
     return text
 
 
+_WIN_ABS = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\[^\\/]+[\\/][^\\/]+)")        # C:\dir, C:/dir, or \\server\share
+
+
+def tcl_path(value, what: str) -> str:
+    """A file path for an OpenOCD `-c` command or `-f` argument, with spaces allowed (the caller puts it in double quotes).
+
+    Rule (W1-5): a Windows absolute path (`C:\\dir\\f.hex`, `C:/dir/f.hex`, `\\\\server\\share\\f.hex`) is accepted and its backslashes are
+    written as `/`, which Tcl and OpenOCD read as the same path (a raw backslash is a Tcl escape: `\\U` in `C:\\Users` would be eaten).
+    Every other backslash is refused, exactly as before. After that the text must pass `tcl_word`: no Tcl syntax
+    (`; [ ] $ " \\ { }`), no control character, no whitespace other than a plain space. The `:` of a drive letter is allowed;
+    no other rule changes. The caller resolves the path first (`Path.resolve()`), so `..` has already been applied."""
+    text = str(value)
+    if _WIN_ABS.match(text):
+        text = text.replace("\\", "/")
+    return tcl_word(text, what, spaces=True)
+
+
 def usb_serial(serial: str) -> str:
     """A serial number read from USB, checked the same way. The operator did not type it, so the message says so."""
     try:
@@ -127,14 +144,15 @@ def usb_serial(serial: str) -> str:
 PID_FILE = "openocd.pid"
 
 
-def _proc_command(pid: int) -> str | None:
-    """Command line of a live process, or None when it is gone. `ps` only reads. `-ww` lifts the width limit: Linux procps
-    cuts the line at 80 columns when output is not a terminal, which clipped a long path to ".../openoc" and hid the process."""
-    try:
-        out = subprocess.run(["ps", "-ww", "-o", "command=", "-p", str(int(pid))], capture_output=True, text=True, timeout=4).stdout.strip()
-    except Exception:
-        return None
-    return out or None
+def _looks_like_openocd(argv: list[str]) -> bool:
+    """The program part of a command line names openocd: one of the first four words, before the first option. Four words
+    cover a wrapper (`cmd.exe /c openocd.cmd`, `python openocd.py`); stopping at an option keeps `tail -f openocd.log` out."""
+    for t in argv[:4]:
+        if t.startswith("-"):
+            break
+        if "openocd" in Path(t).name.lower().replace("\\", "/").rsplit("/", 1)[-1]:
+            return True
+    return False
 
 
 def surviving_openocd(workdir: str | Path | None = None, data_dir: str | Path | None = None) -> list[dict]:
@@ -153,13 +171,13 @@ def surviving_openocd(workdir: str | Path | None = None, data_dir: str | Path | 
     found = []
     for f in sorted(files):
         try:
-            info = json.loads(f.read_text())
+            info = json.loads(f.read_text(encoding="utf-8"))
             pid = int(info["pid"])
         except (OSError, ValueError, KeyError, TypeError):
             continue
-        cmd = _proc_command(pid)
-        if cmd and any("openocd" in Path(t).name.lower() for t in cmd.split()[:2]):
-            found.append({"pid": pid, "command": cmd[:120], "run": f.parent.name, "started": info.get("started", "?")})
+        argv = _platform.process_argv(pid)
+        if argv and _looks_like_openocd(argv):
+            found.append({"pid": pid, "command": " ".join(argv)[:120], "run": f.parent.name, "started": info.get("started", "?")})
     return found
 
 
@@ -167,7 +185,7 @@ def orphan_message(found: list[dict]) -> str:
     return " ".join(
         f"An OpenOCD from an earlier run ({o['run']}) is still running: pid {o['pid']}, '{o['command']}'. It probably holds the probe. "
         f"Polybench did not start it in this run and will not stop it. If you are sure nothing is programming, stop it yourself: "
-        f"kill {o['pid']}  (check first with: ps -p {o['pid']})." for o in found)
+        f"{_platform.stop_hint(o['pid'])}" for o in found)
 
 
 def find_openocd(params: dict | None = None) -> str:
@@ -182,7 +200,8 @@ def find_openocd(params: dict | None = None) -> str:
     for c in OPENOCD_CANDIDATES:
         if Path(c).exists():
             return c
-    raise PluginError("openocd is not installed. Install it with: brew install open-ocd")
+    raise PluginError("openocd is not installed. " + ("Install OpenOCD, add its bin folder to PATH, or set POLYBENCH_OPENOCD to openocd.exe"
+                                                      if _platform.IS_WINDOWS else "Install it with: brew install open-ocd"))
 
 
 def resolve_probe(params: dict) -> tuple[str, dict]:
@@ -259,7 +278,7 @@ def usb_probes(probe: str = DEFAULT_PROBE) -> list[dict]:
     if not vids:
         return []
     try:
-        out = subprocess.run(["ioreg", "-p", "IOUSB", "-l", "-w0"], capture_output=True, text=True, timeout=8).stdout
+        out = subprocess.run(["ioreg", "-p", "IOUSB", "-l", "-w0"], capture_output=True, text=True, timeout=8, encoding="utf-8", errors="replace").stdout
     except Exception:
         return []
     return parse_ioreg(out, vids)
@@ -378,7 +397,7 @@ class _OcdBase:
                         raise ValueError
                 except (TypeError, ValueError):
                     raise ParamError("vid_pid must be a list [vid, pid]") from None
-            args = [exe, "-f", tcl_word(params.get("interface") or probe["interface"], "interface", spaces=True)]
+            args = [exe, "-f", tcl_path(params.get("interface") or probe["interface"], "interface")]
             for c in probe["pre"]:
                 args += ["-c", c]
             if vid_pid and pname in VID_PID_PROBES:
@@ -387,7 +406,7 @@ class _OcdBase:
             if not tcfg:
                 _key, fam = resolve_target(params)
                 tcfg = fam["cfg"]
-            args += ["-f", tcl_word(tcfg, "target_cfg", spaces=True)]
+            args += ["-f", tcl_path(tcfg, "target_cfg")]
         serial = params.get("probe_serial")
         if serial:
             args += ["-c", f"adapter serial {tcl_word(serial, 'probe_serial')}"]
@@ -400,7 +419,8 @@ class _OcdBase:
         """Run OpenOCD with a timeout owned here. Cancelling asks it to stop (SIGTERM to our own child only). While the child
         runs, `openocd.pid` in the run folder names it, so that if this process is killed (SIGKILL) the next run and
         safe_state can report the survivor. The file is removed when the child has exited."""
-        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+        p = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace",
+                             **_platform.group_kwargs())
         pidfile = self._write_pidfile(ctx, p, args)
         try:
             return self._wait(p, timeout, ctx)
@@ -416,7 +436,7 @@ class _OcdBase:
         try:
             f.parent.mkdir(parents=True, exist_ok=True)
             f.write_text(json.dumps({"pid": p.pid, "name": "openocd", "started": stamp(), "args0": Path(args[0]).name,
-                                     "owner_pid": os.getpid()}))
+                                     "owner_pid": os.getpid()}), encoding="utf-8")
         except OSError:
             return None
         return f
@@ -459,17 +479,7 @@ class _OcdBase:
     @staticmethod
     def _stop(p) -> str:
         """Stop OpenOCD, which this action started (its own process group, so a wrapper's children go too)."""
-        for sig in (signal.SIGTERM, signal.SIGKILL):
-            try:
-                os.killpg(p.pid, sig)
-            except (ProcessLookupError, PermissionError):
-                pass
-            try:
-                out, _ = p.communicate(timeout=3)
-                return out or ""
-            except subprocess.TimeoutExpired:
-                continue
-        return ""
+        return _platform.stop_tree(p)
 
     def safe_state(self) -> str:
         """Read-only: reports an OpenOCD left behind by an earlier run (found through its pid file), never stops one."""
@@ -574,7 +584,7 @@ class OpenocdIdentify(_OcdBase):
         if row is not None:
             info["nvm_user_row"] = decode_nvm_user_row(row)
         info["uid"] = uid
-        path.write_text(json.dumps(info, indent=1))
+        path.write_text(json.dumps(info, indent=1), encoding="utf-8")
         ev = str(path)
         if row is None:
             ctx.log("NVM user row was not read (no mdw output for 0x00804000); BOOTPROT and BODVDD are not proposed", "warn")
@@ -625,7 +635,7 @@ class OpenocdFlash(_OcdBase):
         self._begin(p)
         pname, probe = resolve_probe(p)
         resolve_target(p)
-        tcl_word(image.resolve(), "image path", spaces=True)
+        tcl_path(image.resolve(), "image path")
         if p.get("probe_serial"):
             tcl_word(p["probe_serial"], "probe_serial")
         digest = sha256_file(image)
@@ -644,7 +654,7 @@ class OpenocdFlash(_OcdBase):
             if len(probes) > 1 and not q.get("probe_serial"):
                 raise ProbeError(f"More than one {probe['name']} is connected; give probe_serial in the action params")
             ctx.progress(0.1, "programming and verifying")
-            path = tcl_word(image.resolve(), "image path", spaces=True)
+            path = tcl_path(image.resolve(), "image path")
             cmds = [f'program "{path}" verify reset', "shutdown"]
             rc, out = self._run_noted(self._args(q, cmds), to_float(p.get("timeout_s", FLASH_TIMEOUT_S), "timeout_s"), ctx, note)
             ok = "** verified ok **" in out.lower()
@@ -677,7 +687,7 @@ class OpenocdReadRam(_OcdBase):
 
     @staticmethod
     def _symbol(map_file: str, symbol: str) -> int:
-        txt = Path(str(map_file)).expanduser().read_text(errors="replace")
+        txt = Path(str(map_file)).expanduser().read_text(errors="replace", encoding="utf-8")
         m = re.search(r"^\s+0x([0-9a-fA-F]+)\s+" + re.escape(symbol) + r"\s*$", txt, re.M)
         if not m:
             raise ParamError(f"symbol {symbol} not found in {map_file}")

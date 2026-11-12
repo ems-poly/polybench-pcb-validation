@@ -59,6 +59,6 @@ def make(layout, protocol, out_dir, log=print):
                             "confidence": conf, "note": f"SIMULATED: {note}. No photo was analysed."})
         doc["boards"].append({"board": b, "photo": "", "results": results})
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "aoi_result.json").write_text(json.dumps(doc, indent=2))
+    (out_dir / "aoi_result.json").write_text(json.dumps(doc, indent=2), encoding="utf-8")
     log(f"no photos: wrote a SIMULATED result with {sum(len(b['results']) for b in doc['boards'])} candidates")
     return doc

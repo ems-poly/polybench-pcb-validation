@@ -56,7 +56,7 @@ class PolarityError(ValueError):
 
 def load_spec(path=None):
     path = path or SPEC_PATH
-    data = json.loads(Path(path).read_text())
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
     if data.get('schema') != SCHEMA:
         raise PolarityError(f'{path}: schema must be {SCHEMA}')
     return data
@@ -586,7 +586,7 @@ def main(argv=None):
     from polybench.aoi.protocol import load_protocol
     spec = load_spec(args.spec)
     protocol = load_protocol()
-    layout = json.loads(Path(args.layout or next(pr.RECORDED.glob('*_layout_*.json'))).read_text())
+    layout = json.loads(Path(args.layout or next(pr.RECORDED.glob('*_layout_*.json'))).read_text(encoding="utf-8"))
     photos = Path(args.photos)
     mapping = photo_map.build(photos, args.map or (photos / 'map.json' if (photos / 'map.json').is_file() else None))
     files = {b: m['top'] for b, m in mapping.items() if 'top' in m}
@@ -594,7 +594,7 @@ def main(argv=None):
     batch = run_batch(data, spec, args.out)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    (out / 'polarity.json').write_text(json.dumps({'schema': 'polystage.aoi_polarity_run/0', 'spec': str(args.spec), **batch}, indent=1))
+    (out / 'polarity.json').write_text(json.dumps({'schema': 'polystage.aoi_polarity_run/0', 'spec': str(args.spec), **batch}, indent=1), encoding="utf-8")
     if args.result:
         patch_result(Path(args.result), batch, spec, protocol)
     for designator, results in batch['parts'].items():
@@ -604,7 +604,7 @@ def main(argv=None):
 
 def patch_result(result_path, batch, spec, protocol):
     """Replace V07a and annotate V07 in an existing aoi_result.json, add AOI-POL-* rows. Idempotent."""
-    doc = json.loads(result_path.read_text())
+    doc = json.loads(result_path.read_text(encoding="utf-8"))
     rows = {r['id']: r for r in protocol['rows']}
     for board in doc['boards']:
         name = board['board']
@@ -624,7 +624,7 @@ def patch_result(result_path, batch, spec, protocol):
                 if d4 and d4['note'] not in r['note']:
                     r['note'] = (r['note'] + ' D4 polarity (aoi.polarity): ' + d4['status'] + '. ' + d4['note']).strip()
         board['results'] = keep + contract_results(batch, spec, name)
-    result_path.write_text(json.dumps(doc, indent=2))
+    result_path.write_text(json.dumps(doc, indent=2), encoding="utf-8")
 
 
 if __name__ == '__main__':

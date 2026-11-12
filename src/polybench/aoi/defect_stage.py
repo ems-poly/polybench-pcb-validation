@@ -35,7 +35,7 @@ def designators_of(result_id):
 
 def confirmed_from_decisions(path):
     """{designator: {board, ...}} for every operator-confirmed candidate in a review decisions file (read only)."""
-    data = json.loads(Path(path).read_text())['decisions']
+    data = json.loads(Path(path).read_text(encoding="utf-8"))['decisions']
     out = {}
     for d in data.values():
         if d.get('decision') == 'confirmed':

@@ -39,7 +39,7 @@ def run_stage(entries, layout, protocol, cam_zip, parts, evidence_dir, log=print
         info = {'schema': 'polystage.aoi_bridge_pairs/0', 'pair_max_gap_mm': D.CFG['pair_max_gap_mm'], 'netlist': 'aoi/protocols/netlist.json',
                 'pairs': ctx.bridge_pairs,
                 'same_net_flagged': [{k: c[k] for k in ('board', 'id', 'score', 'nets', 'note')} for c in ctx.bridge_info]}
-        (Path(evidence_dir).parent / 'bridge_pairs.json').write_text(json.dumps(info, indent=1))
+        (Path(evidence_dir).parent / 'bridge_pairs.json').write_text(json.dumps(info, indent=1), encoding="utf-8")
     except Exception as error:
         log(f'defects: bridge_pairs.json not written: {type(error).__name__}: {error}')
     counts = {}

@@ -45,10 +45,10 @@ dmm = ["hidapi>=0.14"]     # live multimeter: UNI-T UT161E over the CH9329 HID c
 dev = ["pytest", "setuptools>=77", "playwright==1.58.0", "httpx", "kicad-python==0.8.0"]   # 1.58 matches the Chromium build cached on the bench Mac
 
 [project.urls]
-Homepage = "https://github.com/polystage/polybench"          # PENDING D2 (owner and repository name)
-Documentation = "https://github.com/polystage/polybench/tree/main/site"
-Issues = "https://github.com/polystage/polybench/issues"
-Changelog = "https://github.com/polystage/polybench/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/ems-poly/polybench-pcb-validation"
+Documentation = "https://github.com/ems-poly/polybench-pcb-validation/tree/main/site"
+Issues = "https://github.com/ems-poly/polybench-pcb-validation/issues"
+Changelog = "https://github.com/ems-poly/polybench-pcb-validation/blob/main/CHANGELOG.md"
 
 [project.scripts]
 polybench = "polybench.cli:main"
